@@ -1,0 +1,103 @@
+﻿// src/core/api/apiClient.js
+import axios from "axios";
+
+// در صورت نیاز می‌تونی از env بخونی
+const apiClient = axios.create({
+    baseURL: "http://localhost:5273/api/v1",
+});
+
+// ---------------- Request: اضافه کردن JWT ----------------
+apiClient.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem("token");
+        if (token && !config.headers.Authorization) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+// ---------------- Response: هماهنگ با ApiResult -----------
+apiClient.interceptors.response.use(
+    (response) => {
+        // اینجا فقط برای statusهای 2xx صدا زده می‌شود
+        const payload = response.data;
+
+        // اگر شکل پاسخ از نوع ApiResult بود، بازش می‌کنیم
+        if (
+            payload &&
+            typeof payload === "object" &&
+            Object.prototype.hasOwnProperty.call(payload, "success")
+        ) {
+            if (payload.success) {
+                // ✅ در حالت موفق:
+                // res.data در بقیه کدها == payload.data
+                response.data = payload.data;
+                return response;
+            } else {
+                // اگر به هر دلیلی ApiResult با success=false و status 2xx بیاد
+                const msg =
+                    payload.message ||
+                    "خطا در انجام عملیات. لطفاً دوباره تلاش کنید.";
+                const error = new Error(msg);
+                error.isApiResult = true;
+                error.apiResult = payload;
+                return Promise.reject(error);
+            }
+        }
+
+        // اگر ApiResult نبود (مثلاً endpoint قدیمی) همون رو پاس می‌دیم
+        return response;
+    },
+    (error) => {
+        // اینجا خطاهای status غیر 2xx یا خطای شبکه می‌آید
+
+        // 🔴 فقط این بخش جدید اضافه شده: هندل کردن 401 و توکن منقضی
+        try {
+            const status = error?.response?.status;
+
+            if (status === 401) {
+                // توکن نامعتبر / منقضی → پاک کردن و هدایت به صفحه ورود
+                try {
+                    localStorage.removeItem("token");
+                } catch {
+                    // اگر localStorage در دسترس نبود، نادیده می‌گیریم
+                }
+
+                if (window.location.pathname !== "/login") {
+                    window.location.href = "/login";
+                }
+            }
+        } catch {
+            // اگر به هر دلیلی این بخش خطا داد، نمی‌گذاریم کل interceptor بترکد
+        }
+
+        try {
+            if (error.response && error.response.data) {
+                const data = error.response.data;
+
+                // اگر بدنه‌اش شبیه ApiResult.Fail بود
+                if (
+                    typeof data === "object" &&
+                    Object.prototype.hasOwnProperty.call(data, "success") &&
+                    Object.prototype.hasOwnProperty.call(data, "message")
+                ) {
+                    error.message = data.message || "خطا در انجام عملیات.";
+                } else if (typeof data.message === "string") {
+                    error.message = data.message;
+                } else if (typeof data.error === "string") {
+                    error.message = data.error;
+                }
+            } else if (!error.message) {
+                error.message = "خطا در ارتباط با سرور.";
+            }
+        } catch {
+            // اگر parsing خراب شد، همون error اصلی می‌ره
+        }
+
+        return Promise.reject(error);
+    }
+);
+
+export default apiClient;

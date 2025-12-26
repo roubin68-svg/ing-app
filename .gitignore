@@ -1,0 +1,16 @@
+# node
+node_modules/
+npm-debug.log*
+
+# .NET
+bin/
+obj/
+.vs/
+
+# env
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db

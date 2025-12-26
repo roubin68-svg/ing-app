@@ -1,0 +1,113 @@
+﻿/* صفحه لاگین وسط‌چین واقعی */
+.login-wrapper {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #f5f6fa;
+}
+
+/* کارت اصلی */
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    background: #fff;
+    padding: 32px 28px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+    text-align: center;
+}
+
+/* تیتر */
+.login-title {
+    margin-bottom: 4px !important;
+    font-weight: 800 !important;
+    color: #263238 !important;
+    font-size: 22px !important;
+}
+
+.login-subtitle {
+    color: #607d8b;
+    margin-top: -6px;
+    font-size: 13px;
+}
+
+/* ورودی */
+.login-input {
+    height: 44px !important;
+    border-radius: 10px !important;
+    padding-inline: 12px !important;
+}
+
+    .login-input.ant-input-status-error,
+    .login-input.ant-input-status-error:hover {
+        border-color: #ef5350 !important;
+    }
+
+/* --- خطای یکپارچه (چه OTP، چه موبایل) --- */
+.login-error-box {
+    background: #fdecea;
+    border: 1px solid #f5c2c0;
+    color: #b91c1c;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    text-align: center;
+    font-weight: 500;
+    margin-top: -4px;
+    margin-bottom: 8px;
+    animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* OTP */
+.otp-input-group {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    direction: ltr !important;
+    margin-top: 4px;
+}
+
+.otp-input {
+    width: 46px;
+    height: 50px;
+    border-radius: 12px;
+    border: 1px solid #cfd8dc;
+    text-align: center;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+    .otp-input:focus {
+        border-color: #42a5f5;
+        box-shadow: 0 0 0 3px rgba(33,150,243,0.25);
+        outline: none;
+    }
+
+/* دکمه اصلی */
+.login-btn {
+    height: 44px !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    margin-top: 6px;
+}
+
+/* لینک‌ها */
+.login-links {
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+}

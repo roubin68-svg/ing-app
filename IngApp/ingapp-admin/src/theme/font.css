@@ -1,0 +1,100 @@
+﻿/* src/theme/font.css */
+
+/* Regular */
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("/public/fonts/vazirmatn/Vazirmatn-Regular.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Medium */
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("/public/fonts/vazirmatn/Vazirmatn-Medium.woff2") format("woff2");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Bold */
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("/public/fonts/vazirmatn/Vazirmatn-Bold.woff2") format("woff2");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+
+/* src/theme/global-font.css */
+/* -------------------------------------------- */
+/*   Override کامل فونت روی کل AntD + کل HTML  */
+/* -------------------------------------------- */
+
+/* کل صفحه */
+html, body, #root {
+    font-family: "Vazirmatn", sans-serif !important;
+    margin:0;
+}
+
+/* AntD Typography */
+.ant-typography,
+.ant-typography * {
+    font-family: inherit !important;
+}
+
+/* فرم‌ها */
+.ant-form,
+.ant-form * {
+    font-family: inherit !important;
+}
+
+/* ورودی‌ها */
+.ant-input,
+.ant-input *,
+.ant-input-affix-wrapper,
+.ant-input-affix-wrapper * {
+    font-family: inherit !important;
+}
+
+/* دکمه‌ها */
+.ant-btn,
+.ant-btn * {
+    font-family: inherit !important;
+}
+
+/* کارت‌ها */
+.ant-card,
+.ant-card * {
+    font-family: inherit !important;
+}
+
+/* مودال‌ها و پیام‌ها */
+.ant-modal,
+.ant-modal *,
+.ant-message,
+.ant-message *,
+.ant-notification,
+.ant-notification * {
+    font-family: inherit !important;
+}
+
+/* منوها */
+.ant-menu,
+.ant-menu * {
+    font-family: inherit !important;
+}
+
+/* جدول */
+.ant-table,
+.ant-table * {
+    font-family: inherit !important;
+}
+
+/* مهم: کل Layout و عناصر داخلش هم Vazirmatn باشند (مشکل h1 داشبورد) */
+.ant-layout,
+.ant-layout * {
+    font-family: inherit !important;
+}

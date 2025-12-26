@@ -1,0 +1,220 @@
+﻿/* src/theme/layout.css */
+
+/* ────────────── LAYOUT ROOT ────────────── */
+.admin-layout {
+    min-height: 100vh;
+}
+
+/* ────────────── SIDEBAR ────────────── */
+.admin-sider {
+    background: #020617 !important; /* very dark navy */
+    color: #e5e7eb;
+    position: relative;
+    z-index: 10;
+}
+
+/* لوگو بالای سایدبار */
+.admin-logo {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    margin-bottom: 20px;
+}
+
+
+/* لوگوی بزرگ وقتی سایدبار باز است */
+.admin-logo-text {
+    font-weight: 700;
+    font-size: 17px;
+    color: #f9fafb;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* حالت COLLAPSED → دایره نارنجی */
+.admin-logo--collapsed {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.admin-logo-circle {
+    width: 48px;
+    height: 48px;
+    background: #f97316; /* orange */
+    color: #020617;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+/* ────────────── MAIN LAYOUT ────────────── */
+.admin-main-layout {
+    background: #f3f4f6;
+}
+
+/* ────────────── HEADER ────────────── */
+.admin-header {
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* سمت راست (دکمه منو) */
+.admin-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.admin-trigger {
+    font-size: 18px;
+}
+
+/* سمت چپ (آیکن نوتیف + کاربر) */
+.admin-header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.admin-header-icon {
+    font-size: 18px;
+    color: #6b7280;
+}
+
+/* وقتی سایدبار بسته است — آیکن‌ها وسط‌چین کامل */
+.admin-menu.ant-menu-inline-collapsed .ant-menu-item-icon,
+.admin-menu.ant-menu-inline-collapsed .ant-menu-submenu-title .ant-menu-item-icon {
+    margin: 0 auto !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* متن منوها کاملاً مخفی شود */
+.admin-menu.ant-menu-inline-collapsed .ant-menu-title-content {
+    display: none !important;
+}
+
+.admin-menu.ant-menu-inline-collapsed .ant-menu-item,
+.admin-menu.ant-menu-inline-collapsed .ant-menu-submenu-title {
+    padding: 12px 0 !important;
+    text-align: center !important;
+    justify-content: center !important;
+}
+
+
+/* ────────────── USER INFO IN HEADER ────────────── */
+.admin-user-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.admin-user-area--clickable {
+    cursor: pointer;
+}
+
+.admin-user-avatar {
+    background: #f97316 !important; /* orange brand */
+    color: #111827;
+}
+
+.admin-user-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.2;
+}
+
+.admin-user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.admin-user-roles {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 5px;
+}
+
+/* ────────────── CONTENT ────────────── */
+.admin-content {
+    padding: 24px;
+    background: #e5e7eb;
+    min-height: calc(100vh - 64px);
+}
+
+/* ────────────── MENU OVERRIDES ────────────── */
+.admin-menu {
+    background: transparent !important;
+    border-inline-end: none !important;
+}
+
+    /* آیتم‌های منو */
+    .admin-menu .ant-menu-item,
+    .admin-menu .ant-menu-submenu-title {
+        padding-inline: 16px !important;
+    }
+
+        /* رنگ متن منو در حالت عادی */
+        .admin-menu .ant-menu-item,
+        .admin-menu .ant-menu-submenu-title,
+        .admin-menu .ant-menu-item a {
+            color: #e5e7eb;
+        }
+
+    /* آیتم انتخاب‌شده */
+    .admin-menu .ant-menu-item-selected {
+        background: #f97316 !important;
+        color: #111827 !important;
+    }
+
+    .admin-menu .ant-menu-item:hover,
+    .admin-menu .ant-menu-submenu-title:hover {
+        color: #f97316 !important;
+        background: rgba(248, 250, 252, 0.06) !important;
+    }
+
+    /* ساب‌منو باز شده */
+    .admin-menu .ant-menu-submenu-open > .ant-menu-submenu-title {
+        background: rgba(248, 250, 252, 0.06);
+    }
+
+    /* حذف بوردر و پس‌زمینه پیش‌فرض sub-menu */
+    .admin-menu .ant-menu-submenu {
+        border: none;
+    }
+/*    .admin-menu .ant-menu-item:hover,
+    .admin-menu .ant-menu-submenu-title:hover {
+    
+    }*/
+
+    .admin-menu .ant-menu-submenu-selected > .ant-menu-submenu-title {
+        color: #f97316 !important;
+    }
+        /* ────────────── PAGE WRAPPER (کارت‌های داخلی) ────────────── */
+        .ingapp-page {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px 24px 32px;
+            box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
+        }
+
+        .ingapp-page-title {
+            margin-bottom: 12px;
+            font-weight: 700;
+            font-size: 20px;
+            color: #111827;
+        }
