@@ -39,4 +39,9 @@ public static class Permissions
         public const string View = "Menu.View";
         public const string Manage = "Menu.Manage";
     }
+
+    public static class Offers
+    {
+        public const string Manage = "Offer.Manage";
+    }
 }

@@ -19,6 +19,7 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
     public static readonly Guid SupplierTypeManageId = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000008");
     public static readonly Guid SupplierManageId = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000009");
     public static readonly Guid KycReviewId = Guid.Parse("aaaaaaaa-0000-0000-0000-00000000000a");
+    public static readonly Guid OfferManageId = Guid.Parse("aaaaaaaa-0000-0000-0000-00000000000b");
 
     public void Configure(EntityTypeBuilder<Permission> builder)
     {
@@ -51,7 +52,8 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
 
             new Permission { Id = SupplierTypeManageId, Code = "SupplierType.Manage", DisplayName = "مدیریت نوع تأمین‌کننده", IsActive = true },
             new Permission { Id = SupplierManageId, Code = "Supplier.Manage", DisplayName = "مدیریت تأمین‌کنندگان", IsActive = true },
-            new Permission { Id = KycReviewId, Code = "Kyc.Review", DisplayName = "بررسی مدارک KYC", IsActive = true }
+            new Permission { Id = KycReviewId, Code = "Kyc.Review", DisplayName = "بررسی مدارک KYC", IsActive = true },
+            new Permission { Id = OfferManageId, Code = "Offer.Manage", DisplayName = "مدیریت آگهی‌ها", IsActive = true }
         );
     }
 }

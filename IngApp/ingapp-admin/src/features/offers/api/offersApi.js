@@ -111,6 +111,32 @@ const offersApi = {
         return res.data;
     },
 
+    /**
+     * GET /api/v1/offers/my/upload-file/file
+     * query: { offerId, filePath }
+     * دانلود فایل آگهی
+     */
+    downloadOfferFile: async (offerId, filePath, originalFileName) => {
+        try {
+            const res = await apiClient.get("/offers/my/upload-file/file", {
+                params: { offerId, filePath },
+                responseType: "blob",
+            });
+
+            // ایجاد URL برای blob
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", originalFileName || "file");
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            throw error;
+        }
+    },
+
     // ---------------------------
     // Public Offers
     // ---------------------------

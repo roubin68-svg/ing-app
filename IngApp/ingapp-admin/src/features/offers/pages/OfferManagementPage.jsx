@@ -45,6 +45,49 @@ const toGregorianString = (shamsiDayjs) => {
     return `${g.gy}-${String(g.gm).padStart(2, "0")}-${String(g.gd).padStart(2, "0")}T00:00:00`;
 };
 
+// تبدیل date به dayjs شمسی (برای JalaliDatePicker onChange)
+// وقتی روی "امروز" کلیک می‌شود، JalaliDatePicker ممکن است date میلادی برگرداند
+const ensureShamsiDayjs = (date) => {
+    if (!date) return null;
+    
+    // اگر dayjs object است
+    if (dayjs.isDayjs(date)) {
+        try {
+            const year = date.year();
+            
+            // اگر سال بزرگتر از 2000 است، میلادی است (سال‌های شمسی 1300-1500 هستند)
+            if (year > 2000) {
+                // میلادی است - به شمسی تبدیل می‌کنیم
+                const dateStr = date.format("YYYY-MM-DD");
+                return toShamsi(dateStr);
+            }
+            
+            // سال بین 1300-2000 است - احتمالاً شمسی است
+            return date;
+        } catch {
+            // در صورت خطا، همان را برمی‌گردانیم
+            return date;
+        }
+    }
+    
+    // اگر Date object است (همیشه میلادی)
+    if (date instanceof Date) {
+        const j = jalaali.toJalaali(
+            date.getFullYear(),
+            date.getMonth() + 1,
+            date.getDate()
+        );
+        return dayjs(`${j.jy}/${j.jm}/${j.jd}`, "YYYY/M/D");
+    }
+    
+    // اگر string است
+    if (typeof date === "string") {
+        return toShamsi(date) || todayShamsi();
+    }
+    
+    return todayShamsi();
+};
+
 
 
 export default function OfferManagementPage() {
@@ -72,6 +115,7 @@ export default function OfferManagementPage() {
     const [documentsDraft, setDocumentsDraft] = useState({});
     const [attrLoading, setAttrLoading] = useState(false);
     const [docDraftByAttrId, setDocDraftByAttrId] = useState({});
+    const [savingStep3, setSavingStep3] = useState(false);
 
 
     // Step 4
@@ -124,6 +168,12 @@ export default function OfferManagementPage() {
     const ensureDayjs = (value) => {
         if (!value) return null;
         if (dayjs.isDayjs(value)) return value;
+        
+        // اگر string بود (از backend آمده - gregorian ISO format)
+        if (typeof value === "string") {
+            return toShamsi(value);
+        }
+        
         return dayjs(value);
     };
 
@@ -218,7 +268,8 @@ export default function OfferManagementPage() {
     }, [wizardStep, offerDetail, headerForm]);
 
     useEffect(() => {
-        if (wizardStep !== 3) return;
+        // برای Stage 3 و 4 باید templates را load کنیم
+        if (wizardStep !== 3 && wizardStep !== 4) return;
         if (!offerDetail?.header?.productId) return;
 
         const loadTemplates = async () => {
@@ -323,13 +374,19 @@ export default function OfferManagementPage() {
                 );
 
             case 4: // Date (شمسی)
+                const dateValue = ensureDayjs(current.value);
                 return (
                     <JalaliDatePicker
-                        value={ensureDayjs(current.value)}
-                        onChange={date => updateValue(date)}
+                        value={dateValue || undefined}
+                        onChange={date => {
+                            // مطمئن می‌شویم که date همیشه dayjs شمسی است
+                            const shamsiDate = ensureShamsiDayjs(date);
+                            updateValue(shamsiDate);
+                        }}
                         format="YYYY/MM/DD"
                         style={{ width: "100%" }}
                         defaultPickerValue={todayShamsi()}
+                        placeholder="انتخاب تاریخ"
                     />
                 );
 
@@ -359,13 +416,18 @@ export default function OfferManagementPage() {
                                 }}
                             >
                                 <span style={{ fontSize: 12 }}>فایل ثبت‌شده</span>
-                                <a
-                                    href={persisted.filePath}
-                                    download
-                                    target="_self"
+                                <Button 
+                                    size="small"
+                                    onClick={async () => {
+                                        try {
+                                            await offersApi.downloadOfferFile(offerId, persisted.filePath, persisted.value);
+                                        } catch (error) {
+                                            message.error("خطا در دانلود فایل");
+                                        }
+                                    }}
                                 >
-                                    <Button size="small">دانلود فایل</Button>
-                                </a>
+                                    دانلود فایل
+                                </Button>
                             </div>
                         )}
 
@@ -598,6 +660,11 @@ export default function OfferManagementPage() {
                             format="YYYY/MM/DD"
                             placeholder="انتخاب تاریخ"
                             defaultPickerValue={todayShamsi()}
+                            onChange={(date) => {
+                                // مطمئن می‌شویم که date همیشه dayjs شمسی است
+                                const shamsiDate = ensureShamsiDayjs(date);
+                                headerForm.setFieldValue("expireAtShamsi", shamsiDate);
+                            }}
                         />
 
 
@@ -687,24 +754,67 @@ export default function OfferManagementPage() {
                                         <span>{attr.displayName}</span>
 
                                         {attr.dataType === 5 ? (
+                                            // File type: نمایش نام فایل + دکمه Download
                                             doc?.filePath ? (
-                                                <a
-                                                    href={doc.filePath}
-                                                    download
-                                                    target="_self"
-                                                >
-                                                    <Button size="small">دانلود فایل</Button>
-                                                </a>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                    <span>{doc?.value || "فایل"}</span>
+                                                    <Button 
+                                                        size="small"
+                                                        onClick={async () => {
+                                                            try {
+                                                                await offersApi.downloadOfferFile(offerId, doc.filePath, doc.value);
+                                                            } catch (error) {
+                                                                message.error("خطا در دانلود فایل");
+                                                            }
+                                                        }}
+                                                    >
+                                                        دانلود فایل
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <span>-</span>
+                                            )
+                                        ) : attr.dataType === 4 ? (
+                                            // Date type: تبدیل gregorian به شمسی
+                                            doc?.value ? (
+                                                <span>{toShamsi(doc.value).format("YYYY/MM/DD")}</span>
+                                            ) : (
+                                                <span>-</span>
+                                            )
+                                        ) : attr.dataType === 3 ? (
+                                            // Boolean type: نمایش "بله" یا "خیر"
+                                            doc?.value === "true" ? (
+                                                <span>بله</span>
+                                            ) : doc?.value === "false" ? (
+                                                <span>خیر</span>
                                             ) : (
                                                 <span>-</span>
                                             )
                                         ) : (
+                                            // Text, Number: نمایش مستقیم
                                             <span>{doc?.value ?? "-"}</span>
                                         )}
                                     </div>
                                 );
                             })}
                         </Card>
+
+                        {/* نمایش وضعیت آگهی */}
+                        {offerDetail?.header?.status !== undefined && (
+                            <Alert
+                                type={
+                                    offerDetail.header.status === 3 ? "success" : // Published
+                                    offerDetail.header.status === 4 ? "error" : // Cancel
+                                    "warning" // Draft
+                                }
+                                message={
+                                    offerDetail.header.status === 3 ? "آگهی منتشر شده است" :
+                                    offerDetail.header.status === 4 ? "آگهی شما لغو شده است" :
+                                    "آگهی هنوز منتشر نشده و به کسی نمایش داده نمی‌شود"
+                                }
+                                showIcon
+                            />
+                        )}
                     </Space>
                 </Card>
             )}
@@ -763,7 +873,9 @@ export default function OfferManagementPage() {
                                         offerDetail.header.id
                                     );
                                     setOfferDetail(detail);
-                                    setWizardStep(detail.header.wizardStep);
+                                    // اگر محصول تغییر نکرده باشد، به مرحله 2 برو
+                                    // در غیر این صورت wizardStep از backend می‌آید (که باید 2 باشد)
+                                    setWizardStep(prevProductId === selectedProductId ? 2 : detail.header.wizardStep);
                                 } catch {
                                     message.error("خطا در ذخیره محصول");
                                 } finally {
@@ -870,22 +982,58 @@ export default function OfferManagementPage() {
 
                         <Button
                             type="primary"
-                            loading={savingStep2}
+                            loading={savingStep3}
                             onClick={async () => {
-                                const items = Object.entries(documentsDraft).map(
-                                    ([attributeDefinitionId, v]) => ({
-                                        attributeDefinitionId: Number(attributeDefinitionId),
-                                        value:
-                                            v.value && dayjs.isDayjs(v.value)
-                                                ? toGregorianString(v.value)   // ✅ تبدیل شمسی → میلادی
-                                                : v.value ?? null,
-                                        filePath: v.filePath ?? null,
-                                    })
-                                );
+                                try {
+                                    setSavingStep3(true);
 
+                                    // Validation: چک کردن فیلدهای required
+                                    const errors = [];
+                                    attributeTemplates.forEach(attr => {
+                                        if (!attr.isRequired) return;
+                                        
+                                        const draft = documentsDraft[attr.attributeDefinitionId];
+                                        
+                                        if (attr.dataType === 5) {
+                                            // File type
+                                            if (!draft?.filePath) {
+                                                errors.push(`فیلد «${attr.displayName}» الزامی است`);
+                                            }
+                                        } else {
+                                            // Text, Number, Boolean, Date
+                                            if (!draft?.value || (typeof draft.value === "string" && draft.value.trim() === "")) {
+                                                errors.push(`فیلد «${attr.displayName}» الزامی است`);
+                                            }
+                                        }
+                                    });
 
-                                await offersApi.saveDocuments(offerId, { items });
-                                setWizardStep(4);
+                                    if (errors.length > 0) {
+                                        message.error(errors[0]);
+                                        return;
+                                    }
+
+                                    const items = Object.entries(documentsDraft).map(
+                                        ([attributeDefinitionId, v]) => ({
+                                            attributeDefinitionId: Number(attributeDefinitionId),
+                                            value:
+                                                v.value && dayjs.isDayjs(v.value)
+                                                    ? toGregorianString(v.value)   // ✅ تبدیل شمسی → میلادی
+                                                    : v.value ?? null,
+                                            filePath: v.filePath ?? null,
+                                        })
+                                    );
+
+                                    await offersApi.saveDocuments(offerId, { items });
+
+                                    // reload detail بعد از save
+                                    const detail = await offersApi.getMyOfferDetail(offerId);
+                                    setOfferDetail(detail);
+                                    setWizardStep(detail.header.wizardStep);
+                                } catch {
+                                    message.error("خطا در ذخیره ویژگی‌ها و مدارک");
+                                } finally {
+                                    setSavingStep3(false);
+                                }
                             }}
                         >
                             ذخیره و ادامه
@@ -895,28 +1043,63 @@ export default function OfferManagementPage() {
 
                 {wizardStep === 4 && (
                     <>
-                        <Button onClick={() => setWizardStep(3)}>
-                            مرحله قبل
-                        </Button>
+                        {offerDetail?.header?.status === 3 ? (
+                            // اگر منتشر شده: فقط دکمه لغو آگهی
+                            <Button
+                                danger
+                                loading={submitting}
+                                onClick={async () => {
+                                    try {
+                                        setSubmitting(true);
+                                        await offersApi.cancel(offerId);
+                                        message.success("آگهی لغو شد");
+                                        
+                                        // reload detail
+                                        const detail = await offersApi.getMyOfferDetail(offerId);
+                                        setOfferDetail(detail);
+                                    } catch (e) {
+                                        message.error("خطا در لغو آگهی");
+                                    } finally {
+                                        setSubmitting(false);
+                                    }
+                                }}
+                            >
+                                لغو آگهی
+                            </Button>
+                        ) : offerDetail?.header?.status === 4 ? (
+                            // اگر لغو شده: هیچ دکمه‌ای نمایش نده
+                            null
+                        ) : (
+                            // اگر Draft: دکمه‌های معمولی
+                            <>
+                                <Button onClick={() => setWizardStep(3)}>
+                                    مرحله قبل
+                                </Button>
 
-                        <Button
-                            type="primary"
-                            loading={submitting}
-                            onClick={async () => {
-                                try {
-                                    setSubmitting(true);
-                                    await offersApi.submit(offerId);
-                                    message.success("آگهی با موفقیت ارسال شد");
-                                    // اگر خواستی بعداً redirect کن
-                                } catch (e) {
-                                    message.error("خطا در ارسال آگهی");
-                                } finally {
-                                    setSubmitting(false);
-                                }
-                            }}
-                        >
-                            انتشار آگهی
-                        </Button>
+                                <Button
+                                    type="primary"
+                                    loading={submitting}
+                                    onClick={async () => {
+                                        try {
+                                            setSubmitting(true);
+                                            await offersApi.submit(offerId);
+                                            message.success("آگهی با موفقیت ارسال شد");
+                                            
+                                            // reload detail برای گرفتن status جدید
+                                            const detail = await offersApi.getMyOfferDetail(offerId);
+                                            setOfferDetail(detail);
+                                            setWizardStep(detail.header.wizardStep);
+                                        } catch (e) {
+                                            message.error("خطا در ارسال آگهی");
+                                        } finally {
+                                            setSubmitting(false);
+                                        }
+                                    }}
+                                >
+                                    انتشار آگهی
+                                </Button>
+                            </>
+                        )}
                     </>
                 )}
 

@@ -16,7 +16,11 @@ import {
     PlusOutlined,
     SearchOutlined,
     ReloadOutlined,
+    EyeOutlined,
+    DeleteOutlined,
 } from "@ant-design/icons";
+import dayjs from "dayjs";
+import jalaali from "jalaali-js";
 import { useNavigate } from "react-router-dom";
 import offersApi from "../api/offersApi";
 import productCategoryApi from "../../productCategories/api/productCategoryApi";
@@ -28,6 +32,46 @@ const STATUS_OPTIONS = [
     { value: "Published", label: "منتشر شده" },
     { value: "Cancel", label: "لغو شده" },
 ];
+
+// تبدیل تاریخ میلادی به شمسی
+const toShamsi = (gregorian) => {
+    if (!gregorian) return null;
+    
+    // اگر string است
+    if (typeof gregorian === "string") {
+        const [y, m, d] = gregorian.split("T")[0].split("-").map(Number);
+        const j = jalaali.toJalaali(y, m, d);
+        return `${j.jy}/${String(j.jm).padStart(2, "0")}/${String(j.jd).padStart(2, "0")}`;
+    }
+    
+    // اگر Date object است
+    if (gregorian instanceof Date) {
+        const j = jalaali.toJalaali(
+            gregorian.getFullYear(),
+            gregorian.getMonth() + 1,
+            gregorian.getDate()
+        );
+        return `${j.jy}/${String(j.jm).padStart(2, "0")}/${String(j.jd).padStart(2, "0")}`;
+    }
+    
+    return null;
+};
+
+// تبدیل Status enum به string
+const getStatusString = (status) => {
+    // Status می‌تواند عدد (enum) یا string باشد
+    if (typeof status === "number") {
+        switch (status) {
+            case 0: return "Draft";
+            case 1: return "Pending";
+            case 3: return "Published";
+            case 4: return "Cancel";
+            case 5: return "Rejected";
+            default: return "Draft";
+        }
+    }
+    return status;
+};
 
 const MyOffersPage = () => {
     const { message, modal } = App.useApp();
@@ -81,13 +125,13 @@ const MyOffersPage = () => {
                 status: filters.status || undefined,
                 productName: filters.productName || undefined,
                 productCategoryId: filters.productCategoryId || undefined,
-                sortBy: sorter.field || sortBy,
+                sortBy: sorter.field || sortBy || undefined,
                 sortDirection:
                     sorter.order === "ascend"
                         ? "asc"
                         : sorter.order === "descend"
                             ? "desc"
-                            : sortDirection,
+                            : sortDirection || undefined,
             });
 
             setData(res.items || []);
@@ -175,51 +219,63 @@ const MyOffersPage = () => {
             dataIndex: "status",
             width: 140,
             render: (status) => {
-                if (status === "Draft")
+                const statusStr = getStatusString(status);
+                if (statusStr === "Draft")
                     return <Tag color="gold">پیش‌نویس</Tag>;
-                if (status === "Published")
+                if (statusStr === "Published")
                     return <Tag color="green">منتشر شده</Tag>;
-                if (status === "Cancel")
+                if (statusStr === "Cancel")
                     return <Tag color="red">لغو شده</Tag>;
-                return status;
+                if (statusStr === "Pending")
+                    return <Tag color="blue">در انتظار</Tag>;
+                if (statusStr === "Rejected")
+                    return <Tag color="red">رد شده</Tag>;
+                return statusStr || status;
             },
         },
         {
             title: "تاریخ ایجاد",
             dataIndex: "createdAt",
             sorter: true,
+            render: (date) => {
+                const shamsiDate = toShamsi(date);
+                return shamsiDate || "-";
+            },
         },
         {
             title: "عملیات",
             width: 220,
-            render: (_, record) => (
-                <Space>
-                    <Button
-                        type="link"
-                        onClick={() =>
-                            navigate(
-                                `/supplier/offers/manage/${record.id}`
-                            )
-                        }
-                    >
-                        {record.status === "Draft"
-                            ? "ادامه"
-                            : "مشاهده"}
-                    </Button>
-
-                    {record.status !== "Cancel" && (
+            render: (_, record) => {
+                const statusStr = getStatusString(record.status);
+                return (
+                    <Space>
                         <Button
-                            danger
-                            type="link"
+                            icon={<EyeOutlined />}
                             onClick={() =>
-                                handleCancel(record.id)
+                                navigate(
+                                    `/supplier/offers/manage/${record.id}`
+                                )
                             }
                         >
-                            لغو
+                            {statusStr === "Draft"
+                                ? "ادامه"
+                                : "مشاهده"}
                         </Button>
-                    )}
-                </Space>
-            ),
+
+                        {statusStr !== "Cancel" && (
+                            <Button
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={() =>
+                                    handleCancel(record.id)
+                                }
+                            >
+                                لغو
+                            </Button>
+                        )}
+                    </Space>
+                );
+            },
         },
     ];
 

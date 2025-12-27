@@ -50,4 +50,18 @@ public class OfferFileStorageService : IOfferFileStorageService
         var relativePath = $"{supplierUserId}/{offerId}/{fileName}";
         return relativePath;
     }
+
+    public bool TryGetFileInfo(string relativePath, out string fullPath, out string contentType)
+    {
+        fullPath = Path.Combine(_rootPath, relativePath.Replace('/', Path.DirectorySeparatorChar));
+
+        if (!File.Exists(fullPath))
+        {
+            contentType = "application/octet-stream";
+            return false;
+        }
+
+        contentType = "application/octet-stream";
+        return true;
+    }
 }

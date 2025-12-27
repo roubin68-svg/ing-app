@@ -1,4 +1,5 @@
-﻿using IngApp.Application.Common.Exceptions;
+﻿using System.Linq;
+using IngApp.Application.Common.Exceptions;
 using IngApp.Application.Common.Interfaces.Offers;
 using IngApp.Application.Common.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -60,5 +61,36 @@ public class OfferFilesController : ControllerBase
         };
 
         return Ok(ApiResult.Ok(response));
+    }
+
+    /// <summary>
+    /// دانلود فایل آگهی
+    /// </summary>
+    [HttpGet("file")]
+    public async Task<IActionResult> DownloadFile(
+        [FromQuery] int offerId,
+        [FromQuery] string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            return BadRequest();
+
+        var userId = GetCurrentUserId();
+
+        // بررسی دسترسی کاربر به آگهی
+        var detail = await _offerService.GetDetailAsync(userId, offerId);
+
+        // بررسی اینکه فایل متعلق به این آگهی است
+        var doc = detail.Documents.FirstOrDefault(d => d.FilePath == filePath);
+        if (doc == null)
+            return NotFound();
+
+        if (!_fileStorage.TryGetFileInfo(filePath, out var fullPath, out var contentType))
+            return NotFound();
+
+        var stream = System.IO.File.OpenRead(fullPath);
+        var fileName = System.IO.Path.GetFileName(fullPath);
+        var originalFileName = doc.Value ?? fileName;
+
+        return File(stream, contentType, originalFileName);
     }
 }

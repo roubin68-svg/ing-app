@@ -125,12 +125,20 @@ public class OfferService : IOfferService
         if (offer.SupplierUserId != supplierUserId)
             throw new ValidationException(new() { "دسترسی غیرمجاز به آگهی." });
 
+        var product = await _db.Products
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == offer.ProductId);
+
+        if (product == null)
+            throw new NotFoundException("محصول مرتبط با این آگهی یافت نشد.");
+
         return new OfferDetailDto
         {
             Header = new OfferHeaderDto
             {
                 Id = offer.Id,
                 ProductId = offer.ProductId,
+                ProductName = product.Name,
                 UnitPrice = offer.UnitPrice,
                 TotalPrice = offer.TotalPrice,
                 Quantity = offer.Quantity,
@@ -182,6 +190,10 @@ public class OfferService : IOfferService
         // -----------------------
         offersQuery = query.SortBy switch
         {
+            "id" => query.SortDirection == "asc"
+                ? offersQuery.OrderBy(x => x.offer.Id)
+                : offersQuery.OrderByDescending(x => x.offer.Id),
+
             "productName" => query.SortDirection == "asc"
                 ? offersQuery.OrderBy(x => x.product.Name)
                 : offersQuery.OrderByDescending(x => x.product.Name),
@@ -477,12 +489,20 @@ public class OfferService : IOfferService
         if (offer == null)
             throw new NotFoundException("آگهی موردنظر یافت نشد.");
 
+        var product = await _db.Products
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == offer.ProductId);
+
+        if (product == null)
+            throw new NotFoundException("محصول مرتبط با این آگهی یافت نشد.");
+
         return new OfferDetailDto
         {
             Header = new OfferHeaderDto
             {
                 Id = offer.Id,
                 ProductId = offer.ProductId,
+                ProductName = product.Name,
                 UnitPrice = offer.UnitPrice,
                 TotalPrice = offer.TotalPrice,
                 Quantity = offer.Quantity,

@@ -15,7 +15,7 @@ public class RolePermissionConfiguration : IEntityTypeConfiguration<RolePermissi
                .HasForeignKey(rp => rp.RoleId);
 
         builder.HasOne(rp => rp.Permission)
-               .WithMany()
+               .WithMany(p => p.RolePermissions)
                .HasForeignKey(rp => rp.PermissionId);
 
         // Seed: Admin => همه Permissionهای پایه
@@ -29,7 +29,11 @@ public class RolePermissionConfiguration : IEntityTypeConfiguration<RolePermissi
             new RolePermission { RoleId = RoleConfiguration.AdminRoleId, PermissionId = PermissionConfiguration.ProductCategoryManageId },
             new RolePermission { RoleId = RoleConfiguration.AdminRoleId, PermissionId = PermissionConfiguration.SupplierTypeManageId },
             new RolePermission { RoleId = RoleConfiguration.AdminRoleId, PermissionId = PermissionConfiguration.SupplierManageId },
-            new RolePermission { RoleId = RoleConfiguration.AdminRoleId, PermissionId = PermissionConfiguration.KycReviewId }
+            new RolePermission { RoleId = RoleConfiguration.AdminRoleId, PermissionId = PermissionConfiguration.KycReviewId },
+            new RolePermission { RoleId = RoleConfiguration.AdminRoleId, PermissionId = PermissionConfiguration.OfferManageId },
+            
+            // Supplier permissions
+            new RolePermission { RoleId = RoleConfiguration.SupplierRoleId, PermissionId = PermissionConfiguration.OfferManageId }
         );
     }
 }
