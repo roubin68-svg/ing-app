@@ -21,14 +21,41 @@ ORDER BY MigrationId DESC;
 
 ### 2. اگر migration ها هنوز اعمال نشده‌اند
 
-در Visual Studio:
-1. Package Manager Console را باز کنید
-2. Startup Project: `IngApp.Api`
-3. Default Project: `IngApp.Infrastructure`
-4. دستور زیر را اجرا کنید:
+⚠️ **مهم**: چون دیتابیس شما روی سرور remote است، بهتر است migration را از طریق Package Manager Console یا dotnet CLI اجرا کنید، نه از طریق Cursor (تا از خطاهای timeout جلوگیری شود).
+
+#### روش 1: از طریق Package Manager Console (Visual Studio)
+
+1. Visual Studio را باز کنید
+2. Package Manager Console را باز کنید (Tools → NuGet Package Manager → Package Manager Console)
+3. Startup Project: `IngApp.Api`
+4. Default Project: `IngApp.Infrastructure`
+5. دستور زیر را اجرا کنید:
    ```
    Update-Database -Context AppDbContext
    ```
+
+#### روش 2: از طریق dotnet CLI (ترجیحی برای دیتابیس remote)
+
+در Terminal یا PowerShell، به مسیر پروژه بروید و دستور زیر را اجرا کنید:
+
+```powershell
+# رفتن به مسیر پروژه
+cd IngApp\IngApp.Api
+
+# اجرای migration
+dotnet ef database update --project ..\IngApp.Infrastructure\IngApp.Infrastructure.csproj --startup-project .
+```
+
+**نکته**: اگر `dotnet ef` نصب نیست، ابتدا نصب کنید:
+```powershell
+dotnet tool install --global dotnet-ef
+```
+
+#### تنظیمات Timeout (برای جلوگیری از خطا)
+
+✅ **انجام شده**: Connection timeout و Command timeout در `appsettings.json` و `DependencyInjection.cs` تنظیم شده:
+- Connection Timeout: 60 ثانیه
+- Command Timeout: 300 ثانیه (5 دقیقه) برای migration های طولانی
 
 ### 3. بررسی داده‌های Permission و RolePermission
 
@@ -153,4 +180,6 @@ WHERE p.Code = 'Offer.Manage';
 - همیشه migration ها را به ترتیب زمانی اجرا کنید
 - بعد از اجرای migration، اگر JWT token قدیمی دارید، باید دوباره لاگین کنید
 - اگر در UI تغییری نمی‌بینید، ممکن است نیاز به refresh یا clear cache داشته باشید
+
+
 

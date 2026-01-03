@@ -23,5 +23,7 @@ export const getMeApi = () => {
   return apiClient.get("/auth/me");
 };
 
-
-    
+// 🔹 به‌روزرسانی پروفایل خود کاربر
+export const updateMyProfileApi = (payload) => {
+  return apiClient.put("/auth/me", payload);
+};

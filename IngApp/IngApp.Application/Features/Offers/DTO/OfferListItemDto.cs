@@ -19,4 +19,8 @@ public class OfferListItemDto
     public OfferStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? PublishedAt { get; set; }
+
+    // آمار کلیک‌ها
+    public int ViewCount { get; set; }
+    public int ContactClickCount { get; set; }
 }

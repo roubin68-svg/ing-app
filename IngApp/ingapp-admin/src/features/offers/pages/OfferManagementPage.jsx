@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Card, Divider, Spin, message, Space, TreeSelect, Button, Alert, App, Form, InputNumber, Switch, Input, Upload } from "antd";
+import { Card, Divider, Spin, message, Space, TreeSelect, Button, Alert, App, Form, InputNumber, Switch, Input, Upload, Progress, Typography } from "antd";
+import { DownloadOutlined, FileOutlined, FilePdfOutlined, FileWordOutlined, DeleteOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import offersApi from "../api/offersApi";
 import { DatePicker as JalaliDatePicker } from "antd-jalali";
 import dayjs from "dayjs";
@@ -126,6 +127,48 @@ export default function OfferManagementPage() {
             ? v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
             : "-";
 
+    // Helper function to extract error message and Request ID
+    const getErrorMessage = (error, defaultMessage) => {
+        try {
+            let errorMsg = defaultMessage;
+            let requestId = null;
+
+            // Extract Request ID from error object (set by apiClient interceptor)
+            requestId = error?.requestId || null;
+
+            // Extract message from error
+            if (error?.message) {
+                errorMsg = error.message;
+            } else if (error?.response?.data) {
+                const data = error.response.data;
+                if (typeof data === "object") {
+                    errorMsg = data.message || data.error || defaultMessage;
+                    // Also check response data for Request ID if not already found
+                    if (!requestId) {
+                        requestId = data.requestId || data.request_id || data.requestID || null;
+                    }
+                } else if (typeof data === "string") {
+                    errorMsg = data;
+                }
+            }
+
+            // Log error for debugging
+            console.error("Error:", error);
+            if (requestId) {
+                console.error("Request ID:", requestId);
+            }
+
+            // Append Request ID to message if available
+            if (requestId) {
+                return `${errorMsg} (Request ID: ${requestId})`;
+            }
+
+            return errorMsg;
+        } catch {
+            return defaultMessage;
+        }
+    };
+
 
     // ---------------------------
     // Stage header info (UX)
@@ -200,8 +243,8 @@ export default function OfferManagementPage() {
 
                 setOfferDetail(detail);
                 setWizardStep(detail.header?.wizardStep ?? 1);
-            } catch {
-                message.error("خطا در بارگذاری آگهی");
+            } catch (error) {
+                message.error(getErrorMessage(error, "خطا در بارگذاری آگهی"));
                 navigate("/my-offers", { replace: true });
             } finally {
                 if (mounted) setLoading(false);
@@ -225,8 +268,8 @@ export default function OfferManagementPage() {
                 const tree = await offersApi.getAvailableProducts();
                 if (!mounted) return;
                 setProductTree(tree || []);
-            } catch {
-                message.error("خطا در بارگذاری محصولات");
+            } catch (error) {
+                message.error(getErrorMessage(error, "خطا در بارگذاری محصولات"));
             } finally {
                 if (mounted) setLoadingProducts(false);
             }
@@ -250,8 +293,20 @@ export default function OfferManagementPage() {
 
     useEffect(() => {
         if (wizardStep !== 2) return;
-        if (!offerDetail?.header) return;
+        
+        // اگر آگهی جدید است (offerDetail null) یا header ندارد، فرم را خالی کن
+        if (!offerDetail?.header) {
+            headerForm.resetFields();
+            headerForm.setFieldsValue({
+                unitPrice: undefined,
+                quantity: undefined,
+                hasTax: false,
+                expireAtShamsi: null,
+            });
+            return;
+        }
 
+        // اگر آگهی موجود است، مقادیر را پر کن
         const expireRaw = offerDetail.header.expireAtBySupplier;
 
         headerForm.setFieldsValue({
@@ -259,8 +314,6 @@ export default function OfferManagementPage() {
             quantity: offerDetail.header.quantity,
             hasTax: offerDetail.header.hasTax,
             unit: offerDetail.header.unit,
-
-            // ✅ این خط کل مشکل رو حل می‌کنه
             expireAtShamsi: expireRaw
                 ? toShamsi(expireRaw)
                 : null,
@@ -409,90 +462,306 @@ export default function OfferManagementPage() {
                                     display: "flex",
                                     justifyContent: "space-between",
                                     alignItems: "center",
-                                    background: "#fafafa",
-                                    padding: "6px 8px",
-                                    borderRadius: 4,
-                                    border: "1px solid #eee",
+                                    background: "#f6ffed",
+                                    padding: "12px",
+                                    borderRadius: 6,
+                                    border: "1px solid #b7eb8f",
                                 }}
                             >
-                                <span style={{ fontSize: 12 }}>فایل ثبت‌شده</span>
-                                <Button 
-                                    size="small"
-                                    onClick={async () => {
-                                        try {
-                                            await offersApi.downloadOfferFile(offerId, persisted.filePath, persisted.value);
-                                        } catch (error) {
-                                            message.error("خطا در دانلود فایل");
+                                <Space>
+                                    {(() => {
+                                        const fileName = persisted.value?.toLowerCase() || "";
+                                        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(fileName);
+                                        const isPdf = fileName.endsWith(".pdf");
+                                        const isWord = /\.(doc|docx)$/i.test(fileName);
+                                        
+                                        if (isImage) {
+                                            return (
+                                                <img
+                                                    src={`http://localhost:5273/api/v1/offers/my/upload-file/file?offerId=${offerId}&filePath=${encodeURIComponent(persisted.filePath)}`}
+                                                    alt={persisted.value}
+                                                    style={{
+                                                        width: 40,
+                                                        height: 40,
+                                                        objectFit: "cover",
+                                                        borderRadius: 4,
+                                                        border: "1px solid #d9d9d9",
+                                                    }}
+                                                />
+                                            );
                                         }
-                                    }}
-                                >
-                                    دانلود فایل
-                                </Button>
+                                        if (isPdf) return <FilePdfOutlined style={{ fontSize: 24, color: "#ff4d4f" }} />;
+                                        if (isWord) return <FileWordOutlined style={{ fontSize: 24, color: "#1890ff" }} />;
+                                        return <FileOutlined style={{ fontSize: 24, color: "#666" }} />;
+                                    })()}
+                                    <div>
+                                        <div style={{ fontWeight: 500, fontSize: 13 }}>{persisted.value || "فایل"}</div>
+                                        <div style={{ fontSize: 11, color: "#666" }}>فایل ثبت‌شده</div>
+                                    </div>
+                                </Space>
+                                <Space>
+                                    <Button 
+                                        size="small"
+                                        icon={<DownloadOutlined />}
+                                        onClick={async () => {
+                                            try {
+                                                await offersApi.downloadOfferFile(offerId, persisted.filePath, persisted.value);
+                                            } catch (error) {
+                                                message.error(getErrorMessage(error, "خطا در دانلود فایل"));
+                                            }
+                                        }}
+                                    >
+                                        دانلود
+                                    </Button>
+                                    <Button 
+                                        size="small"
+                                        danger
+                                        icon={<DeleteOutlined />}
+                                        onClick={async () => {
+                                            try {
+                                                await offersApi.deleteOfferFile(offerId, persisted.filePath);
+                                                
+                                                // حذف از state
+                                                setDocumentsDraft(prev => {
+                                                    const next = { ...prev };
+                                                    delete next[attrId];
+                                                    return next;
+                                                });
+                                                
+                                                message.success("فایل با موفقیت حذف شد");
+                                                
+                                                // Reload offer detail برای به‌روزرسانی UI
+                                                const detail = await offersApi.getMyOfferDetail(offerId);
+                                                setOfferDetail(detail);
+                                            } catch (error) {
+                                                message.error(getErrorMessage(error, "خطا در حذف فایل"));
+                                            }
+                                        }}
+                                    >
+                                        حذف
+                                    </Button>
+                                </Space>
                             </div>
                         )}
 
-                        {/* پیش‌نمایش فایل جدید */}
-                        {draft?.localPreviewUrl && (
-                            <img
-                                src={draft.localPreviewUrl}
-                                alt="preview"
+                        {/* فایل جدید (draft) */}
+                        {draft?.fileDraft && (
+                            <div
                                 style={{
-                                    maxWidth: 200,
-                                    borderRadius: 4,
-                                    border: "1px solid #eee",
+                                    background: draft.uploading ? "#fff7e6" : "#f6ffed",
+                                    padding: "12px",
+                                    borderRadius: 6,
+                                    border: `1px solid ${draft.uploading ? "#ffd591" : "#b7eb8f"}`,
                                 }}
-                            />
+                            >
+                                <Space direction="vertical" size="small" style={{ width: "100%" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                        <Space>
+                                            {draft.localPreviewUrl ? (
+                                                <img
+                                                    src={draft.localPreviewUrl}
+                                                    alt="preview"
+                                                    style={{
+                                                        width: 50,
+                                                        height: 50,
+                                                        objectFit: "cover",
+                                                        borderRadius: 4,
+                                                        border: "1px solid #d9d9d9",
+                                                    }}
+                                                />
+                                            ) : (
+                                                (() => {
+                                                    const fileName = draft.fileDraft.fileName?.toLowerCase() || "";
+                                                    const mimeType = draft.fileDraft.mimeType || "";
+                                                    const isPdf = mimeType === "application/pdf" || fileName.endsWith(".pdf");
+                                                    const isWord = mimeType.includes("word") || /\.(doc|docx)$/i.test(fileName);
+                                                    
+                                                    if (isPdf) return <FilePdfOutlined style={{ fontSize: 32, color: "#ff4d4f" }} />;
+                                                    if (isWord) return <FileWordOutlined style={{ fontSize: 32, color: "#1890ff" }} />;
+                                                    return <FileOutlined style={{ fontSize: 32, color: "#666" }} />;
+                                                })()
+                                            )}
+                                            <div>
+                                                <div style={{ fontWeight: 500, fontSize: 13 }}>
+                                                    {draft.fileDraft.fileName}
+                                                </div>
+                                                <div style={{ fontSize: 11, color: "#666" }}>
+                                                    {draft.fileDraft.size ? 
+                                                        (draft.fileDraft.size < 1024 
+                                                            ? `${draft.fileDraft.size} B`
+                                                            : draft.fileDraft.size < 1024 * 1024
+                                                            ? `${(draft.fileDraft.size / 1024).toFixed(2)} KB`
+                                                            : `${(draft.fileDraft.size / (1024 * 1024)).toFixed(2)} MB`)
+                                                        : ""}
+                                                </div>
+                                            </div>
+                                        </Space>
+                                        {!draft.uploading && draft.fileDraft.filePath && (
+                                            <CheckCircleOutlined style={{ fontSize: 20, color: "#52c41a" }} />
+                                        )}
+                                    </div>
+                                    
+                                    {draft.uploading && (
+                                        <Progress 
+                                            percent={draft.uploadProgress || 0} 
+                                            status="active"
+                                            size="small"
+                                        />
+                                    )}
+                                    
+                                    {!draft.uploading && draft.fileDraft.filePath && (
+                                        <Button
+                                            size="small"
+                                            danger
+                                            icon={<DeleteOutlined />}
+                                            onClick={async () => {
+                                                // چک می‌کنیم که آیا فایل در دیتابیس ذخیره شده یا نه
+                                                // اگر فایل در offerDetail.documents باشد، یعنی persisted است
+                                                const isPersisted = offerDetail?.documents?.some(
+                                                    doc => doc.attributeDefinitionId === attrId && 
+                                                           doc.filePath === draft.fileDraft.filePath &&
+                                                           !doc.isDeleted
+                                                );
+                                                
+                                                if (isPersisted) {
+                                                    // اگر در دیتابیس ذخیره شده، به backend می‌رویم
+                                                    try {
+                                                        setDocDraftByAttrId(prev => ({
+                                                            ...prev,
+                                                            [attrId]: {
+                                                                ...prev[attrId],
+                                                                deleting: true,
+                                                            },
+                                                        }));
+
+                                                        await offersApi.deleteOfferFile(offerId, draft.fileDraft.filePath);
+
+                                                        // حذف از state
+                                                        setDocDraftByAttrId(prev => {
+                                                            const next = { ...prev };
+                                                            delete next[attrId];
+                                                            return next;
+                                                        });
+                                                        setDocumentsDraft(prev => {
+                                                            const next = { ...prev };
+                                                            delete next[attrId];
+                                                            return next;
+                                                        });
+                                                        updateValue(null);
+                                                        updateFile(null);
+                                                        
+                                                        message.success("فایل با موفقیت حذف شد");
+                                                        
+                                                        // Reload offer detail
+                                                        const detail = await offersApi.getMyOfferDetail(offerId);
+                                                        setOfferDetail(detail);
+                                                    } catch (error) {
+                                                        message.error(getErrorMessage(error, "خطا در حذف فایل"));
+                                                        setDocDraftByAttrId(prev => ({
+                                                            ...prev,
+                                                            [attrId]: {
+                                                                ...prev[attrId],
+                                                                deleting: false,
+                                                            },
+                                                        }));
+                                                    }
+                                                } else {
+                                                    // اگر هنوز در دیتابیس ذخیره نشده، فقط state را پاک می‌کنیم
+                                                    setDocDraftByAttrId(prev => ({
+                                                        ...prev,
+                                                        [attrId]: {
+                                                            uploading: false,
+                                                            localPreviewUrl: null,
+                                                            fileDraft: null,
+                                                        },
+                                                    }));
+                                                    updateValue(null);
+                                                    updateFile(null);
+                                                    
+                                                    message.success("فایل حذف شد");
+                                                }
+                                            }}
+                                        >
+                                            حذف فایل
+                                        </Button>
+                                    )}
+                                </Space>
+                            </div>
                         )}
 
                         {/* آپلود فایل جدید */}
-                        <Upload
-                            showUploadList={false}
-                            beforeUpload={async (file) => {
-                                const isImage = file.type.startsWith("image/");
-                                const localPreviewUrl = isImage
-                                    ? URL.createObjectURL(file)
-                                    : null;
+                        {(!persisted || (draft?.fileDraft && !draft.uploading && draft.fileDraft.filePath)) && (
+                            <Upload
+                                showUploadList={false}
+                                beforeUpload={async (file) => {
+                                    try {
+                                        const isImage = file.type.startsWith("image/");
+                                        const localPreviewUrl = isImage
+                                            ? URL.createObjectURL(file)
+                                            : null;
 
-                                setDocDraftByAttrId(prev => ({
-                                    ...prev,
-                                    [attrId]: {
-                                        uploading: true,
-                                        localPreviewUrl,
-                                        fileDraft: {
-                                            fileName: file.name,
-                                            size: file.size,
-                                            mimeType: file.type,
-                                        },
-                                    },
-                                }));
+                                        setDocDraftByAttrId(prev => ({
+                                            ...prev,
+                                            [attrId]: {
+                                                uploading: true,
+                                                uploadProgress: 0,
+                                                localPreviewUrl,
+                                                fileDraft: {
+                                                    fileName: file.name,
+                                                    size: file.size,
+                                                    mimeType: file.type,
+                                                },
+                                            },
+                                        }));
 
-                                const res = await offersApi.uploadMyOfferFile({
-                                    offerId,
-                                    file,
-                                });
+                                        const res = await offersApi.uploadMyOfferFile({
+                                            offerId,
+                                            file,
+                                        });
 
-                                setDocDraftByAttrId(prev => ({
-                                    ...prev,
-                                    [attrId]: {
-                                        uploading: false,
-                                        localPreviewUrl,
-                                        fileDraft: {
-                                            ...prev[attrId].fileDraft,
-                                            filePath: res.filePath,
-                                        },
-                                    },
-                                }));
+                                        setDocDraftByAttrId(prev => ({
+                                            ...prev,
+                                            [attrId]: {
+                                                uploading: false,
+                                                uploadProgress: 100,
+                                                localPreviewUrl,
+                                                fileDraft: {
+                                                    ...prev[attrId].fileDraft,
+                                                    filePath: res.filePath,
+                                                },
+                                            },
+                                        }));
 
-                                // مهم: هم‌زمان documentsDraft رو هم آپدیت کن
-                                updateValue(file.name);
-                                updateFile(res.filePath);                                
-                                return false;
-                            }}
-                        >
-                            <Button loading={draft?.uploading}>
-                                انتخاب فایل
-                            </Button>
-                        </Upload>
+                                        // مهم: هم‌زمان documentsDraft رو هم آپدیت کن
+                                        updateValue(file.name);
+                                        updateFile(res.filePath);
+                                        
+                                        message.success("فایل با موفقیت آپلود شد");
+                                        return false;
+                                    } catch (error) {
+                                        // Reset uploading state on error
+                                        setDocDraftByAttrId(prev => ({
+                                            ...prev,
+                                            [attrId]: {
+                                                uploading: false,
+                                                uploadProgress: 0,
+                                                localPreviewUrl: null,
+                                                fileDraft: null,
+                                            },
+                                        }));
+                                        message.error(getErrorMessage(error, "خطا در آپلود فایل"));
+                                    }
+                                    return false;
+                                }}
+                            >
+                                <Button 
+                                    loading={draft?.uploading}
+                                    disabled={draft?.uploading}
+                                >
+                                    {persisted ? "تغییر فایل" : "انتخاب فایل"}
+                                </Button>
+                            </Upload>
+                        )}
                     </div>
                 );
             }
@@ -570,17 +839,36 @@ export default function OfferManagementPage() {
                     <Form.Item
                         label="قیمت واحد (تومان)"
                         name="unitPrice"
-                        rules={[{ required: true, message: "قیمت واحد الزامی است" }]}
+                        rules={[
+                            { required: true, message: "قیمت واحد الزامی است" },
+                            { 
+                                validator: (_, value) => {
+                                    if (value == null || value === "") {
+                                        return Promise.resolve();
+                                    }
+                                    if (value <= 0) {
+                                        return Promise.reject(new Error("قیمت واحد باید بیشتر از صفر باشد"));
+                                    }
+                                    return Promise.resolve();
+                                }
+                            }
+                        ]}
                     >
                         <InputNumber
                             style={{ width: "100%" }}
-                            min={0}
+                            placeholder="مثال: 100000"
                             formatter={(value) =>
                                 value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""
                             }
                             parser={(value) =>
                                 value ? value.replace(/[^\d]/g, "") : ""
                             }
+                            onChange={(value) => {
+                                // اگر 0 یا کمتر از 0 بود، به null تبدیل کن (خالی بماند)
+                                if (value != null && value <= 0) {
+                                    headerForm.setFieldValue("unitPrice", null);
+                                }
+                            }}
                         />
 
                     </Form.Item>
@@ -588,17 +876,37 @@ export default function OfferManagementPage() {
                     <Form.Item
                         label="مقدار"
                         name="quantity"
-                        rules={[{ required: true, message: "مقدار الزامی است" }]}
+                        rules={[
+                            { required: true, message: "مقدار الزامی است" },
+                            { 
+                                validator: (_, value) => {
+                                    if (value == null || value === "") {
+                                        return Promise.resolve();
+                                    }
+                                    if (value <= 0) {
+                                        return Promise.reject(new Error("مقدار باید بیشتر از صفر باشد"));
+                                    }
+                                    return Promise.resolve();
+                                }
+                            }
+                        ]}
                     >
                         <InputNumber
                             style={{ width: "100%" }}
-                            min={0}
+                            step={0.01}
+                            placeholder="مثال: 100"
                             formatter={(value) =>
                                 value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""
                             }
                             parser={(value) =>
-                                value ? value.replace(/[^\d]/g, "") : ""
+                                value ? value.replace(/[^\d.]/g, "") : ""
                             }
+                            onChange={(value) => {
+                                // اگر 0 یا کمتر از 0 بود، به null تبدیل کن (خالی بماند)
+                                if (value != null && value <= 0) {
+                                    headerForm.setFieldValue("quantity", null);
+                                }
+                            }}
                         />
 
                     </Form.Item>
@@ -620,29 +928,40 @@ export default function OfferManagementPage() {
                     {/* ✅ نمایش قیمت کل و مالیات (محاسبه سمت UI) */}
                     <Form.Item shouldUpdate>
                         {() => {
-                            const unitPrice = Number(headerForm.getFieldValue("unitPrice") ?? 0);
-                            const quantity = Number(headerForm.getFieldValue("quantity") ?? 0);
+                            const unitPrice = headerForm.getFieldValue("unitPrice");
+                            const quantity = headerForm.getFieldValue("quantity");
                             const hasTax = Boolean(headerForm.getFieldValue("hasTax"));
 
-                            const totalPrice = unitPrice * quantity;
-                            const taxAmount = hasTax ? totalPrice * TAX_RATE : 0;
+                            // فقط اگر هر دو مقدار معتبر باشند محاسبه کن
+                            const unitPriceNum = unitPrice != null && unitPrice > 0 ? Number(unitPrice) : null;
+                            const quantityNum = quantity != null && quantity > 0 ? Number(quantity) : null;
+                            
+                            const totalPrice = (unitPriceNum != null && quantityNum != null) 
+                                ? unitPriceNum * quantityNum 
+                                : null;
+                            const taxAmount = (hasTax && totalPrice != null) ? totalPrice * TAX_RATE : null;
 
                             return (
                                 <>
                                     <Form.Item label="قیمت کل (تومان)">
                                         <Input
-                                            value={totalPrice
+                                            value={totalPrice != null
                                                 ? totalPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                                                : "0"}
-                                            disabled />
+                                                : "-"}
+                                            disabled 
+                                            placeholder="پس از وارد کردن قیمت واحد و مقدار محاسبه می‌شود"
+                                        />
                                     </Form.Item>
 
                                     {hasTax && (
                                         <Form.Item label={`مبلغ مالیات (${TAX_RATE * 100}٪) (تومان)`}>
-                                            <Input value={taxAmount
-                                                ? taxAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                                                : "0"}
-                                                disabled />
+                                            <Input 
+                                                value={taxAmount != null
+                                                    ? taxAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                                                    : "-"}
+                                                disabled 
+                                                placeholder="پس از وارد کردن قیمت واحد و مقدار محاسبه می‌شود"
+                                            />
                                         </Form.Item>
                                     )}
                                 </>
@@ -764,7 +1083,7 @@ export default function OfferManagementPage() {
                                                             try {
                                                                 await offersApi.downloadOfferFile(offerId, doc.filePath, doc.value);
                                                             } catch (error) {
-                                                                message.error("خطا در دانلود فایل");
+                                                                message.error(getErrorMessage(error, "خطا در دانلود فایل"));
                                                             }
                                                         }}
                                                     >
@@ -876,8 +1195,8 @@ export default function OfferManagementPage() {
                                     // اگر محصول تغییر نکرده باشد، به مرحله 2 برو
                                     // در غیر این صورت wizardStep از backend می‌آید (که باید 2 باشد)
                                     setWizardStep(prevProductId === selectedProductId ? 2 : detail.header.wizardStep);
-                                } catch {
-                                    message.error("خطا در ذخیره محصول");
+                                } catch (error) {
+                                    message.error(getErrorMessage(error, "خطا در ذخیره محصول"));
                                 } finally {
                                     setSavingStep1(false);
                                 }
@@ -921,12 +1240,22 @@ export default function OfferManagementPage() {
                             loading={savingStep2}
                             onClick={async () => {
                                 try {
-
+                                    // Validation اضافی: چک کردن که قیمت و مقدار معتبر باشند
                                     const values = await headerForm.validateFields();
+                                    
+                                    if (!values.unitPrice || values.unitPrice <= 0) {
+                                        message.error("لطفاً قیمت واحد را وارد کنید");
+                                        return;
+                                    }
+                                    
+                                    if (!values.quantity || values.quantity <= 0) {
+                                        message.error("لطفاً مقدار را وارد کنید");
+                                        return;
+                                    }
 
-                                    // محاسبه total و tax
-                                    const unitPrice = Number(values.unitPrice ?? 0);
-                                    const quantity = Number(values.quantity ?? 0);
+                                    // محاسبه total و tax (بعد از validation)
+                                    const unitPrice = Number(values.unitPrice);
+                                    const quantity = Number(values.quantity);
                                     const totalPrice = unitPrice * quantity;
 
                                     const hasTax = Boolean(values.hasTax);
@@ -960,8 +1289,8 @@ export default function OfferManagementPage() {
 
                                     setOfferDetail(detail);
                                     setWizardStep(detail.header.wizardStep);
-                                } catch {
-                                    message.error("خطا در ذخیره اطلاعات اصلی");
+                                } catch (error) {
+                                    message.error(getErrorMessage(error, "خطا در ذخیره اطلاعات اصلی"));
                                 } finally {
                                     setSavingStep2(false);
                                 }
@@ -1029,8 +1358,8 @@ export default function OfferManagementPage() {
                                     const detail = await offersApi.getMyOfferDetail(offerId);
                                     setOfferDetail(detail);
                                     setWizardStep(detail.header.wizardStep);
-                                } catch {
-                                    message.error("خطا در ذخیره ویژگی‌ها و مدارک");
+                                } catch (error) {
+                                    message.error(getErrorMessage(error, "خطا در ذخیره ویژگی‌ها و مدارک"));
                                 } finally {
                                     setSavingStep3(false);
                                 }
@@ -1057,8 +1386,8 @@ export default function OfferManagementPage() {
                                         // reload detail
                                         const detail = await offersApi.getMyOfferDetail(offerId);
                                         setOfferDetail(detail);
-                                    } catch (e) {
-                                        message.error("خطا در لغو آگهی");
+                                    } catch (error) {
+                                        message.error(getErrorMessage(error, "خطا در لغو آگهی"));
                                     } finally {
                                         setSubmitting(false);
                                     }
@@ -1089,8 +1418,8 @@ export default function OfferManagementPage() {
                                             const detail = await offersApi.getMyOfferDetail(offerId);
                                             setOfferDetail(detail);
                                             setWizardStep(detail.header.wizardStep);
-                                        } catch (e) {
-                                            message.error("خطا در ارسال آگهی");
+                                        } catch (error) {
+                                            message.error(getErrorMessage(error, "خطا در ارسال آگهی"));
                                         } finally {
                                             setSubmitting(false);
                                         }

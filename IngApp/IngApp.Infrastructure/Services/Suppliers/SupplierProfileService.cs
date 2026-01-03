@@ -135,6 +135,7 @@ namespace IngApp.Infrastructure.Services.Suppliers
         {
             var entity = await _db.SupplierProfiles
                 .Include(x => x.SupplierType)
+                .Include(x => x.User) // اضافه کردن User برای دریافت PhoneNumber
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.UserId == userId);
 
@@ -164,7 +165,8 @@ namespace IngApp.Infrastructure.Services.Suppliers
                 RejectionReason = entity.RejectionReason,
 
                 CreatedAt = entity.CreatedAt,
-                UpdatedAt = entity.UpdatedAt
+                UpdatedAt = entity.UpdatedAt,
+                UserPhoneNumber = entity.User.PhoneNumber // موبایل از جدول Users
             };
         }
 

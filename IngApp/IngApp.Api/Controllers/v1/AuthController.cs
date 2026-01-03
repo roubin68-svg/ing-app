@@ -52,4 +52,17 @@ public class AuthController : ControllerBase
         var info = await _auth.GetUserInfoAsync(userId);
         return Ok(ApiResult.Ok(info));
     }
+
+    // ============================================
+    // UPDATE MY PROFILE
+    // ============================================
+    [HttpPut("me")]
+    [Authorize]
+    public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateMyProfileRequest request)
+    {
+        var userId = Guid.Parse(User.Claims.First(c => c.Type == "uid").Value);
+
+        await _auth.UpdateMyProfileAsync(userId, request);
+        return Ok(ApiResult.Ok("پروفایل با موفقیت به‌روزرسانی شد."));
+    }
 }

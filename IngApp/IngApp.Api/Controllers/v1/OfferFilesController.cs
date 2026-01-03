@@ -93,4 +93,32 @@ public class OfferFilesController : ControllerBase
 
         return File(stream, contentType, originalFileName);
     }
+
+    /// <summary>
+    /// حذف فایل آگهی (Soft Delete)
+    /// </summary>
+    [HttpDelete("file")]
+    public async Task<IActionResult> DeleteFile(
+        [FromQuery] int offerId,
+        [FromQuery] string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            return BadRequest(ApiResult.Fail("مسیر فایل الزامی است."));
+
+        var userId = GetCurrentUserId();
+
+        try
+        {
+            await _offerService.DeleteDocumentFileAsync(userId, offerId, filePath);
+            return Ok(ApiResult.Ok("فایل با موفقیت حذف شد."));
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(ApiResult.Fail(ex.Message));
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(ApiResult.Fail(ex.Message));
+        }
+    }
 }

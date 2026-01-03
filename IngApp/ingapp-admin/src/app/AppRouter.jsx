@@ -22,6 +22,8 @@ import ProductAttributeDefinitionsPage from "../features/productAttributes/pages
 import ProductAttributeTemplatesPage from "../features/productAttributeTemplates/pages/ProductAttributeTemplatesPage";
 import MyOffersPage from "../features/offers/pages/MyOffersPage";
 import OfferManagementPage from "../features/offers/pages/OfferManagementPage";
+import OffersSearchPage from "../features/offers/pages/OffersSearchPage";
+import ProfilePage from "../features/auth/pages/ProfilePage";
 
 
 
@@ -87,10 +89,14 @@ const AppRouter = () => {
                 <Route path="product-attribute-templatesPage" element={<ProductAttributeTemplatesPage />} />
 
 
-                {/* مدیریت آگهی ها*/}
-                <Route path="my-offers" element={<MyOffersPage />} />
-                <Route path="/supplier/offers/manage/:id" element={<OfferManagementPage />} />
-                <Route path="/supplier/offers/manage" element={<OfferManagementPage />} />               
+                        {/* مدیریت آگهی ها*/}
+                        <Route path="my-offers" element={<MyOffersPage />} />
+                        <Route path="/supplier/offers/manage/:id" element={<OfferManagementPage />} />
+                        <Route path="/supplier/offers/manage" element={<OfferManagementPage />} />
+                        <Route path="offers-search" element={<OffersSearchPage />} />
+
+                        {/* پروفایل کاربری */}
+                        <Route path="profile" element={<ProfilePage />} />
 
 
 

@@ -1,14 +1,48 @@
 ﻿import React, { useEffect, useState } from "react";
-import { Card, Row, Col, Tag } from "antd";
+import { Card, Row, Col, Tag, Button, Space, Spin, Empty, Alert } from "antd";
 import { useNavigate } from "react-router-dom";
+import { EyeOutlined, ArrowLeftOutlined, InfoCircleOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
+import jalaali from "jalaali-js";
 
 import supplierOnboardingApi from "../../suppliers/api/supplierOnboardingApi";
+import offersApi from "../../offers/api/offersApi";
+
+// تبدیل تاریخ میلادی به شمسی
+const toShamsi = (gregorian) => {
+    if (!gregorian) return null;
+    
+    if (typeof gregorian === "string") {
+        const [y, m, d] = gregorian.split("T")[0].split("-").map(Number);
+        const j = jalaali.toJalaali(y, m, d);
+        return `${j.jy}/${String(j.jm).padStart(2, "0")}/${String(j.jd).padStart(2, "0")}`;
+    }
+    
+    if (gregorian instanceof Date) {
+        const j = jalaali.toJalaali(
+            gregorian.getFullYear(),
+            gregorian.getMonth() + 1,
+            gregorian.getDate()
+        );
+        return `${j.jy}/${String(j.jm).padStart(2, "0")}/${String(j.jd).padStart(2, "0")}`;
+    }
+    
+    return null;
+};
+
+const formatPrice = (v) =>
+    v != null
+        ? v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        : "-";
 
 const DashboardPage = () => {
     const navigate = useNavigate();
 
     const [supplierStatus, setSupplierStatus] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [recentOffers, setRecentOffers] = useState([]);
+    const [loadingOffers, setLoadingOffers] = useState(false);
+    const [showApprovedAlert, setShowApprovedAlert] = useState(false);
 
     // ----------------------------------
     // Load supplier onboarding status
@@ -20,14 +54,27 @@ const DashboardPage = () => {
 
                 if (!res) {
                     setSupplierStatus(null);
+                    setShowApprovedAlert(false);
                 } else {
+                    const status = res.verificationStatus;
                     setSupplierStatus({
-                        status: res.verificationStatus, // NotSubmitted | Pending | Approved | Rejected
+                        status: status, // NotSubmitted | Pending | Approved | Rejected
                         rejectionReason: res.rejectionReason,
                     });
+                    
+                    // بررسی اینکه آیا Alert تأیید قبلاً نمایش داده شده یا نه
+                    if (status === "Approved") {
+                        const alertShown = localStorage.getItem("supplierApprovedAlertShown");
+                        if (!alertShown) {
+                            setShowApprovedAlert(true);
+                        }
+                    } else {
+                        setShowApprovedAlert(false);
+                    }
                 }
             } catch {
                 setSupplierStatus(null);
+                setShowApprovedAlert(false);
             } finally {
                 setLoading(false);
             }
@@ -37,139 +84,189 @@ const DashboardPage = () => {
     }, []);
 
     // ----------------------------------
+    // Load Recent Offers
+    // ----------------------------------
+    useEffect(() => {
+        const loadRecentOffers = async () => {
+            try {
+                setLoadingOffers(true);
+                const result = await offersApi.searchPublic({
+                    page: 1,
+                    pageSize: 10,
+                    sortBy: "newest",
+                });
+                setRecentOffers(result || []);
+            } catch (error) {
+                console.error("خطا در بارگذاری آگهی‌های اخیر:", error);
+            } finally {
+                setLoadingOffers(false);
+            }
+        };
+
+        loadRecentOffers();
+    }, []);
+
+    // ----------------------------------
     // UI helpers
     // ----------------------------------
-    const getCardBackground = () => {
-        if (!supplierStatus) return {};
 
-        switch (supplierStatus.status) {
-            case "NotSubmitted":
-                return { backgroundColor: "#f0f5ff" }; // blue light
-            case "Pending":
-                return { backgroundColor: "#fff7e6" }; // orange light
-            case "Approved":
-                return { backgroundColor: "#f6ffed" }; // green light
-            case "Rejected":
-                return { backgroundColor: "#fff1f0" }; // red light
-            default:
-                return {};
-        }
+
+    // بررسی اینکه آیا باید Alert نمایش داده شود
+    const shouldShowAlert = () => {
+        if (!supplierStatus) return false;
+        // فقط برای NotSubmitted, Pending, Rejected نمایش بده
+        return ["NotSubmitted", "Pending", "Rejected"].includes(supplierStatus.status);
     };
-    const getCardBorderColore = () => {
-        if (!supplierStatus) return {};
 
+    const getAlertType = () => {
+        if (!supplierStatus) return "info";
         switch (supplierStatus.status) {
             case "NotSubmitted":
-                return { borderColor: "#2f54eb" }; // blue light
+                return "info";
             case "Pending":
-                return { borderColor: "#fa8c16" }; // orange light
-            case "Approved":
-                return { borderColor: "#52c41a" }; // green light
+                return "warning";
             case "Rejected":
-                return { borderColor: "#ff4d4f" }; // red light
+                return "error";
             default:
-                return {};
+                return "info";
         }
     };
 
-    const renderStatusTag = () => {
-        if (!supplierStatus) return null;
-
+    const getAlertMessage = () => {
+        if (!supplierStatus) return "";
         switch (supplierStatus.status) {
             case "NotSubmitted":
-                return <Tag color="blue">در انتظار ارسال مدارک</Tag>;
+                return "هنوز مدارکی ارسال نکرده‌اید. برای تبدیل شدن به تأمین‌کننده، لطفاً فرآیند ثبت‌نام را تکمیل کنید.";
             case "Pending":
-                return <Tag color="orange">در حال بررسی</Tag>;
-            case "Approved":
-                return <Tag color="green">تأیید شده</Tag>;
+                return "مدارک شما ارسال شده و در انتظار بررسی است. پس از تأیید، می‌توانید آگهی ثبت کنید.";
             case "Rejected":
-                return <Tag color="red">رد شده</Tag>;
+                return supplierStatus.rejectionReason
+                    ? `درخواست شما رد شده است: ${supplierStatus.rejectionReason}. لطفاً اطلاعات را اصلاح و مجدداً ارسال کنید.`
+                    : "درخواست شما رد شده است. لطفاً اطلاعات را اصلاح و مجدداً ارسال کنید.";
             default:
-                return null;
+                return "";
         }
-    };
-
-    const renderStatusMessage = () => {
-        if (!supplierStatus) return null;
-
-        let borderColor = "#d9d9d9";
-        let text = "";
-
-        switch (supplierStatus.status) {
-            case "NotSubmitted":
-                borderColor = "#2f54eb";
-                text = "هنوز مدارکی ارسال نکرده‌اید. لطفاً فرآیند ثبت‌نام را تکمیل کنید.";
-                break;
-            case "Pending":
-                borderColor = "#fa8c16";
-                text = "مدارک شما ارسال شده و در انتظار بررسی است.";
-                break;
-            case "Approved":
-                borderColor = "#52c41a";
-                text = "درخواست شما تأیید شده است.";
-                break;
-            case "Rejected":
-                borderColor = "#ff4d4f";
-                text = supplierStatus.rejectionReason
-                    ? `درخواست شما رد شده است: ${supplierStatus.rejectionReason}`
-                    : "درخواست شما رد شده است.";
-                break;
-            default:
-                return null;
-        }
-
-        return (
-            <div
-                style={{
-                    marginTop: 12,
-                    padding: "10px 12px",
-                    border: `1px solid ${borderColor}`,
-                    borderRadius: 8,
-                    background: "#fff",
-                    fontSize: 13,
-                }}
-            >
-                {text}
-            </div>
-        );
     };
 
     return (
         <div className="ingapp-page">
             <h1 className="ingapp-page-title">داشبورد</h1>
 
-            <Row gutter={[16, 16]}>
-                <Col xs={24} sm={12} md={12} lg={10}>
-                    <Card
-                        hoverable
-                        loading={loading}
-                        onClick={() => navigate("/supplier-onboarding")}
-                        style={{
-                            height: "100%",
-                            ...getCardBackground(),
-                            ...getCardBorderColore(),
-                        }}
-                    >
-                        <Card.Meta
-                            title="درخواست همکاری به عنوان تأمین‌کننده"
-                            description={
-                                <>
-                                    <div>
-                                        ثبت و مدیریت اطلاعات برای تبدیل شدن به
-                                        تأمین‌کننده
-                                    </div>
+            {/* Alert برای تأیید شدن (فقط یک بار) */}
+            {showApprovedAlert && (
+                <Alert
+                    message="درخواست همکاری شما تأیید شده است"
+                    description="تبریک! شما اکنون می‌توانید آگهی ثبت کنید."
+                    type="success"
+                    showIcon
+                    closable
+                    onClose={() => {
+                        setShowApprovedAlert(false);
+                        localStorage.setItem("supplierApprovedAlertShown", "true");
+                    }}
+                    className="mb-4"
+                />
+            )}
 
-                                    {supplierStatus && (
-                                        <>
-                                            <div style={{ marginTop: 8 }}>
-                                                {renderStatusTag()}
+            {/* Alert برای درخواست همکاری (فقط در صورت نیاز) */}
+            {shouldShowAlert() && (
+                <Alert
+                    message="درخواست همکاری به عنوان تأمین‌کننده"
+                    description={
+                        <Space direction="vertical" size="small">
+                            <div>{getAlertMessage()}</div>
+                            <Button
+                                type="default"
+                                size="small"
+                                onClick={() => navigate("/supplier-onboarding")}
+                            >
+                                مشاهده و مدیریت درخواست
+                            </Button>
+                        </Space>
+                    }
+                    type={getAlertType()}
+                    icon={<InfoCircleOutlined />}
+                    showIcon
+                    closable
+                    className="mb-4"
+                />
+            )}
+
+            {/* 10 آگهی آخر */}
+            <Row gutter={[16, 16]}>
+                <Col xs={24}>
+                    <Card
+                        title="آگهی‌های اخیر"
+                        extra={
+                            <Button
+                                type="link"
+                                icon={<ArrowLeftOutlined />}
+                                onClick={() => navigate("/offers-search")}
+                            >
+                                مشاهده تمام آگهی‌ها
+                            </Button>
+                        }
+                    >
+                        {loadingOffers ? (
+                            <div style={{ textAlign: "center", padding: "48px 0" }}>
+                                <Spin size="large" />
+                            </div>
+                        ) : recentOffers.length === 0 ? (
+                            <Empty description="آگهی‌ای یافت نشد" />
+                        ) : (
+                            <Row gutter={[16, 16]}>
+                                {recentOffers.map((offer) => (
+                                    <Col xs={24} sm={12} md={8} lg={6} key={offer.id}>
+                                        <Card
+                                            hoverable
+                                            style={{ height: "100%", cursor: "pointer" }}
+                                            onClick={() => navigate(`/offers-search?offerId=${offer.id}`)}
+                                            actions={[
+                                                <Button
+                                                    type="link"
+                                                    icon={<EyeOutlined />}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigate(`/offers-search?offerId=${offer.id}`);
+                                                    }}
+                                                    key="view"
+                                                >
+                                                    مشاهده جزئیات
+                                                </Button>
+                                            ]}
+                                        >
+                                            <div style={{ marginBottom: 12 }}>
+                                                <Tag color="blue" style={{ marginBottom: 8 }}>
+                                                    #{offer.id}
+                                                </Tag>
                                             </div>
-                                            {renderStatusMessage()}
-                                        </>
-                                    )}
-                                </>
-                            }
-                        />
+                                            <Card.Meta
+                                                title={
+                                                    <div style={{ fontSize: 16, fontWeight: "bold", marginBottom: 12 }}>
+                                                        {offer.productName}
+                                                    </div>
+                                                }
+                                                description={
+                                                    <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+                                                        <div>
+                                                            <Tag>{offer.productCategoryName}</Tag>
+                                                        </div>
+                                                        <div style={{ fontSize: 13, color: "#666" }}>
+                                                            <div style={{ marginBottom: 6 }}>قیمت واحد: {formatPrice(offer.unitPrice)} تومان</div>
+                                                            <div style={{ marginBottom: 6 }}>قیمت کل: {formatPrice(offer.totalPrice)} تومان</div>
+                                                            <div style={{ marginBottom: 6 }}>مقدار: {formatPrice(offer.quantity)} {offer.unit}</div>
+                                                            <div style={{ marginTop: 8, fontSize: 12 }}>
+                                                                تاریخ انتشار: {toShamsi(offer.publishedAt) || "-"}
+                                                            </div>
+                                                        </div>
+                                                    </Space>
+                                                }
+                                            />
+                                        </Card>
+                                    </Col>
+                                ))}
+                            </Row>
+                        )}
                     </Card>
                 </Col>
             </Row>

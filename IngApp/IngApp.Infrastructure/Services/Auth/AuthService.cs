@@ -171,8 +171,44 @@ public class AuthService : IAuthService
             IsActive = user.IsActive,
             SubscriptionLevel = (int)user.SubscriptionLevel,
             VerificationStatus = (int)user.VerificationStatus,
+            CreatedAt = user.CreatedAt,
             Roles = roles,
             Permissions = permissions
         };
+    }
+
+    // ============================================================
+    // UPDATE MY PROFILE
+    // ============================================================
+    public async Task UpdateMyProfileAsync(Guid userId, UpdateMyProfileRequest request)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.Id == userId);
+
+        if (user == null)
+            throw new NotFoundException("کاربر یافت نشد.");
+
+        // بررسی اینکه شماره موبایل جدید تکراری نباشد
+        if (!string.IsNullOrWhiteSpace(request.PhoneNumber) && request.PhoneNumber.Trim() != user.PhoneNumber)
+        {
+            var phone = request.PhoneNumber.Trim();
+            var existingUser = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.PhoneNumber == phone && u.Id != userId);
+
+            if (existingUser != null)
+                throw new ValidationException(new() { "شماره موبایل وارد شده قبلاً استفاده شده است." });
+        }
+
+        // به‌روزرسانی فیلدها
+        if (!string.IsNullOrWhiteSpace(request.DisplayName))
+            user.DisplayName = request.DisplayName.Trim();
+
+        if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+            user.PhoneNumber = request.PhoneNumber.Trim();
+
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
     }
 }

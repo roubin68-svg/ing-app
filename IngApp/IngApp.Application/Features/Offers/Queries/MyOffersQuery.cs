@@ -4,6 +4,7 @@ namespace IngApp.Application.Features.Offers.Queries;
 
 public class MyOffersQuery
 {
+    public int? OfferId { get; set; }
     // Filters
     public OfferStatus? Status { get; set; }
     public int? ProductCategoryId { get; set; }

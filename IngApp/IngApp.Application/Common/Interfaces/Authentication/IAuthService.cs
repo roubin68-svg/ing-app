@@ -7,5 +7,6 @@ namespace IngApp.Application.Common.Interfaces.Authentication
         Task<AuthResponse> SendOtpAsync(SendOtpRequest request);
         Task<AuthResponse> VerifyOtpAsync(VerifyOtpRequest request);
         Task<UserInfoResponse> GetUserInfoAsync(Guid userId);
+        Task UpdateMyProfileAsync(Guid userId, UpdateMyProfileRequest request);
     }
 }

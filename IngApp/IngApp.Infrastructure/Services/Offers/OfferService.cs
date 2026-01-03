@@ -150,6 +150,7 @@ public class OfferService : IOfferService
                 PublishedAt = offer.PublishedAt,
                 ExpireAtBySupplier = offer.ExpireAtBySupplier,
                 WizardStep = offer.WizardStep,
+                SupplierUserId = offer.SupplierUserId
             },
             Documents = offer.Documents.Select(d => new OfferDocumentDto
             {
@@ -175,6 +176,9 @@ public class OfferService : IOfferService
         // -----------------------
         // Filters
         // -----------------------
+        if (query.OfferId.HasValue)
+            offersQuery = offersQuery.Where(x => x.offer.Id == query.OfferId.Value);
+
         if (query.Status.HasValue)
             offersQuery = offersQuery.Where(x => x.offer.Status == query.Status);
 
@@ -225,9 +229,30 @@ public class OfferService : IOfferService
                 TotalPrice = x.offer.TotalPrice,
                 Status = x.offer.Status,
                 CreatedAt = x.offer.CreatedAt,
-                PublishedAt = x.offer.PublishedAt
+                PublishedAt = x.offer.PublishedAt,
+                ViewCount = 0, // Will be populated below
+                ContactClickCount = 0 // Will be populated below
             })
             .ToListAsync();
+
+        // Populate click stats
+        var offerIds = items.Select(x => x.Id).ToList();
+        var clickStats = await _db.OfferClickLogs
+            .AsNoTracking()
+            .Where(x => offerIds.Contains(x.OfferId))
+            .GroupBy(x => new { x.OfferId, x.ClickType })
+            .Select(g => new { g.Key.OfferId, g.Key.ClickType, Count = g.Count() })
+            .ToListAsync();
+
+        foreach (var item in items)
+        {
+            item.ViewCount = clickStats
+                .Where(s => s.OfferId == item.Id && s.ClickType == OfferClickType.View)
+                .Sum(s => s.Count);
+            item.ContactClickCount = clickStats
+                .Where(s => s.OfferId == item.Id && s.ClickType == OfferClickType.ContactClick)
+                .Sum(s => s.Count);
+        }
 
         return new PagedResult<OfferListItemDto>
         {
@@ -441,10 +466,17 @@ public class OfferService : IOfferService
     public async Task<List<PublicOfferListItemDto>> SearchPublicAsync(PublicOfferSearchQuery query)
     {
         var offers =
-    from offer in _db.Offers.AsNoTracking()
-    join product in _db.Products on offer.ProductId equals product.Id
-    where offer.Status == OfferStatus.Published
-    select new { offer, product };
+            from offer in _db.Offers.AsNoTracking()
+            join product in _db.Products on offer.ProductId equals product.Id
+            join category in _db.ProductCategories on product.CategoryId equals category.Id
+            where offer.Status == OfferStatus.Published
+            select new { offer, product, category };
+
+        // -----------------------
+        // Filters
+        // -----------------------
+        if (query.OfferId.HasValue)
+            offers = offers.Where(x => x.offer.Id == query.OfferId.Value);
 
         if (query.CategoryId.HasValue)
         {
@@ -454,34 +486,57 @@ public class OfferService : IOfferService
         if (query.ProductId.HasValue)
             offers = offers.Where(x => x.offer.ProductId == query.ProductId);
 
+        if (!string.IsNullOrWhiteSpace(query.ProductName))
+            offers = offers.Where(x => x.product.Name.Contains(query.ProductName));
+
+        // فیلتر قیمت بر اساس UnitPrice (نه TotalPrice)
         if (query.MinPrice.HasValue)
-            offers = offers.Where(x => x.offer.TotalPrice >= query.MinPrice);
+            offers = offers.Where(x => x.offer.UnitPrice >= query.MinPrice.Value);
 
         if (query.MaxPrice.HasValue)
-            offers = offers.Where(x => x.offer.TotalPrice <= query.MaxPrice);
+            offers = offers.Where(x => x.offer.UnitPrice <= query.MaxPrice.Value);
 
+        // -----------------------
+        // Sorting
+        // -----------------------
+        offers = (query.SortBy?.ToLower(), query.SortDir?.ToLower()) switch
+        {
+            ("newest", _) or (null, _) => offers.OrderByDescending(x => x.offer.SearchDateTime),
+            ("oldest", _) => offers.OrderBy(x => x.offer.SearchDateTime),
+            ("priceasc", _) => offers.OrderBy(x => x.offer.UnitPrice),
+            ("pricedesc", _) => offers.OrderByDescending(x => x.offer.UnitPrice),
+            ("quantityasc", _) => offers.OrderBy(x => x.offer.Quantity),
+            ("quantitydesc", _) => offers.OrderByDescending(x => x.offer.Quantity),
+            _ => offers.OrderByDescending(x => x.offer.SearchDateTime)
+        };
 
+        // -----------------------
+        // Paging & Select
+        // -----------------------
         return await offers
-    .OrderByDescending(x => x.offer.SearchDateTime)
-    .Skip((query.Page - 1) * query.PageSize)
-    .Take(query.PageSize)
-    .Select(x => new PublicOfferListItemDto
-    {
-        Id = x.offer.Id,
-        ProductId = x.offer.ProductId,
-        TotalPrice = x.offer.TotalPrice,
-        Quantity = x.offer.Quantity,
-        Unit = x.offer.Unit,
-        PublishedAt = x.offer.PublishedAt!.Value
-    })
-    .ToListAsync();
-
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(x => new PublicOfferListItemDto
+            {
+                Id = x.offer.Id,
+                ProductId = x.offer.ProductId,
+                ProductName = x.product.Name,
+                ProductCategoryId = x.category.Id,
+                ProductCategoryName = x.category.Name,
+                UnitPrice = x.offer.UnitPrice,
+                TotalPrice = x.offer.TotalPrice,
+                Quantity = x.offer.Quantity,
+                Unit = x.offer.Unit,
+                PublishedAt = x.offer.PublishedAt!.Value,
+                SearchDateTime = x.offer.SearchDateTime
+            })
+            .ToListAsync();
     }
 
     public async Task<OfferDetailDto> GetPublicDetailAsync(int offerId)
     {
         var offer = await _db.Offers
-            .Include(x => x.Documents.Where(d => !d.IsDeleted))
+            .Include(x => x.Documents.Where(d => !d.IsDeleted && (d.Value != null || d.FilePath != null)))
             .FirstOrDefaultAsync(x =>
                 x.Id == offerId &&
                 x.Status == OfferStatus.Published);
@@ -495,6 +550,13 @@ public class OfferService : IOfferService
 
         if (product == null)
             throw new NotFoundException("محصول مرتبط با این آگهی یافت نشد.");
+
+        // گرفتن AttributeDefinitions برای Documents
+        var attributeDefinitionIds = offer.Documents.Select(d => d.AttributeDefinitionId).Distinct().ToList();
+        var attributeDefinitions = await _db.ProductAttributeDefinitions
+            .AsNoTracking()
+            .Where(ad => attributeDefinitionIds.Contains(ad.Id))
+            .ToDictionaryAsync(ad => ad.Id, ad => ad);
 
         return new OfferDetailDto
         {
@@ -513,13 +575,20 @@ public class OfferService : IOfferService
                 CreatedAt = offer.CreatedAt,
                 PublishedAt = offer.PublishedAt,
                 ExpireAtBySupplier = offer.ExpireAtBySupplier,
-                WizardStep = offer.WizardStep
+                WizardStep = offer.WizardStep,
+                SupplierUserId = offer.SupplierUserId
             },
-            Documents = offer.Documents.Select(d => new OfferDocumentDto
+            Documents = offer.Documents.Select(d =>
             {
-                AttributeDefinitionId = d.AttributeDefinitionId,
-                Value = d.Value,
-                FilePath = d.FilePath
+                var attrDef = attributeDefinitions.GetValueOrDefault(d.AttributeDefinitionId);
+                return new OfferDocumentDto
+                {
+                    AttributeDefinitionId = d.AttributeDefinitionId,
+                    DisplayName = attrDef?.DisplayName ?? "نامشخص",
+                    DataType = attrDef?.DataType ?? ProductAttributeDataType.Text,
+                    Value = d.Value,
+                    FilePath = d.FilePath
+                };
             }).ToList()
         };
     }
@@ -688,6 +757,44 @@ public class OfferService : IOfferService
         // 4) مرحله
         offer.WizardStep = OfferWizardStep.MainInfo;
         offer.UpdatedAt = now;
+
+        await _db.SaveChangesAsync();
+    }
+
+    // --------------------------------------------------
+    // Delete Document File (Soft Delete)
+    // --------------------------------------------------
+    public async Task DeleteDocumentFileAsync(Guid supplierUserId, int offerId, string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new ValidationException(new() { "مسیر فایل نامعتبر است." });
+
+        var offer = await _db.Offers
+            .Include(x => x.Documents)
+            .FirstOrDefaultAsync(x => x.Id == offerId);
+
+        if (offer == null)
+            throw new NotFoundException("آگهی موردنظر یافت نشد.");
+
+        if (offer.SupplierUserId != supplierUserId)
+            throw new ValidationException(new() { "دسترسی غیرمجاز به آگهی." });
+
+        if (offer.Status != OfferStatus.Draft)
+            throw new ValidationException(new()
+            {
+                "فقط آگهی‌هایی که در وضعیت پیش‌نویس هستند قابل ویرایش می‌باشند."
+            });
+
+        // پیدا کردن document با این filePath
+        var document = offer.Documents
+            .FirstOrDefault(d => d.FilePath == filePath && !d.IsDeleted);
+
+        if (document == null)
+            throw new NotFoundException("فایل موردنظر یافت نشد یا قبلاً حذف شده است.");
+
+        // Soft Delete
+        document.IsDeleted = true;
+        document.DeletedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
     }

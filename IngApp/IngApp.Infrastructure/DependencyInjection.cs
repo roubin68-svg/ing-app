@@ -31,7 +31,10 @@ public static class DependencyInjection
     {
         // DbContext
         services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(
+                configuration.GetConnectionString("DefaultConnection"),
+                sqlOptions => sqlOptions.CommandTimeout(300) // 5 دقیقه timeout برای migration های طولانی
+            ));
 
         // Auth Services
         services.AddScoped<IAuthService, AuthService>();
@@ -73,8 +76,10 @@ public static class DependencyInjection
 
         //Offer Services
         services.AddScoped<IOfferService, OfferService>();
+        services.AddScoped<IOfferClickService, OfferClickService>();
         services.AddScoped<IOfferFileStorageService, OfferFileStorageService>();
         services.AddScoped<IOfferService, OfferService>();
+        services.AddScoped<IOfferClickService, OfferClickService>();
 
 
 

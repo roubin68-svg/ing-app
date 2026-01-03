@@ -25,4 +25,5 @@ public class OfferHeaderDto
 
     public OfferWizardStep WizardStep { get; set; }
 
+    public Guid SupplierUserId { get; set; }
 }

@@ -83,10 +83,17 @@ const Sidebar = ({ collapsed }) => {
     navigate(key);
   };
 
-  const selectedKeys = useMemo(
-    () => [location.pathname || "/"],
-    [location.pathname]
-  );
+  const selectedKeys = useMemo(() => {
+    const path = location.pathname;
+    
+    // فقط یک استثنا: صفحه مدیریت آگهی که باید منوی "آگهی‌های من" را هایلایت کند
+    if (path.startsWith("/supplier/offers/manage")) {
+      return ["my-offers"];
+    }
+    
+    // بقیه مسیرها به صورت مستقیم match می‌شوند
+    return [path || "/"];
+  }, [location.pathname]);
 
   return (
     <>

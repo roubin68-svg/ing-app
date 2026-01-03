@@ -12,6 +12,10 @@ public class KycTemplateConfiguration : IEntityTypeConfiguration<KycTemplate>
         builder.Property(x => x.SortOrder)
             .IsRequired();
 
+        builder.Property(x => x.IsActive)
+            .IsRequired()
+            .HasDefaultValue(true);
+
         builder.HasOne(x => x.KycAttributeDefinition)
             .WithMany()
             .HasForeignKey(x => x.KycAttributeDefinitionId)

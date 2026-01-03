@@ -139,16 +139,24 @@ namespace IngApp.Infrastructure.Services.Kyc
             if (supplier == null)
                 return new List<KycRequirementDto>();
 
+            // بررسی اینکه آیا SupplierTypeId معتبر است
+            if (supplier.SupplierTypeId <= 0)
+                return new List<KycRequirementDto>();
+
+            // گرفتن templates فعال برای این SupplierTypeId
             var templates = await _db.KycTemplates
                 .Where(x => x.SupplierTypeId == supplier.SupplierTypeId && x.IsActive == true)
                 .AsNoTracking()
                 .ToListAsync();
 
+            // اگر template فعالی پیدا نشد، لیست خالی برمی‌گردانیم
+            // (frontend خودش پیام مناسب را نمایش می‌دهد)
             if (!templates.Any())
                 return new List<KycRequirementDto>();
 
             var defIds = templates.Select(t => t.KycAttributeDefinitionId).Distinct().ToList();
 
+            // گرفتن KycAttributeDefinitions (بدون فیلتر IsActive - چون template فعال است پس definition هم باید فعال باشد)
             var defs = await _db.KycAttributeDefinitions
                 .Where(d => defIds.Contains(d.Id))
                 .AsNoTracking()
@@ -209,7 +217,7 @@ namespace IngApp.Infrastructure.Services.Kyc
             // قالب‌های فعال این نوع تأمین‌کننده
             var templates = await _db.KycTemplates
                 .Where(t => t.SupplierTypeId == supplier.SupplierTypeId &&
-                            t.IsActive == true)
+                            t.IsActive)
                 .AsNoTracking()
                 .ToListAsync();
 

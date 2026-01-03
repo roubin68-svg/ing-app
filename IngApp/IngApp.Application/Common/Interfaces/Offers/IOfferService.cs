@@ -26,7 +26,6 @@ public interface IOfferService
     Task<List<AvailableProductCategoryNodeDto>> GetAvailableProductsForOfferAsync(Guid supplierUserId);
     Task ChangeProductAsync(Guid supplierUserId, int offerId, ChangeOfferProductRequest request);
     Task EnsureEditableDraftAsync(Guid supplierUserId, int offerId);
-
-
+    Task DeleteDocumentFileAsync(Guid supplierUserId, int offerId, string filePath);
 
 }

@@ -22,11 +22,12 @@ import {
     Image,
     Select,
 } from "antd";
-import { UploadOutlined, DownloadOutlined, EyeOutlined } from "@ant-design/icons";
+import { UploadOutlined, DownloadOutlined, EyeOutlined, FileOutlined, FilePdfOutlined, FileWordOutlined, CheckCircleOutlined, DeleteOutlined } from "@ant-design/icons";
 
 import supplierOnboardingApi from "../api/supplierOnboardingApi";
 import supplierTypesApi from "../../supplierTypes/api/supplierTypesApi";
 import { getProvinces, getCitiesByProvince } from "../../../core/location/iranProvinces";
+import apiClient from "../../../core/api/apiClient";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -70,6 +71,7 @@ const SupplierOnboardingPage = () => {
      * }
      */
     const [draftByAttrId, setDraftByAttrId] = useState({});
+    const [imageBlobUrls, setImageBlobUrls] = useState({}); // برای نگه‌داری blob URLs تصاویر persist شده: { documentId: blobUrl }
 
     // Preview Modal state
     const [preview, setPreview] = useState({
@@ -107,7 +109,7 @@ const SupplierOnboardingPage = () => {
             );
         }
 
-        return "https://localhost:7145";
+        return "http://localhost:5273";
     }, []);
 
     const getAccessToken = () => {
@@ -265,31 +267,41 @@ const SupplierOnboardingPage = () => {
     // Load My Profile
     // --------------------------------------------------
     const loadMyProfile = useCallback(async () => {
-        const raw = await supplierOnboardingApi.getMyProfile();
-        const res = unwrapApiResult(raw);
+        try {
+            const raw = await supplierOnboardingApi.getMyProfile();
+            const res = unwrapApiResult(raw);
 
-        setProfile(res);
+            setProfile(res);
 
-        if (res?.supplierTypeId && selectedSupplierTypeId === null) {
-            setSelectedSupplierTypeId(res.supplierTypeId);
+            if (res?.supplierTypeId && selectedSupplierTypeId === null) {
+                setSelectedSupplierTypeId(res.supplierTypeId);
 
-            // فرم را پر می‌کنیم که اگر برگشت Stage 2 لازم شد، آماده باشد
-            form.setFieldsValue({
-                businessName: res.businessName,
-                nationalId: res.nationalId,
-                licenseNumber: res.licenseNumber,
-                province: res.province,
-                city: res.city,
-                address: res.address,
-                contactName: res.contactName,
-                contactPhone: res.contactPhone,
-            });
+                // فرم را پر می‌کنیم که اگر برگشت Stage 2 لازم شد، آماده باشد
+                form.setFieldsValue({
+                    businessName: res.businessName,
+                    nationalId: res.nationalId,
+                    licenseNumber: res.licenseNumber,
+                    province: res.province,
+                    city: res.city,
+                    address: res.address,
+                    contactName: res.contactName,
+                    contactPhone: res.contactPhone,
+                });
 
-            setSelectedProvince(res.province || null);
+                setSelectedProvince(res.province || null);
+            }
+
+            return res;
+        } catch (error) {
+            // اگر 404 بود (پروفایل یافت نشد)، این طبیعی است و null برمی‌گردانیم
+            if (error?.response?.status === 404 || error?.status === 404) {
+                setProfile(null);
+                return null;
+            }
+            // برای خطاهای دیگر، دوباره throw می‌کنیم
+            throw error;
         }
-
-        return res;
-    }, [form]);
+    }, [form, selectedSupplierTypeId]);
 
     // --------------------------------------------------
     // Load KYC (requirements + documents)
@@ -301,13 +313,55 @@ const SupplierOnboardingPage = () => {
 
             setKycLoading(true);
             try {
-                const reqRes = await apiFetchJson("/api/v1/kyc/my/requirements", { method: "GET" });
-                const requirements = unwrapApiResult(reqRes) || [];
+                const reqRes = await apiClient.get("/kyc/my/requirements");
+                const requirements = reqRes.data || [];
                 setKycRequirements(requirements);
 
-                const docRes = await apiFetchJson("/api/v1/kyc/my/documents", { method: "GET" });
-                const documents = unwrapApiResult(docRes) || [];
+                const docRes = await apiClient.get("/kyc/my/documents");
+                const documents = docRes.data || [];
                 setKycDocuments(documents);
+
+                // ساخت blob URLs برای تصاویر persist شده
+                const token = getAccessToken();
+                const blobUrlPromises = documents
+                    .filter(d => d.filePath && d.value)
+                    .map(async (d) => {
+                        const fileName = (d.value || "").toLowerCase();
+                        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(fileName);
+                        if (!isImage) return null;
+
+                        try {
+                            const res = await fetch(`${apiClient.defaults.baseURL}/kyc/documents/${d.id}/file`, {
+                                method: "GET",
+                                headers: {
+                                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                                },
+                            });
+                            if (!res.ok) return null;
+                            const blob = await res.blob();
+                            const blobUrl = window.URL.createObjectURL(blob);
+                            return { documentId: d.id, blobUrl };
+                        } catch {
+                            return null;
+                        }
+                    });
+
+                const blobUrlResults = await Promise.all(blobUrlPromises);
+                const newBlobUrls = {};
+                blobUrlResults.forEach(result => {
+                    if (result) {
+                        newBlobUrls[result.documentId] = result.blobUrl;
+                    }
+                });
+                setImageBlobUrls(prev => {
+                    // Revoke old URLs
+                    Object.values(prev).forEach(url => {
+                        if (url && typeof url === 'string') {
+                            window.URL.revokeObjectURL(url);
+                        }
+                    });
+                    return newBlobUrls;
+                });
 
                 // init draft map if not exists, BUT do not overwrite existing draft
                 setDraftByAttrId((prev) => {
@@ -341,7 +395,7 @@ const SupplierOnboardingPage = () => {
                 setKycLoading(false);
             }
         },
-        [message, deriveStageFromProfile]
+        [message, deriveStageFromProfile, profile, getAccessToken]
     );
 
     const clearKycDraftLocal = useCallback(() => {
@@ -388,6 +442,17 @@ const SupplierOnboardingPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Cleanup: Revoke blob URLs when component unmounts
+    useEffect(() => {
+        return () => {
+            Object.values(imageBlobUrls).forEach(url => {
+                if (url && typeof url === 'string') {
+                    window.URL.revokeObjectURL(url);
+                }
+            });
+        };
+    }, [imageBlobUrls]);
+
     // --------------------------------------------------
     // Save Profile (Draft) => next stage from backend
     // --------------------------------------------------
@@ -428,7 +493,7 @@ const SupplierOnboardingPage = () => {
         try {
             const token = getAccessToken();
 
-            const res = await fetch(`${apiBaseUrl}/api/v1/kyc/documents/${documentId}/file`, {
+            const res = await fetch(`${apiClient.defaults.baseURL}/kyc/documents/${documentId}/file`, {
                 method: "GET",
                 headers: {
                     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -484,7 +549,9 @@ const SupplierOnboardingPage = () => {
 
         return new Promise((resolve) => {
             const xhr = new XMLHttpRequest();
-            xhr.open("POST", `${apiBaseUrl}/api/v1/kyc/my/upload-file`, true);
+            // استفاده از baseURL از apiClient
+            const uploadUrl = `${apiClient.defaults.baseURL}/kyc/my/upload-file`;
+            xhr.open("POST", uploadUrl, true);
             if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
 
             xhr.upload.onprogress = (evt) => {
@@ -657,10 +724,7 @@ const SupplierOnboardingPage = () => {
                 };
             });
 
-            await apiFetchJson("/api/v1/kyc/my/submit", {
-                method: "POST",
-                body: JSON.stringify(payload),
-            });
+            await apiClient.post("/kyc/my/submit", payload);
 
             message.success("مدارک با موفقیت ارسال شد");
 
@@ -821,18 +885,85 @@ const SupplierOnboardingPage = () => {
 
         if (dt === 1) {
             return (
-                <Space direction="vertical" style={{ width: "100%" }}>
-                    {hasPersistedFile && (
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                            <div style={{ minWidth: 0 }}>
-                                <Text type="secondary">فایل ثبت‌شده در سیستم:</Text>
-                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                    <Text>{persistedFileName || "فایل"}</Text>
-                                </div>
-                            </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {/* Header: نام فیلد و تگ‌ها */}
+                    <Space>
+                        <Text strong>{r.attributeDisplayName}</Text>
+                        {requiredTag}
+                        {renderDocStatusTag(doc?.status)}
+                        {showDraftBadge && <Tag color="gold">در انتظار ارسال</Tag>}
+                    </Space>
 
+                    {r.description && <Text type="secondary">{r.description}</Text>}
+
+                    {/* فایل ثبت‌شده (persisted) */}
+                    {hasPersistedFile && !draft?.fileDraft && (
+                        <div
+                            style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                background: "#f6ffed",
+                                padding: "12px",
+                                borderRadius: 6,
+                                border: "1px solid #b7eb8f",
+                            }}
+                        >
                             <Space>
-                                <Button
+                                {(() => {
+                                    const fileName = persistedFileName?.toLowerCase() || "";
+                                    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(fileName);
+                                    const isPdf = fileName.endsWith(".pdf");
+                                    const isWord = /\.(doc|docx)$/i.test(fileName);
+                                    
+                                    if (isImage && persistedFilePath) {
+                                        const blobUrl = imageBlobUrls[doc.id];
+                                        if (blobUrl) {
+                                            return (
+                                                <Image
+                                                    src={blobUrl}
+                                                    alt={persistedFileName}
+                                                    width={40}
+                                                    height={40}
+                                                    style={{
+                                                        objectFit: "cover",
+                                                        borderRadius: 4,
+                                                        border: "1px solid #d9d9d9",
+                                                    }}
+                                                    preview={{
+                                                        src: blobUrl
+                                                    }}
+                                                />
+                                            );
+                                        }
+                                        // اگر blob URL هنوز آماده نیست، یک placeholder نمایش بده
+                                        return (
+                                            <div style={{
+                                                width: 40,
+                                                height: 40,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                background: "#f0f0f0",
+                                                borderRadius: 4,
+                                                border: "1px solid #d9d9d9"
+                                            }}>
+                                                <Spin size="small" />
+                                            </div>
+                                        );
+                                    }
+                                    if (isPdf) return <FilePdfOutlined style={{ fontSize: 24, color: "#f5222d" }} />;
+                                    if (isWord) return <FileWordOutlined style={{ fontSize: 24, color: "#1890ff" }} />;
+                                    return <FileOutlined style={{ fontSize: 24, color: "#666" }} />;
+                                })()}
+                                <div>
+                                    <div style={{ fontWeight: 500, fontSize: 13 }}>{persistedFileName || "فایل"}</div>
+                                    <div style={{ fontSize: 11, color: "#666" }}>فایل ثبت‌شده</div>
+                                </div>
+                            </Space>
+                            <Space>
+                                <Button 
+                                    size="small"
                                     icon={<DownloadOutlined />}
                                     onClick={() => downloadPersistedFile(doc.id, persistedFileName || "document")}
                                 >
@@ -842,59 +973,125 @@ const SupplierOnboardingPage = () => {
                         </div>
                     )}
 
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                        <Space direction="vertical" style={{ flex: 1, minWidth: 0 }}>
-                            <Space>
-                                <Text strong>{r.attributeDisplayName}</Text>
-                                {requiredTag}
-                                {renderDocStatusTag(doc?.status)}
-                                {showDraftBadge && <Tag color="gold">در انتظار ارسال</Tag>}
+                    {/* فایل جدید (draft) - فقط اگر فایل persist نشده */}
+                    {draft?.fileDraft && !hasPersistedFile && (
+                        <div
+                            style={{
+                                background: draft.uploading ? "#fff7e6" : "#f6ffed",
+                                padding: "12px",
+                                borderRadius: 6,
+                                border: `1px solid ${draft.uploading ? "#ffd591" : "#b7eb8f"}`,
+                            }}
+                        >
+                            <Space direction="vertical" size="small" style={{ width: "100%" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <Space>
+                                        {(() => {
+                                            // برای draft files، از localPreviewUrl استفاده کن
+                                            if (draft.localPreviewUrl) {
+                                                return (
+                                                    <Image
+                                                        src={draft.localPreviewUrl}
+                                                        alt="preview"
+                                                        width={50}
+                                                        height={50}
+                                                        style={{
+                                                            objectFit: "cover",
+                                                            borderRadius: 4,
+                                                            border: "1px solid #d9d9d9",
+                                                        }}
+                                                        preview={{
+                                                            src: draft.localPreviewUrl
+                                                        }}
+                                                    />
+                                                );
+                                            }
+                                            // در غیر این صورت آیکون فایل
+                                            const fileName = draft.fileDraft.fileName?.toLowerCase() || "";
+                                            const mimeType = draft.fileDraft.mimeType || "";
+                                            const isPdf = mimeType === "application/pdf" || fileName.endsWith(".pdf");
+                                            const isWord = mimeType.includes("word") || /\.(doc|docx)$/i.test(fileName);
+                                            
+                                            if (isPdf) return <FilePdfOutlined style={{ fontSize: 32, color: "#f5222d" }} />;
+                                            if (isWord) return <FileWordOutlined style={{ fontSize: 32, color: "#1890ff" }} />;
+                                            return <FileOutlined style={{ fontSize: 32, color: "#666" }} />;
+                                        })()}
+                                    </Space>
+                                    <Space>
+                                        <div>
+                                            <div style={{ fontWeight: 500, fontSize: 13 }}>
+                                                {draft.fileDraft.fileName}
+                                            </div>
+                                            <div style={{ fontSize: 11, color: "#666" }}>
+                                                {draft.fileDraft.size ? 
+                                                    (draft.fileDraft.size < 1024 
+                                                        ? `${draft.fileDraft.size} B`
+                                                        : draft.fileDraft.size < 1024 * 1024
+                                                        ? `${(draft.fileDraft.size / 1024).toFixed(2)} KB`
+                                                        : `${(draft.fileDraft.size / (1024 * 1024)).toFixed(2)} MB`)
+                                                    : ""}
+                                            </div>
+                                        </div>
+                                    </Space>
+                                    {!draft.uploading && draft.fileDraft.filePath && (
+                                        <CheckCircleOutlined style={{ fontSize: 20, color: "#52c41a" }} />
+                                    )}
+                                </div>
+                                
+                                {draft.uploading && (
+                                    <Progress 
+                                        percent={draft.uploadProgress || 0} 
+                                        status="active"
+                                        size="small"
+                                    />
+                                )}
+                                
+                                {!draft.uploading && draft.fileDraft.filePath && (
+                                    <Button
+                                        size="small"
+                                        danger
+                                        icon={<DeleteOutlined />}
+                                        onClick={async () => {
+                                            // Clear local draft state
+                                            setDraftByAttrId((prev) => ({
+                                                ...prev,
+                                                [attrId]: {
+                                                    uploading: false,
+                                                    localPreviewUrl: null,
+                                                    fileDraft: null,
+                                                    uploadProgress: 0,
+                                                },
+                                            }));
+                                            message.info("فایل حذف شد.");
+                                        }}
+                                    >
+                                        حذف فایل
+                                    </Button>
+                                )}
                             </Space>
+                        </div>
+                    )}
 
-                            {r.description && <Text type="secondary">{r.description}</Text>}
-
-                            {draft?.fileDraft?.fileName && (
-                                <Text type="secondary" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                    فایل انتخاب‌شده: {draft.fileDraft.fileName}
-                                </Text>
-                            )}
-
-                            {isUploading && (
-                                <Progress percent={draft?.uploadProgress || 0} />
-                            )}
-                        </Space>
-
-                        <Space direction="vertical" align="end">
-                            <Upload
-                                beforeUpload={(file) => uploadKycFileWithProgress(attrId, file)}
-                                showUploadList={false}
+                    {/* Upload Button */}
+                    {(!hasPersistedFile || (hasPersistedFile && !draft?.fileDraft)) && (
+                        <Upload
+                            beforeUpload={(file) => uploadKycFileWithProgress(attrId, file)}
+                            showUploadList={false}
+                        >
+                            <Button 
+                                icon={<UploadOutlined />} 
+                                disabled={isUploading}
+                                loading={isUploading}
                             >
-                                <Button icon={<UploadOutlined />} disabled={isUploading}>
-                                    انتخاب فایل
-                                </Button>
-                            </Upload>
-
-                            {isImageDraft && (
-                                <Button
-                                    icon={<EyeOutlined />}
-                                    onClick={() =>
-                                        setPreview({
-                                            open: true,
-                                            title: draft?.fileDraft?.fileName || r.attributeDisplayName,
-                                            url: draft.localPreviewUrl,
-                                        })
-                                    }
-                                >
-                                    پیش‌نمایش
-                                </Button>
-                            )}
-                        </Space>
-                    </div>
+                                {hasPersistedFile ? "تغییر فایل" : "انتخاب فایل"}
+                            </Button>
+                        </Upload>
+                    )}
 
                     {doc?.adminNote && (
                         <Alert type="warning" message={doc.adminNote} showIcon />
                     )}
-                </Space>
+                </div>
             );
         }
 
@@ -902,7 +1099,7 @@ const SupplierOnboardingPage = () => {
 
         if (dt === 2) {
             return (
-                <Space direction="vertical" style={{ width: "100%" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     <Space>
                         <Text strong>{r.attributeDisplayName}</Text>
                         {requiredTag}
@@ -913,7 +1110,17 @@ const SupplierOnboardingPage = () => {
                     {r.description && <Text type="secondary">{r.description}</Text>}
 
                     {showPersistedLine && (
-                        <Text type="secondary">مقدار ثبت‌شده: {String(persistedValue)}</Text>
+                        <div
+                            style={{
+                                background: "#f6ffed",
+                                padding: "8px 12px",
+                                borderRadius: 6,
+                                border: "1px solid #b7eb8f",
+                            }}
+                        >
+                            <Text type="secondary">مقدار ثبت‌شده: </Text>
+                            <Text strong>{String(persistedValue)}</Text>
+                        </div>
                     )}
 
                     <Input
@@ -932,13 +1139,13 @@ const SupplierOnboardingPage = () => {
                     {doc?.adminNote && (
                         <Alert type="warning" message={doc.adminNote} showIcon />
                     )}
-                </Space>
+                </div>
             );
         }
 
         if (dt === 3) {
             return (
-                <Space direction="vertical" style={{ width: "100%" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     <Space>
                         <Text strong>{r.attributeDisplayName}</Text>
                         {requiredTag}
@@ -949,7 +1156,17 @@ const SupplierOnboardingPage = () => {
                     {r.description && <Text type="secondary">{r.description}</Text>}
 
                     {showPersistedLine && (
-                        <Text type="secondary">مقدار ثبت‌شده: {String(persistedValue)}</Text>
+                        <div
+                            style={{
+                                background: "#f6ffed",
+                                padding: "8px 12px",
+                                borderRadius: 6,
+                                border: "1px solid #b7eb8f",
+                            }}
+                        >
+                            <Text type="secondary">مقدار ثبت‌شده: </Text>
+                            <Text strong>{String(persistedValue)}</Text>
+                        </div>
                     )}
 
                     <Input
@@ -969,13 +1186,13 @@ const SupplierOnboardingPage = () => {
                     {doc?.adminNote && (
                         <Alert type="warning" message={doc.adminNote} showIcon />
                     )}
-                </Space>
+                </div>
             );
         }
 
         if (dt === 4) {
             return (
-                <Space direction="vertical" style={{ width: "100%" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     <Space>
                         <Text strong>{r.attributeDisplayName}</Text>
                         {requiredTag}
@@ -986,7 +1203,17 @@ const SupplierOnboardingPage = () => {
                     {r.description && <Text type="secondary">{r.description}</Text>}
 
                     {showPersistedLine && (
-                        <Text type="secondary">مقدار ثبت‌شده: {String(persistedValue)}</Text>
+                        <div
+                            style={{
+                                background: "#f6ffed",
+                                padding: "8px 12px",
+                                borderRadius: 6,
+                                border: "1px solid #b7eb8f",
+                            }}
+                        >
+                            <Text type="secondary">مقدار ثبت‌شده: </Text>
+                            <Text strong>{String(persistedValue)}</Text>
+                        </div>
                     )}
 
                     <Radio.Group
@@ -1008,13 +1235,13 @@ const SupplierOnboardingPage = () => {
                     {doc?.adminNote && (
                         <Alert type="warning" message={doc.adminNote} showIcon />
                     )}
-                </Space>
+                </div>
             );
         }
 
         if (dt === 5) {
             return (
-                <Space direction="vertical" style={{ width: "100%" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     <Space>
                         <Text strong>{r.attributeDisplayName}</Text>
                         {requiredTag}
@@ -1025,7 +1252,17 @@ const SupplierOnboardingPage = () => {
                     {r.description && <Text type="secondary">{r.description}</Text>}
 
                     {showPersistedLine && (
-                        <Text type="secondary">مقدار ثبت‌شده: {String(persistedValue)}</Text>
+                        <div
+                            style={{
+                                background: "#f6ffed",
+                                padding: "8px 12px",
+                                borderRadius: 6,
+                                border: "1px solid #b7eb8f",
+                            }}
+                        >
+                            <Text type="secondary">مقدار ثبت‌شده: </Text>
+                            <Text strong>{String(persistedValue)}</Text>
+                        </div>
                     )}
 
                     <Input
@@ -1045,7 +1282,7 @@ const SupplierOnboardingPage = () => {
                     {doc?.adminNote && (
                         <Alert type="warning" message={doc.adminNote} showIcon />
                     )}
-                </Space>
+                </div>
             );
         }
 
@@ -1132,7 +1369,7 @@ const SupplierOnboardingPage = () => {
                 Stage 2: Profile (Draft)
             ============================== */}
             {stage === "profile" && (
-                <Form form={form} layout="vertical" onFinish={handleSaveProfile}>
+                <Form form={form} layout="vertical" onFinish={handleSaveProfile} style={{ maxWidth: 800 }}>
                     <Row gutter={16}>
                         <Col span={12}>
                             <Form.Item
@@ -1238,7 +1475,7 @@ const SupplierOnboardingPage = () => {
                 Stage 3: KYC
             ============================== */}
             {stage === "kyc" && (
-                <Space direction="vertical" size="large" style={{ width: "100%" }}>
+                <Space direction="vertical" size="large" style={{ width: "100%", maxWidth: 800 }}>
                     {!canGoToKyc && (
                         <Alert
                             type="warning"

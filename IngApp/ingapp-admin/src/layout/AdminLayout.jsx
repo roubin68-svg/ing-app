@@ -7,6 +7,7 @@ import {
     BellOutlined,
     UserOutlined,
     LogoutOutlined,
+    SolutionOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 
@@ -15,6 +16,7 @@ import { useAuth } from "../core/auth/useAuth";
 import { getMeApi } from "../features/auth/api/authApi";
 
 import suppliersApi from "../features/suppliers/api/suppliersApi";
+import supplierOnboardingApi from "../features/suppliers/api/supplierOnboardingApi";
 
 
 
@@ -32,6 +34,7 @@ const AdminLayout = ({ children }) => {
 
     const [pendingCount, setPendingCount] = useState(0);
     const [notifications, setNotifications] = useState([]);
+    const [supplierStatus, setSupplierStatus] = useState(null);
 
 
 
@@ -104,6 +107,26 @@ const AdminLayout = ({ children }) => {
         return () => clearInterval(timer);
     }, [userInfo, navigate]);
 
+    // ---------- بررسی وضعیت درخواست همکاری ----------
+    useEffect(() => {
+        const loadSupplierStatus = async () => {
+            try {
+                const res = await supplierOnboardingApi.getMyProfile();
+                if (res) {
+                    setSupplierStatus({
+                        status: res.verificationStatus, // NotSubmitted | Pending | Approved | Rejected
+                    });
+                } else {
+                    setSupplierStatus(null);
+                }
+            } catch {
+                setSupplierStatus(null);
+            }
+        };
+
+        loadSupplierStatus();
+    }, []);
+
 
 
     // ---------- لاگ‌اوت ----------
@@ -138,7 +161,9 @@ const AdminLayout = ({ children }) => {
             },
         ],
         onClick: ({ key }) => {
-            if (key === "logout") {
+            if (key === "profile") {
+                navigate("/profile");
+            } else if (key === "logout") {
                 handleLogout();
             }
         },
@@ -209,8 +234,21 @@ const AdminLayout = ({ children }) => {
                         />
                     </div>
 
-                    {/* سمت چپ (در RTL): نوتیف + اطلاعات کاربر + منوی پروفایل */}
+                    {/* سمت چپ (در RTL): درخواست همکاری + نوتیف + اطلاعات کاربر + منوی پروفایل */}
                     <div className="admin-header-right">
+                        {/* دکمه درخواست همکاری (فقط اگر هنوز درخواست نداده) */}
+                        {(!supplierStatus || supplierStatus.status === "NotSubmitted") && (
+                            <Button
+                                type="default"
+                                size="small"
+                                icon={<SolutionOutlined />}
+                                onClick={() => navigate("/supplier-onboarding")}
+                                style={{ padding: "16px 16px" }}
+                            >
+                                درخواست همکاری به عنوان تأمین‌کننده
+                            </Button>
+                        )}
+
                         {userInfo?.permissions?.includes("Supplier.Manage") && (
                             <Dropdown
                                 menu={notificationMenu}

@@ -122,6 +122,7 @@ const MyOffersPage = () => {
             const res = await offersApi.getMyOffers({
                 page: pageIndex,
                 pageSize: pageSizeValue,
+                offerId: filters.offerId ? Number(filters.offerId) : undefined,
                 status: filters.status || undefined,
                 productName: filters.productName || undefined,
                 productCategoryId: filters.productCategoryId || undefined,
@@ -243,6 +244,20 @@ const MyOffersPage = () => {
             },
         },
         {
+            title: "تعداد بازدید",
+            dataIndex: "viewCount",
+            width: 120,
+            sorter: true,
+            render: (count) => count ?? 0,
+        },
+        {
+            title: "کلیک تماس",
+            dataIndex: "contactClickCount",
+            width: 120,
+            sorter: true,
+            render: (count) => count ?? 0,
+        },
+        {
             title: "عملیات",
             width: 220,
             render: (_, record) => {
@@ -302,6 +317,18 @@ const MyOffersPage = () => {
                 style={{ marginBottom: 16 }}
             >
                 <Row gutter={16}>
+                    <Col span={6}>
+                        <Form.Item
+                            label="کد آگهی"
+                            name="offerId"
+                        >
+                            <Input 
+                                placeholder="جستجو بر اساس کد آگهی" 
+                                type="number"
+                            />
+                        </Form.Item>
+                    </Col>
+
                     <Col span={6}>
                         <Form.Item
                             label="نام محصول"
@@ -370,12 +397,29 @@ const MyOffersPage = () => {
                     setPageSize(pagination.pageSize);
 
                     if (sorter?.order) {
-                        setSortBy(sorter.field);
+                        // تبدیل نام فیلد به format مورد نیاز backend
+                        let sortField = sorter.field;
+                        if (sorter.field === "viewCount") {
+                            sortField = "viewCount";
+                        } else if (sorter.field === "contactClickCount") {
+                            sortField = "contactClickCount";
+                        } else if (sorter.field === "productName") {
+                            sortField = "productName";
+                        } else if (sorter.field === "createdAt") {
+                            sortField = "createdAt";
+                        } else if (sorter.field === "id") {
+                            sortField = "createdAt"; // شناسه را بر اساس تاریخ ایجاد sort می‌کنیم
+                        }
+                        
+                        setSortBy(sortField);
                         setSortDirection(
                             sorter.order === "ascend"
                                 ? "asc"
                                 : "desc"
                         );
+                    } else {
+                        setSortBy(null);
+                        setSortDirection(null);
                     }
 
                     loadOffers(
