@@ -405,38 +405,13 @@ const ProfilePage = () => {
                 <Alert type="info" message="شما هنوز درخواست همکاری به عنوان تأمین‌کننده ارسال نکرده‌اید." />
             ) : (
                 <>
-                    <Descriptions column={1} bordered>
-                        <Descriptions.Item label="نوع تأمین‌کننده">
-                            {supplierProfile.supplierTypeName || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="نام کسب‌وکار">
-                            {supplierProfile.businessName || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="کد ملی">
-                            {supplierProfile.nationalId || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="شماره پروانه">
-                            {supplierProfile.licenseNumber || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="استان">
-                            {supplierProfile.province || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="شهر">
-                            {supplierProfile.city || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="آدرس">
-                            {supplierProfile.address || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="نام تماس">
-                            {supplierProfile.contactName || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="تلفن تماس">
-                            {supplierProfile.contactPhone || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="موبایل">
-                            {supplierProfile.userPhoneNumber || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="وضعیت تأیید">
+                    <Descriptions 
+                        bordered 
+                        size="small"
+                        column={2}
+                        style={{ marginBottom: 24 }}
+                    >
+                        <Descriptions.Item label="وضعیت" span={2}>
                             <Tag color={getVerificationStatusColor(
                                 supplierProfile.verificationStatus === "Approved" ? 2 :
                                 supplierProfile.verificationStatus === "Pending" ? 1 :
@@ -447,19 +422,53 @@ const ProfilePage = () => {
                                  supplierProfile.verificationStatus === "Rejected" ? "رد شده" : "ارسال نشده"}
                             </Tag>
                         </Descriptions.Item>
+                        <Descriptions.Item label="تاریخ ایجاد" span={1}>
+                            {supplierProfile.createdAt ? toShamsi(supplierProfile.createdAt) : "-"}
+                        </Descriptions.Item>
+                        {supplierProfile.updatedAt ? (
+                            <Descriptions.Item label="آخرین به‌روزرسانی" span={1}>
+                                {toShamsi(supplierProfile.updatedAt)}
+                            </Descriptions.Item>
+                        ) : (
+                            <Descriptions.Item label="آخرین به‌روزرسانی" span={1}>
+                                "-"
+                            </Descriptions.Item>
+                        )}
                         {supplierProfile.rejectionReason && (
-                            <Descriptions.Item label="دلیل رد">
+                            <Descriptions.Item label="دلیل رد" span={2}>
                                 {supplierProfile.rejectionReason}
                             </Descriptions.Item>
                         )}
-                        <Descriptions.Item label="تاریخ ایجاد">
-                            {toShamsi(supplierProfile.createdAt)}
+                        <Descriptions.Item label="نوع تأمین‌کننده" span={2}>
+                            {supplierProfile.supplierTypeName || "-"}
                         </Descriptions.Item>
-                        {supplierProfile.updatedAt && (
-                            <Descriptions.Item label="تاریخ به‌روزرسانی">
-                                {toShamsi(supplierProfile.updatedAt)}
-                            </Descriptions.Item>
-                        )}
+                        <Descriptions.Item label="نام کسب‌وکار" span={2}>
+                            {supplierProfile.businessName || "-"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="شماره موبایل (Login)" span={2}>
+                            {supplierProfile.userPhoneNumber || "-"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="شماره تماس">
+                            {supplierProfile.contactPhone || "-"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="کد ملی">
+                            {supplierProfile.nationalId || "-"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="شماره مجوز">
+                            {supplierProfile.licenseNumber || "-"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="نام رابط">
+                            {supplierProfile.contactName || "-"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="استان">
+                            {supplierProfile.province || "-"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="شهر">
+                            {supplierProfile.city || "-"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="آدرس" span={2}>
+                            {supplierProfile.address || "-"}
+                        </Descriptions.Item>
                     </Descriptions>
 
                     {kycDocuments && kycDocuments.length > 0 && (
@@ -468,6 +477,7 @@ const ProfilePage = () => {
                                 dataSource={kycDocuments}
                                 rowKey="id"
                                 pagination={false}
+                                scroll={{ x: 'max-content' }}
                                 columns={[
                                     {
                                         title: "ردیف",
@@ -631,7 +641,7 @@ const ProfilePage = () => {
                     },
                     {
                         key: "supplier",
-                        label: "اطلاعات پروفایل تأمین‌کننده",
+                        label: "پروفایل تأمین‌کننده",
                         children: supplierProfileTab,
                     },
                 ]}

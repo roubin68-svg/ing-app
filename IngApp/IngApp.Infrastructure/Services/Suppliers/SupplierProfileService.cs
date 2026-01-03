@@ -535,12 +535,16 @@ namespace IngApp.Infrastructure.Services.Suppliers
         public async Task<SupplierProfileDto?> GetMyAsync(Guid userId)
         {
             var entity = await _db.SupplierProfiles
+                .Include(x => x.SupplierType)
+                .Include(x => x.User)
                 .AsNoTracking()
                 .Where(x => x.UserId == userId)
                 .Select(x => new SupplierProfileDto
                 {
                     Id = x.Id,
+                    UserId = x.UserId,
                     SupplierTypeId = x.SupplierTypeId,
+                    SupplierTypeName = x.SupplierType.Name,
                     BusinessName = x.BusinessName,
                     NationalId = x.NationalId,
                     LicenseNumber = x.LicenseNumber,
@@ -550,7 +554,10 @@ namespace IngApp.Infrastructure.Services.Suppliers
                     ContactName = x.ContactName,
                     ContactPhone = x.ContactPhone,
                     VerificationStatus = x.VerificationStatus.ToString(),
-                    RejectionReason = x.RejectionReason
+                    RejectionReason = x.RejectionReason,
+                    CreatedAt = x.CreatedAt,
+                    UpdatedAt = x.UpdatedAt,
+                    UserPhoneNumber = x.User.PhoneNumber
                 })
                 .FirstOrDefaultAsync();
 

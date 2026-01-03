@@ -1,6 +1,33 @@
 ﻿import React, { useEffect, useState } from "react";
 import { Table, Tag, message } from "antd";
 import suppliersApi from "../api/suppliersApi";
+import jalaali from "jalaali-js";
+
+// تبدیل تاریخ میلادی به شمسی با ساعت و دقیقه
+const toShamsiWithTime = (gregorian) => {
+    if (!gregorian) return { date: "-", time: "" };
+    
+    let dateObj;
+    if (typeof gregorian === "string") {
+        dateObj = new Date(gregorian);
+    } else if (gregorian instanceof Date) {
+        dateObj = gregorian;
+    } else {
+        return { date: "-", time: "" };
+    }
+    
+    const year = dateObj.getFullYear();
+    const month = dateObj.getMonth() + 1;
+    const day = dateObj.getDate();
+    const hour = dateObj.getHours();
+    const minute = dateObj.getMinutes();
+    
+    const j = jalaali.toJalaali(year, month, day);
+    const shamsiDate = `${j.jy}/${String(j.jm).padStart(2, "0")}/${String(j.jd).padStart(2, "0")}`;
+    const time = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    
+    return { date: shamsiDate, time };
+};
 
 const SupplierHistoryTab = ({ supplierId }) => {
     const [loading, setLoading] = useState(false);
@@ -81,6 +108,15 @@ const SupplierHistoryTab = ({ supplierId }) => {
         {
             title: "تاریخ",
             dataIndex: "createdAt",
+            render: (date) => {
+                const { date: shamsiDate, time } = toShamsiWithTime(date);
+                return (
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span>{shamsiDate}</span>
+                        {time && <span style={{ fontSize: "12px", color: "#999" }}>{time}</span>}
+                    </div>
+                );
+            },
         },
     ];
 

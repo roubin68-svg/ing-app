@@ -8,6 +8,29 @@ import {
     CloseOutlined,
     EyeOutlined,
 } from "@ant-design/icons";
+import jalaali from "jalaali-js";
+
+// تبدیل تاریخ میلادی به شمسی
+const toShamsi = (gregorian) => {
+    if (!gregorian) return null;
+    
+    if (typeof gregorian === "string") {
+        const [y, m, d] = gregorian.split("T")[0].split("-").map(Number);
+        const j = jalaali.toJalaali(y, m, d);
+        return `${j.jy}/${String(j.jm).padStart(2, "0")}/${String(j.jd).padStart(2, "0")}`;
+    }
+    
+    if (gregorian instanceof Date) {
+        const j = jalaali.toJalaali(
+            gregorian.getFullYear(),
+            gregorian.getMonth() + 1,
+            gregorian.getDate()
+        );
+        return `${j.jy}/${String(j.jm).padStart(2, "0")}/${String(j.jd).padStart(2, "0")}`;
+    }
+    
+    return null;
+};
 
 const SupplierCaseDrawer = ({ open, onClose, supplierId, onStatusChanged }) => {
     const [loading, setLoading] = useState(false);
@@ -140,6 +163,18 @@ const SupplierCaseDrawer = ({ open, onClose, supplierId, onStatusChanged }) => {
                                                 {statusInfo.text}
                                             </Tag>
                                         </Descriptions.Item>
+                                        <Descriptions.Item label="تاریخ ایجاد" span={1}>
+                                            {detail.createdAt ? toShamsi(detail.createdAt) : "-"}
+                                        </Descriptions.Item>
+                                        {detail.updatedAt ? (
+                                            <Descriptions.Item label="آخرین به‌روزرسانی" span={1}>
+                                                {toShamsi(detail.updatedAt)}
+                                            </Descriptions.Item>
+                                        ) : (
+                                            <Descriptions.Item label="آخرین به‌روزرسانی" span={1}>
+                                                "-"
+                                            </Descriptions.Item>
+                                        )}
                                         {detail.rejectionReason && (
                                             <Descriptions.Item label="دلیل رد" span={2}>
                                                 {detail.rejectionReason}
@@ -152,14 +187,6 @@ const SupplierCaseDrawer = ({ open, onClose, supplierId, onStatusChanged }) => {
 
                                         <Descriptions.Item label="نام کسب‌وکار" span={2}>
                                             {detail.businessName}
-                                        </Descriptions.Item>
-
-                                        <Descriptions.Item label="استان">
-                                            {detail.province}
-                                        </Descriptions.Item>
-
-                                        <Descriptions.Item label="شهر">
-                                            {detail.city}
                                         </Descriptions.Item>
 
                                         <Descriptions.Item label="شماره موبایل (Login)" span={2}>
@@ -180,6 +207,14 @@ const SupplierCaseDrawer = ({ open, onClose, supplierId, onStatusChanged }) => {
 
                                         <Descriptions.Item label="نام رابط">
                                             {detail.contactName || "-"}
+                                        </Descriptions.Item>
+
+                                        <Descriptions.Item label="استان">
+                                            {detail.province}
+                                        </Descriptions.Item>
+
+                                        <Descriptions.Item label="شهر">
+                                            {detail.city}
                                         </Descriptions.Item>
 
                                         <Descriptions.Item label="آدرس" span={2}>
