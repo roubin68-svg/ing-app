@@ -38,7 +38,7 @@ const buildMenuItems = (nodes) =>
     };
   });
 
-const Sidebar = ({ collapsed }) => {
+const Sidebar = ({ collapsed, onItemClick }) => {
   const { items: menuItemsDto, loading, error } = useMenu();
   const location = useLocation();
   const navigate = useNavigate();
@@ -76,11 +76,15 @@ const Sidebar = ({ collapsed }) => {
   };
 
   const handleClick = ({ key }) => {
-    // منوهایی که route "#” دارند، keyشان با "menu-" شروع می‌شود
+    // منوهایی که route "#" دارند، keyشان با "menu-" شروع می‌شود
     // این‌ها فقط برای باز/بسته شدن هستند و نباید ناوبری کنند
     if (key.startsWith("menu-")) return;
 
     navigate(key);
+    // اگر onItemClick وجود دارد (برای بستن Drawer در موبایل)
+    if (onItemClick) {
+      onItemClick();
+    }
   };
 
   const selectedKeys = useMemo(() => {

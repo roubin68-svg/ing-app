@@ -19,6 +19,28 @@ import jalaali from "jalaali-js";
 import offersApi from "../api/offersApi";
 import apiClient from "../../../core/api/apiClient";
 
+// Hook برای تشخیص اندازه صفحه
+const useWindowSize = () => {
+    const [windowSize, setWindowSize] = useState({
+        width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+        height: typeof window !== 'undefined' ? window.innerHeight : 768,
+    });
+
+    useEffect(() => {
+        const handleResize = () => {
+            setWindowSize({
+                width: window.innerWidth,
+                height: window.innerHeight,
+            });
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    return windowSize;
+};
+
 // تبدیل تاریخ میلادی به شمسی
 const toShamsi = (gregorian) => {
     if (!gregorian) return null;
@@ -47,11 +69,15 @@ const formatPrice = (v) =>
         : "-";
 
 const OfferDetailDrawer = ({ offerId, visible, onClose }) => {
+    const { width } = useWindowSize();
     const [loading, setLoading] = useState(false);
     const [offerDetail, setOfferDetail] = useState(null);
     const [contactModalVisible, setContactModalVisible] = useState(false);
     const [contactInfo, setContactInfo] = useState(null);
     const [loadingContact, setLoadingContact] = useState(false);
+
+    // محاسبه عرض Drawer بر اساس اندازه صفحه
+    const drawerWidth = width < 768 ? "100%" : width < 1024 ? "90%" : 600;
 
     // -----------------------
     // Handle Contact Click
@@ -222,7 +248,7 @@ const OfferDetailDrawer = ({ offerId, visible, onClose }) => {
                 </Space>
             }
             placement="right"
-            width={600}
+            width={drawerWidth}
             onClose={onClose}
             open={visible}
         >

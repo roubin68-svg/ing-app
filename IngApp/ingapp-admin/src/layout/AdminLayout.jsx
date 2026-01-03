@@ -1,6 +1,6 @@
 ﻿// src/layout/AdminLayout.jsx
 import React, { useEffect, useState } from "react";
-import { Layout, Button, Avatar, Dropdown, Space, Badge, Spin, Typography, List } from "antd";
+import { Layout, Button, Avatar, Dropdown, Space, Badge, Spin, Typography, List, Drawer } from "antd";
 import {
     MenuFoldOutlined,
     MenuUnfoldOutlined,
@@ -18,12 +18,29 @@ import { getMeApi } from "../features/auth/api/authApi";
 import suppliersApi from "../features/suppliers/api/suppliersApi";
 import supplierOnboardingApi from "../features/suppliers/api/supplierOnboardingApi";
 
+// Hook برای تشخیص موبایل
+const useIsMobile = () => {
+    const [isMobile, setIsMobile] = useState(false);
 
+    useEffect(() => {
+        const checkIsMobile = () => {
+            setIsMobile(window.innerWidth < 992); // lg breakpoint
+        };
+
+        checkIsMobile();
+        window.addEventListener('resize', checkIsMobile);
+        return () => window.removeEventListener('resize', checkIsMobile);
+    }, []);
+
+    return isMobile;
+};
 
 const { Header, Sider, Content } = Layout;
 
 const AdminLayout = ({ children }) => {
+    const isMobile = useIsMobile();
     const [collapsed, setCollapsed] = useState(false);
+    const [drawerVisible, setDrawerVisible] = useState(false);
 
     const [userInfo, setUserInfo] = useState(null);
     const [loadingUser, setLoadingUser] = useState(true);
@@ -35,6 +52,13 @@ const AdminLayout = ({ children }) => {
     const [pendingCount, setPendingCount] = useState(0);
     const [notifications, setNotifications] = useState([]);
     const [supplierStatus, setSupplierStatus] = useState(null);
+
+    // در موبایل همیشه collapsed باشد
+    useEffect(() => {
+        if (isMobile) {
+            setCollapsed(true);
+        }
+    }, [isMobile]);
 
 
 
@@ -199,7 +223,7 @@ const AdminLayout = ({ children }) => {
 
     return (
         <Layout className="admin-layout">
-            {/* ---------- SIDEBAR ---------- */}
+            {/* ---------- SIDEBAR (Desktop) ---------- */}
             <Sider
                 trigger={null}
                 collapsible
@@ -207,6 +231,15 @@ const AdminLayout = ({ children }) => {
                 width={260}
                 collapsedWidth={80}
                 className="admin-sider"
+                breakpoint="lg"
+                onBreakpoint={(broken) => {
+                    if (broken) {
+                        setCollapsed(true);
+                    }
+                }}
+                style={{
+                    display: isMobile ? 'none' : 'block'
+                }}
             >
                 {/* ---------- LOGO AREA ---------- */}
                 <div className={`admin-logo ${collapsed ? "admin-logo--collapsed" : ""}`}>
@@ -217,9 +250,44 @@ const AdminLayout = ({ children }) => {
                     )}
                 </div>
 
-
-                <Sidebar collapsed={collapsed} />
+                <Sidebar collapsed={collapsed} onItemClick={() => {}} />
             </Sider>
+
+            {/* ---------- DRAWER (Mobile) ---------- */}
+            <Drawer
+                title={
+                    <div className="admin-logo" style={{ padding: 0, margin: 0, borderBottom: '1px solid rgba(148, 163, 184, 0.25)' }}>
+                        <span className="admin-logo-text">سامانه معاملات نگین گوهر</span>
+                    </div>
+                }
+                placement="right"
+                onClose={() => setDrawerVisible(false)}
+                open={drawerVisible}
+                width={280}
+                headerStyle={{
+                    background: '#020617',
+                    borderBottom: '1px solid rgba(148, 163, 184, 0.25)',
+                    padding: '0',
+                }}
+                bodyStyle={{
+                    padding: 0,
+                    background: '#020617',
+                    color: '#e5e7eb',
+                }}
+                styles={{
+                    body: {
+                        background: '#020617',
+                        color: '#e5e7eb',
+                    }
+                }}
+            >
+                <Sidebar 
+                    collapsed={false} 
+                    onItemClick={() => {
+                        setDrawerVisible(false);
+                    }} 
+                />
+            </Drawer>
 
             {/* ---------- MAIN AREA ---------- */}
             <Layout className="admin-main-layout">
@@ -228,7 +296,13 @@ const AdminLayout = ({ children }) => {
                     <div className="admin-header-left">
                         <Button
                             type="text"
-                            onClick={() => setCollapsed(!collapsed)}
+                            onClick={() => {
+                                if (isMobile) {
+                                    setDrawerVisible(true);
+                                } else {
+                                    setCollapsed(!collapsed);
+                                }
+                            }}
                             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
                             className="admin-trigger"
                         />

@@ -149,9 +149,7 @@ const DashboardPage = () => {
     };
 
     return (
-        <div className="ingapp-page">
-            <h1 className="ingapp-page-title">داشبورد</h1>
-
+        <Card title="داشبورد">
             {/* Alert برای تأیید شدن (فقط یک بار) */}
             {showApprovedAlert && (
                 <Alert
@@ -164,7 +162,7 @@ const DashboardPage = () => {
                         setShowApprovedAlert(false);
                         localStorage.setItem("supplierApprovedAlertShown", "true");
                     }}
-                    className="mb-4"
+                    style={{ marginBottom: 16 }}
                 />
             )}
 
@@ -188,7 +186,7 @@ const DashboardPage = () => {
                     icon={<InfoCircleOutlined />}
                     showIcon
                     closable
-                    className="mb-4"
+                    style={{ marginBottom: 16 }}
                 />
             )}
 
@@ -270,7 +268,7 @@ const DashboardPage = () => {
                     </Card>
                 </Col>
             </Row>
-        </div>
+        </Card>
     );
 };
 

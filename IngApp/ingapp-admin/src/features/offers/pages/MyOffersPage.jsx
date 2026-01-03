@@ -316,8 +316,8 @@ const MyOffersPage = () => {
                 layout="vertical"
                 style={{ marginBottom: 16 }}
             >
-                <Row gutter={16}>
-                    <Col span={6}>
+                <Row gutter={[16, 16]}>
+                    <Col xs={24} sm={12} md={8} lg={6}>
                         <Form.Item
                             label="کد آگهی"
                             name="offerId"
@@ -329,7 +329,7 @@ const MyOffersPage = () => {
                         </Form.Item>
                     </Col>
 
-                    <Col span={6}>
+                    <Col xs={24} sm={12} md={8} lg={6}>
                         <Form.Item
                             label="نام محصول"
                             name="productName"
@@ -338,7 +338,7 @@ const MyOffersPage = () => {
                         </Form.Item>
                     </Col>
 
-                    <Col span={6}>
+                    <Col xs={24} sm={12} md={8} lg={6}>
                         <Form.Item
                             label="دسته‌بندی"
                             name="productCategoryId"
@@ -350,7 +350,7 @@ const MyOffersPage = () => {
                         </Form.Item>
                     </Col>
 
-                    <Col span={6}>
+                    <Col xs={24} sm={12} md={8} lg={6}>
                         <Form.Item label="وضعیت" name="status">
                             <Select
                                 allowClear
@@ -360,22 +360,26 @@ const MyOffersPage = () => {
                         </Form.Item>
                     </Col>
 
-                    <Col span={6} style={{ marginTop: 30 }}>
-                        <Space>
-                            <Button
-                                type="primary"
-                                icon={<SearchOutlined />}
-                                onClick={handleSearch}
-                            >
-                                جستجو
-                            </Button>
-                            <Button
-                                icon={<ReloadOutlined />}
-                                onClick={handleClear}
-                            >
-                                پاکسازی
-                            </Button>
-                        </Space>
+                    <Col xs={24} sm={24} md={24} lg={24}>
+                        <Form.Item label=" " colon={false}>
+                            <Space wrap>
+                                <Button
+                                    type="primary"
+                                    icon={<SearchOutlined />}
+                                    onClick={handleSearch}
+                                    block={window.innerWidth < 768}
+                                >
+                                    جستجو
+                                </Button>
+                                <Button
+                                    icon={<ReloadOutlined />}
+                                    onClick={handleClear}
+                                    block={window.innerWidth < 768}
+                                >
+                                    پاکسازی
+                                </Button>
+                            </Space>
+                        </Form.Item>
                     </Col>
                 </Row>
             </Form>
@@ -386,11 +390,13 @@ const MyOffersPage = () => {
                 loading={loading}
                 columns={columns}
                 dataSource={data}
+                scroll={{ x: 'max-content' }}
                 pagination={{
                     current: page,
                     pageSize,
                     total,
                     showSizeChanger: true,
+                    responsive: true,
                 }}
                 onChange={(pagination, _, sorter) => {
                     setPage(pagination.current);

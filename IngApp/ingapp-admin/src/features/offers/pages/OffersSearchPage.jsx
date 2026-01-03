@@ -164,8 +164,8 @@ const OffersSearchPage = () => {
                 layout="vertical"
                 style={{ marginBottom: 16 }}
             >
-                <Row gutter={16}>
-                    <Col span={6}>
+                <Row gutter={[16, 16]}>
+                    <Col xs={24} sm={12} md={8} lg={6}>
                         <Form.Item label="کد آگهی" name="offerId">
                             <Input 
                                 placeholder="جستجو بر اساس کد آگهی" 
@@ -173,17 +173,17 @@ const OffersSearchPage = () => {
                             />
                         </Form.Item>
                     </Col>
-                    <Col span={6}>
+                    <Col xs={24} sm={12} md={8} lg={6}>
                         <Form.Item label="دسته‌بندی" name="categoryId">
                             <CategoryTreeSelect placeholder="همه دسته‌بندی‌ها" />
                         </Form.Item>
                     </Col>
-                    <Col span={6}>
+                    <Col xs={24} sm={12} md={8} lg={6}>
                         <Form.Item label="نام محصول" name="productName">
                             <Input placeholder="جستجوی نام محصول" allowClear />
                         </Form.Item>
                     </Col>
-                    <Col span={6}>
+                    <Col xs={24} sm={12} md={8} lg={6}>
                         <Form.Item label="مرتب‌سازی" name="sortBy">
                             <Select
                                 placeholder="مرتب‌سازی"
@@ -192,9 +192,7 @@ const OffersSearchPage = () => {
                             />
                         </Form.Item>
                     </Col>
-                </Row>
-                <Row gutter={16}>
-                    <Col span={6}>
+                    <Col xs={24} sm={12} md={8} lg={6}>
                         <Form.Item label="حداقل قیمت واحد (تومان)" name="minPrice">
                             <InputNumber
                                 style={{ width: "100%" }}
@@ -209,7 +207,7 @@ const OffersSearchPage = () => {
                             />
                         </Form.Item>
                     </Col>
-                    <Col span={6}>
+                    <Col xs={24} sm={12} md={8} lg={6}>
                         <Form.Item label="حداکثر قیمت واحد (تومان)" name="maxPrice">
                             <InputNumber
                                 style={{ width: "100%" }}
@@ -224,22 +222,26 @@ const OffersSearchPage = () => {
                             />
                         </Form.Item>
                     </Col>
-                    <Col span={6} style={{ marginTop: 30 }}>
-                        <Space>
-                            <Button
-                                type="primary"
-                                icon={<SearchOutlined />}
-                                onClick={handleSearch}
-                            >
-                                جستجو
-                            </Button>
-                            <Button
-                                icon={<ReloadOutlined />}
-                                onClick={handleReset}
-                            >
-                                پاکسازی
-                            </Button>
-                        </Space>
+                    <Col xs={24} sm={24} md={24} lg={12}>
+                        <Form.Item label=" " colon={false}>
+                            <Space wrap>
+                                <Button
+                                    type="primary"
+                                    icon={<SearchOutlined />}
+                                    onClick={handleSearch}
+                                    block={window.innerWidth < 768}
+                                >
+                                    جستجو
+                                </Button>
+                                <Button
+                                    icon={<ReloadOutlined />}
+                                    onClick={handleReset}
+                                    block={window.innerWidth < 768}
+                                >
+                                    پاکسازی
+                                </Button>
+                            </Space>
+                        </Form.Item>
                     </Col>
                 </Row>
             </Form>
