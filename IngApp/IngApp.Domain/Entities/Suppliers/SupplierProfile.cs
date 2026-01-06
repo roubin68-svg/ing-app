@@ -22,7 +22,10 @@ namespace IngApp.Domain.Entities.Suppliers
         public string? City { get; set; }
         public string? Address { get; set; }
 
+        public BusinessType? BusinessType { get; set; }
         public string? ContactName { get; set; }
+        public ContactPosition? ContactPosition { get; set; }
+        public string? ContactMobile { get; set; }
         public string? ContactPhone { get; set; }
 
         public VerificationStatus VerificationStatus { get; set; }

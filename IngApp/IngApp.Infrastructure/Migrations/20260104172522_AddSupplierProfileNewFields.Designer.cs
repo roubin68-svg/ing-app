@@ -4,6 +4,7 @@ using IngApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IngApp.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260104172522_AddSupplierProfileNewFields")]
+    partial class AddSupplierProfileNewFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -486,42 +489,6 @@ namespace IngApp.Infrastructure.Migrations
                     b.ToTable("OfferDocuments", (string)null);
                 });
 
-            modelBuilder.Entity("IngApp.Domain.Entities.Offers.OfferStatusHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AdminUserId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("NewStatus")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("OfferId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("OldStatus")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("OfferId");
-
-                    b.ToTable("OfferStatusHistories", (string)null);
-                });
-
             modelBuilder.Entity("IngApp.Domain.Entities.Permissions.Permission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -652,9 +619,6 @@ namespace IngApp.Infrastructure.Migrations
 
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
-
-                    b.Property<string>("ImagePath")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -1135,7 +1099,7 @@ namespace IngApp.Infrastructure.Migrations
                         new
                         {
                             Id = new Guid("64fa4b00-95cf-4a58-6f40-08de38f0e8e0"),
-                            CreatedAt = new DateTime(2026, 1, 4, 22, 11, 50, 902, DateTimeKind.Utc).AddTicks(7749),
+                            CreatedAt = new DateTime(2026, 1, 4, 17, 25, 21, 445, DateTimeKind.Utc).AddTicks(646),
                             DisplayName = "علی هور",
                             IsActive = true,
                             PhoneNumber = "09123823632",
@@ -1235,17 +1199,6 @@ namespace IngApp.Infrastructure.Migrations
                 {
                     b.HasOne("IngApp.Domain.Entities.Offers.Offer", "Offer")
                         .WithMany("Documents")
-                        .HasForeignKey("OfferId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Offer");
-                });
-
-            modelBuilder.Entity("IngApp.Domain.Entities.Offers.OfferStatusHistory", b =>
-                {
-                    b.HasOne("IngApp.Domain.Entities.Offers.Offer", "Offer")
-                        .WithMany()
                         .HasForeignKey("OfferId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

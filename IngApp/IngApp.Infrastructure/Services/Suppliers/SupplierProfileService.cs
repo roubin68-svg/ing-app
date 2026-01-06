@@ -106,7 +106,10 @@ namespace IngApp.Infrastructure.Services.Suppliers
                     City = x.City,
                     Address = x.Address,
 
+                    BusinessType = x.BusinessType,
                     ContactName = x.ContactName,
+                    ContactPosition = x.ContactPosition,
+                    ContactMobile = x.ContactMobile,
                     ContactPhone = x.ContactPhone,
 
                     VerificationStatus = x.VerificationStatus.ToString(),
@@ -158,7 +161,10 @@ namespace IngApp.Infrastructure.Services.Suppliers
                 City = entity.City,
                 Address = entity.Address,
 
+                BusinessType = entity.BusinessType,
                 ContactName = entity.ContactName,
+                ContactPosition = entity.ContactPosition,
+                ContactMobile = entity.ContactMobile,
                 ContactPhone = entity.ContactPhone,
 
                 VerificationStatus = entity.VerificationStatus.ToString(),
@@ -183,6 +189,18 @@ namespace IngApp.Infrastructure.Services.Suppliers
 
             if (string.IsNullOrWhiteSpace(request.BusinessName))
                 errors.Add("نام کسب‌وکار تأمین‌کننده اجباری است.");
+
+            if (!Enum.IsDefined(typeof(BusinessType), request.BusinessType))
+                errors.Add("نوع کسب‌وکار معتبر نیست.");
+
+            if (string.IsNullOrWhiteSpace(request.ContactName))
+                errors.Add("نام رابط اجباری است.");
+
+            if (!Enum.IsDefined(typeof(ContactPosition), request.ContactPosition))
+                errors.Add("سمت رابط معتبر نیست.");
+
+            if (string.IsNullOrWhiteSpace(request.ContactMobile))
+                errors.Add("شماره موبایل رابط اجباری است.");
 
             if (errors.Any())
                 throw new ValidationException(errors);
@@ -249,8 +267,11 @@ namespace IngApp.Infrastructure.Services.Suppliers
             entity.City = request.City;
             entity.Address = request.Address;
 
-            entity.ContactName = request.ContactName;
-            entity.ContactPhone = request.ContactPhone;
+            entity.BusinessType = request.BusinessType;
+            entity.ContactName = request.ContactName?.Trim();
+            entity.ContactPosition = request.ContactPosition;
+            entity.ContactMobile = request.ContactMobile.Trim();
+            entity.ContactPhone = request.ContactPhone?.Trim();
 
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -457,7 +478,10 @@ namespace IngApp.Infrastructure.Services.Suppliers
                 City = supplier.City,
                 Address = supplier.Address,
 
+                BusinessType = supplier.BusinessType,
                 ContactName = supplier.ContactName,
+                ContactPosition = supplier.ContactPosition,
+                ContactMobile = supplier.ContactMobile,
                 ContactPhone = supplier.ContactPhone,
 
                 VerificationStatus = supplier.VerificationStatus,
@@ -551,7 +575,10 @@ namespace IngApp.Infrastructure.Services.Suppliers
                     Province = x.Province,
                     City = x.City,
                     Address = x.Address,
+                    BusinessType = x.BusinessType,
                     ContactName = x.ContactName,
+                    ContactPosition = x.ContactPosition,
+                    ContactMobile = x.ContactMobile,
                     ContactPhone = x.ContactPhone,
                     VerificationStatus = x.VerificationStatus.ToString(),
                     RejectionReason = x.RejectionReason,

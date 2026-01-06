@@ -10,6 +10,20 @@ import {
 } from "@ant-design/icons";
 import jalaali from "jalaali-js";
 
+// Helper functions for BusinessType enum
+const getBusinessTypeLabel = (value) => {
+    if (value === 1 || value === "Natural" || value === "1") return "حقیقی";
+    if (value === 2 || value === "Legal" || value === "2") return "حقوقی";
+    return value || "-";
+};
+
+// Helper functions for ContactPosition enum
+const getContactPositionLabel = (value) => {
+    if (value === 1 || value === "PurchaseManager" || value === "1") return "مسئول خرید";
+    if (value === 2 || value === "CEO" || value === "2") return "مدیر عامل";
+    return value || "-";
+};
+
 // تبدیل تاریخ میلادی به شمسی
 const toShamsi = (gregorian) => {
     if (!gregorian) return null;
@@ -158,10 +172,13 @@ const SupplierCaseDrawer = ({ open, onClose, supplierId, onStatusChanged }) => {
                                         column={2}
                                         style={{ marginBottom: 24 }}
                                     >
-                                        <Descriptions.Item label="وضعیت" span={2}>
+                                        <Descriptions.Item label="وضعیت" span={1}>
                                             <Tag color={statusInfo.color}>
                                                 {statusInfo.text}
                                             </Tag>
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="شماره موبایل (Login)" span={1}>
+                                            {detail.userPhoneNumber}
                                         </Descriptions.Item>
                                         <Descriptions.Item label="تاریخ ایجاد" span={1}>
                                             {detail.createdAt ? toShamsi(detail.createdAt) : "-"}
@@ -180,45 +197,41 @@ const SupplierCaseDrawer = ({ open, onClose, supplierId, onStatusChanged }) => {
                                                 {detail.rejectionReason}
                                             </Descriptions.Item>
                                         )}
-
                                         <Descriptions.Item label="نوع تأمین‌کننده" span={2}>
                                             {detail.supplierTypeName}
                                         </Descriptions.Item>
-
-                                        <Descriptions.Item label="نام کسب‌وکار" span={2}>
+                                        <Descriptions.Item label="نوع کسب‌وکار" span={1}>
+                                            {getBusinessTypeLabel(detail.businessType)}
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="نام کسب‌وکار" span={1}>
                                             {detail.businessName}
                                         </Descriptions.Item>
-
-                                        <Descriptions.Item label="شماره موبایل (Login)" span={2}>
-                                            {detail.userPhoneNumber}
-                                        </Descriptions.Item>
-
-                                        <Descriptions.Item label="شماره تماس">
-                                            {detail.contactPhone}
-                                        </Descriptions.Item>
-
-                                        <Descriptions.Item label="کد ملی">
+                                        <Descriptions.Item label="کد ملی / شماره ملی" span={1}>
                                             {detail.nationalId || "-"}
                                         </Descriptions.Item>
-
-                                        <Descriptions.Item label="شماره مجوز">
+                                        <Descriptions.Item label="شماره ثبت" span={1}>
                                             {detail.licenseNumber || "-"}
                                         </Descriptions.Item>
-
-                                        <Descriptions.Item label="نام رابط">
-                                            {detail.contactName || "-"}
+                                        <Descriptions.Item label="استان" span={1}>
+                                            {detail.province || "-"}
                                         </Descriptions.Item>
-
-                                        <Descriptions.Item label="استان">
-                                            {detail.province}
+                                        <Descriptions.Item label="شهر" span={1}>
+                                            {detail.city || "-"}
                                         </Descriptions.Item>
-
-                                        <Descriptions.Item label="شهر">
-                                            {detail.city}
-                                        </Descriptions.Item>
-
                                         <Descriptions.Item label="آدرس" span={2}>
                                             {detail.address || "-"}
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="نام رابط" span={1}>
+                                            {detail.contactName || "-"}
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="سمت رابط" span={1}>
+                                            {getContactPositionLabel(detail.contactPosition)}
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="شماره موبایل رابط" span={1}>
+                                            {detail.contactMobile || "-"}
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="شماره تماس کسب‌وکار" span={1}>
+                                            {detail.contactPhone || "-"}
                                         </Descriptions.Item>
                                     </Descriptions>
                                 );

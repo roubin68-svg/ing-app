@@ -1,4 +1,5 @@
 ﻿using System;
+using IngApp.Domain.Enums;
 
 namespace IngApp.Application.Features.Suppliers.DTO
 {
@@ -18,7 +19,10 @@ namespace IngApp.Application.Features.Suppliers.DTO
         public string? City { get; set; }
         public string? Address { get; set; }
 
+        public BusinessType? BusinessType { get; set; }
         public string? ContactName { get; set; }
+        public ContactPosition? ContactPosition { get; set; }
+        public string? ContactMobile { get; set; }
         public string? ContactPhone { get; set; }
 
         public string VerificationStatus { get; set; } = null!;

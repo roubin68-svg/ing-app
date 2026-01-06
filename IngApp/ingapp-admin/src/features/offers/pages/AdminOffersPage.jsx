@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
     App,
     Button,
@@ -11,36 +11,40 @@ import {
     Space,
     Table,
     Tag,
-    Drawer,
+    Modal,
+    Input as AntInput,
     Descriptions,
+    Drawer,
     Tabs,
     Alert,
     Spin,
+    Image,
 } from "antd";
 import {
-    PlusOutlined,
     SearchOutlined,
     ReloadOutlined,
     EyeOutlined,
-    DeleteOutlined,
+    CloseCircleOutlined,
     HistoryOutlined,
     DownloadOutlined,
     FilePdfOutlined,
     FileWordOutlined,
     FileOutlined,
-    CloseCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import jalaali from "jalaali-js";
-import { useNavigate } from "react-router-dom";
 import offersApi from "../api/offersApi";
+import suppliersApi from "../../suppliers/api/suppliersApi";
 import productCategoryApi from "../../productCategories/api/productCategoryApi";
 import CategoryTreeSelect from "../../products/components/CategoryTreeSelect";
 import apiClient from "../../../core/api/apiClient";
 
+const { Option } = Select;
+const { TextArea } = AntInput;
 
 const STATUS_OPTIONS = [
     { value: "Draft", label: "پیش‌نویس" },
+    { value: "Pending", label: "در انتظار" },
     { value: "Published", label: "منتشر شده" },
     { value: "Cancel", label: "لغو شده" },
     { value: "Rejected", label: "رد شده" },
@@ -50,14 +54,12 @@ const STATUS_OPTIONS = [
 const toShamsi = (gregorian) => {
     if (!gregorian) return null;
     
-    // اگر string است
     if (typeof gregorian === "string") {
         const [y, m, d] = gregorian.split("T")[0].split("-").map(Number);
         const j = jalaali.toJalaali(y, m, d);
         return `${j.jy}/${String(j.jm).padStart(2, "0")}/${String(j.jd).padStart(2, "0")}`;
     }
     
-    // اگر Date object است
     if (gregorian instanceof Date) {
         const j = jalaali.toJalaali(
             gregorian.getFullYear(),
@@ -96,9 +98,14 @@ const toShamsiWithTime = (gregorian) => {
     return { date: shamsiDate, time };
 };
 
+// فرمت قیمت
+const formatPrice = (v) =>
+    v != null
+        ? v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        : "-";
+
 // تبدیل Status enum به string
 const getStatusString = (status) => {
-    // Status می‌تواند عدد (enum) یا string باشد
     if (typeof status === "number") {
         switch (status) {
             case 0: return "Draft";
@@ -112,28 +119,46 @@ const getStatusString = (status) => {
     return status;
 };
 
-const MyOffersPage = () => {
-    const { message, modal } = App.useApp();
-    const navigate = useNavigate();
+const getStatusLabel = (status) => {
+    const statusStr = getStatusString(status);
+    const option = STATUS_OPTIONS.find(opt => opt.value === statusStr);
+    return option?.label || statusStr;
+};
 
+const getStatusColor = (status) => {
+    const statusStr = getStatusString(status);
+    switch (statusStr) {
+        case "Draft": return "gold";
+        case "Pending": return "blue";
+        case "Published": return "green";
+        case "Cancel": return "red";
+        case "Rejected": return "red";
+        default: return "default";
+    }
+};
+
+const AdminOffersPage = () => {
+    const { message, modal } = App.useApp();
     const [form] = Form.useForm();
+    const [rejectForm] = Form.useForm();
 
     // -----------------------
     // State
     // -----------------------
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState([]);
-
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [total, setTotal] = useState(0);
-
     const [sortBy, setSortBy] = useState(null);
     const [sortDirection, setSortDirection] = useState(null);
 
+    const [suppliers, setSuppliers] = useState([]);
     const [categories, setCategories] = useState([]);
 
-    // Detail drawer (with tabs)
+    // Modal states
+    const [rejectModalVisible, setRejectModalVisible] = useState(false);
+    const [selectedOfferId, setSelectedOfferId] = useState(null);
     const [detailDrawerVisible, setDetailDrawerVisible] = useState(false);
     const [selectedOfferDetail, setSelectedOfferDetail] = useState(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
@@ -142,21 +167,33 @@ const MyOffersPage = () => {
     const [attributeTemplates, setAttributeTemplates] = useState([]);
 
     // -----------------------
+    // Load Suppliers for filter
+    // -----------------------
+    const loadSuppliers = useCallback(async () => {
+        try {
+            const res = await suppliersApi.getPaged({ page: 1, pageSize: 1000 });
+            setSuppliers(res.items || []);
+        } catch {
+            message.error("خطا در دریافت لیست تامین‌کنندگان");
+        }
+    }, [message]);
+
+    // -----------------------
     // Load Categories
     // -----------------------
-    const loadCategories = async () => {
+    const loadCategories = useCallback(async () => {
         try {
             const res = await productCategoryApi.getAll();
             setCategories(res || []);
         } catch {
             message.error("خطا در دریافت دسته‌بندی‌ها");
         }
-    };
+    }, [message]);
 
     // -----------------------
     // Load Offers
     // -----------------------
-    const loadOffers = async (
+    const loadOffers = useCallback(async (
         pageIndex = page,
         pageSizeValue = pageSize,
         sorter = {}
@@ -166,11 +203,12 @@ const MyOffersPage = () => {
 
             const filters = form.getFieldsValue();
 
-            const res = await offersApi.getMyOffers({
+            const params = {
                 page: pageIndex,
                 pageSize: pageSizeValue,
                 offerId: filters.offerId ? Number(filters.offerId) : undefined,
-                status: filters.status || undefined,
+                status: filters.status || undefined, // اگر خالی باشد، undefined بفرست (همه وضعیت‌ها)
+                supplierUserId: filters.supplierUserId || undefined,
                 productName: filters.productName || undefined,
                 productCategoryId: filters.productCategoryId || undefined,
                 sortBy: sorter.field || sortBy || undefined,
@@ -180,7 +218,9 @@ const MyOffersPage = () => {
                         : sorter.order === "descend"
                             ? "desc"
                             : sortDirection || undefined,
-            });
+            };
+
+            const res = await offersApi.getAdminOffers(params);
 
             setData(res.items || []);
             setTotal(res.totalCount);
@@ -192,9 +232,10 @@ const MyOffersPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, pageSize, sortBy, sortDirection, form, message]);
 
     useEffect(() => {
+        loadSuppliers();
         loadCategories();
         loadOffers(1);
     }, []);
@@ -209,47 +250,55 @@ const MyOffersPage = () => {
 
     const handleClear = () => {
         form.resetFields();
-
         setSortBy(null);
         setSortDirection(null);
-
         setPage(1);
         loadOffers(1, pageSize, {});
     };
 
-
-    const handleCreate = () => {
-        navigate("/supplier/offers/manage");
+    const handleReject = (offerId) => {
+        setSelectedOfferId(offerId);
+        setRejectModalVisible(true);
+        rejectForm.resetFields();
     };
 
-    const handleCancel = (offerId) => {
-        modal.confirm({
-            title: "لغو آگهی",
-            content: "آیا از لغو این آگهی مطمئن هستید؟",
-            okText: "لغو",
-            cancelText: "انصراف",
-            onOk: async () => {
-                try {
-                    await offersApi.cancel(offerId);
-                    message.success("آگهی لغو شد");
-                    loadOffers();
-                } catch {
-                    message.error("خطا در لغو آگهی");
-                }
-            },
-        });
+    const handleRejectSubmit = async () => {
+        try {
+            const values = await rejectForm.validateFields();
+            await offersApi.rejectOffer(selectedOfferId, values.reason);
+            message.success("آگهی با موفقیت رد شد");
+            setRejectModalVisible(false);
+            rejectForm.resetFields();
+            loadOffers();
+            // Refresh detail if open
+            if (detailDrawerVisible && selectedOfferDetail?.header?.id === selectedOfferId) {
+                handleViewOffer(selectedOfferId);
+            }
+        } catch (e) {
+            if (e.errorFields) {
+                return; // Form validation error
+            }
+            console.error(e);
+            message.error("خطا در رد کردن آگهی");
+        }
     };
 
     const handleViewOffer = async (offerId) => {
         setDetailDrawerVisible(true);
         setLoadingDetail(true);
         setLoadingHistory(true);
-        
+        setSelectedOfferDetail(null);
+        setHistoryData([]);
+        setAttributeTemplates([]);
         try {
-            // Load offer detail
-            const detailRes = await offersApi.getMyOfferDetail(offerId);
+            const [detailRes, historyRes] = await Promise.all([
+                offersApi.getAdminOfferDetail(offerId),
+                offersApi.getOfferStatusHistory(offerId),
+            ]);
             const detail = detailRes?.data || detailRes;
-            setSelectedOfferDetail(detail);
+            const history = historyRes?.data || historyRes;
+            setSelectedOfferDetail(detail || null);
+            setHistoryData(history || []);
             
             // Load attribute templates if productId exists
             if (detail?.header?.productId) {
@@ -262,11 +311,6 @@ const MyOffersPage = () => {
                     setAttributeTemplates([]);
                 }
             }
-            
-            // Load history
-            const historyRes = await offersApi.getOfferStatusHistory(offerId);
-            const history = historyRes?.data || historyRes;
-            setHistoryData(history || []);
         } catch (e) {
             console.error(e);
             message.error("خطا در دریافت اطلاعات آگهی");
@@ -283,29 +327,6 @@ const MyOffersPage = () => {
         setAttributeTemplates([]);
     };
 
-    const formatPrice = (v) =>
-        v != null
-            ? v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-            : "-";
-
-    const getStatusColor = (status) => {
-        const statusStr = getStatusString(status);
-        switch (statusStr) {
-            case "Draft": return "gold";
-            case "Pending": return "blue";
-            case "Published": return "green";
-            case "Cancel": return "red";
-            case "Rejected": return "red";
-            default: return "default";
-        }
-    };
-
-    const getStatusLabel = (status) => {
-        const statusStr = getStatusString(status);
-        const option = STATUS_OPTIONS.find(opt => opt.value === statusStr);
-        return option?.label || statusStr;
-    };
-
     // -----------------------
     // Table Columns
     // -----------------------
@@ -313,8 +334,11 @@ const MyOffersPage = () => {
         {
             title: "شناسه",
             dataIndex: "id",
-            width: 90,
             sorter: true,
+        },
+        {
+            title: "تامین‌کننده",
+            dataIndex: "supplierBusinessName",
         },
         {
             title: "محصول",
@@ -332,17 +356,18 @@ const MyOffersPage = () => {
         {
             title: "وضعیت",
             dataIndex: "status",
-            width: 140,
+            sorter: true,
             render: (status) => {
                 const statusStr = getStatusString(status);
                 return <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>;
             },
         },
         {
-            title: "تاریخ ایجاد",
-            dataIndex: "createdAt",
+            title: "تاریخ انتشار",
+            dataIndex: "publishedAt",
             sorter: true,
             render: (date) => {
+                if (!date) return "-";
                 const shamsiDate = toShamsi(date);
                 return shamsiDate || "-";
             },
@@ -350,44 +375,68 @@ const MyOffersPage = () => {
         {
             title: "تعداد بازدید",
             dataIndex: "viewCount",
-            width: 120,
             sorter: true,
             render: (count) => count ?? 0,
         },
         {
             title: "کلیک تماس",
             dataIndex: "contactClickCount",
-            width: 120,
             sorter: true,
             render: (count) => count ?? 0,
         },
         {
             title: "عملیات",
-            width: 200,
+            fixed: "right",
             render: (_, record) => {
-                const statusStr = getStatusString(record.status);
                 return (
-                    <Space>
-                        {statusStr === "Draft" ? (
-                            <Button
-                                icon={<EyeOutlined />}
-                                onClick={() =>
-                                    navigate(
-                                        `/supplier/offers/manage/${record.id}`
-                                    )
-                                }
-                            >
-                                ادامه
-                            </Button>
-                        ) : (
-                            <Button
-                                icon={<EyeOutlined />}
-                                onClick={() => handleViewOffer(record.id)}
-                            >
-                                مشاهده
-                            </Button>
-                        )}
-                    </Space>
+                        <Button
+                            icon={<EyeOutlined />}
+                            onClick={() => handleViewOffer(record.id)}
+                        >
+                            مشاهده
+                        </Button>
+                );
+            },
+        },
+    ];
+
+    // -----------------------
+    // History Table Columns
+    // -----------------------
+    const historyColumns = [
+        {
+            title: "از وضعیت",
+            dataIndex: "oldStatus",
+            render: (status) => (
+                <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
+            ),
+        },
+        {
+            title: "به وضعیت",
+            dataIndex: "newStatus",
+            render: (status) => (
+                <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
+            ),
+        },
+        {
+            title: "توسط",
+            render: (_, r) => r.adminDisplayName || r.adminUserId || "-",
+        },
+        {
+            title: "یادداشت",
+            dataIndex: "note",
+            render: (v) => v || "-",
+        },
+        {
+            title: "تاریخ",
+            dataIndex: "createdAt",
+            render: (date) => {
+                const { date: shamsiDate, time } = toShamsiWithTime(date);
+                return (
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span>{shamsiDate}</span>
+                        {time && <span style={{ fontSize: "12px", color: "#999" }}>{time}</span>}
+                    </div>
                 );
             },
         },
@@ -397,143 +446,162 @@ const MyOffersPage = () => {
     // Render
     // -----------------------
     return (
-        <Card
-            title="مدیریت آگهی‌ها"
-            extra={
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={handleCreate}
-                >
-                    ثبت آگهی جدید
-                </Button>
-            }
-        >
-            {/* Filters */}
-            <Form
-                form={form}
-                layout="vertical"
-                style={{ marginBottom: 16 }}
+        <>
+            <Card
+                title="مدیریت آگهی‌ها"
             >
-                <Row gutter={[16, 16]}>
-                    <Col xs={24} sm={12} md={8} lg={6}>
-                        <Form.Item
-                            label="کد آگهی"
-                            name="offerId"
-                        >
-                            <Input 
-                                placeholder="جستجو بر اساس کد آگهی" 
-                                type="number"
-                            />
-                        </Form.Item>
-                    </Col>
-
-                    <Col xs={24} sm={12} md={8} lg={6}>
-                        <Form.Item
-                            label="نام محصول"
-                            name="productName"
-                        >
-                            <Input placeholder="جستجو بر اساس محصول" />
-                        </Form.Item>
-                    </Col>
-
-                    <Col xs={24} sm={12} md={8} lg={6}>
-                        <Form.Item
-                            label="دسته‌بندی"
-                            name="productCategoryId"
-                        >
-                            <CategoryTreeSelect
-                                allowClear
-                                placeholder="انتخاب دسته‌بندی"
-                            />
-                        </Form.Item>
-                    </Col>
-
-                    <Col xs={24} sm={12} md={8} lg={6}>
-                        <Form.Item label="وضعیت" name="status">
-                            <Select
-                                allowClear
-                                placeholder="انتخاب وضعیت"
-                                options={STATUS_OPTIONS}
-                            />
-                        </Form.Item>
-                    </Col>
-
-                    <Col xs={24} sm={24} md={24} lg={24}>
-                        <Form.Item label=" " colon={false}>
-                            <Space wrap>
-                            <Button
-                                type="primary"
-                                icon={<SearchOutlined />}
-                                onClick={handleSearch}
-                                    block={window.innerWidth < 768}
+                {/* Filters */}
+                    <Form
+                    form={form}
+                    layout="vertical"
+                    style={{ marginBottom: 16 }}
+                >
+                    <Row gutter={[16, 16]}>
+                        <Col xs={24} sm={12} md={8} lg={6}>
+                            <Form.Item
+                                label="کد آگهی"
+                                name="offerId"
                             >
-                                جستجو
-                            </Button>
-                            <Button
-                                icon={<ReloadOutlined />}
-                                onClick={handleClear}
-                                    block={window.innerWidth < 768}
+                                <Input 
+                                    placeholder="جستجو بر اساس کد آگهی" 
+                                    type="number"
+                                />
+                            </Form.Item>
+                        </Col>
+
+                        <Col xs={24} sm={12} md={8} lg={6}>
+                            <Form.Item
+                                label="نام محصول"
+                                name="productName"
                             >
-                                پاکسازی
-                            </Button>
-                        </Space>
-                        </Form.Item>
-                    </Col>
-                </Row>
-            </Form>
+                                <Input placeholder="جستجو بر اساس محصول" />
+                            </Form.Item>
+                        </Col>
 
-            {/* Table */}
-            <Table
-                rowKey="id"
-                loading={loading}
-                columns={columns}
-                dataSource={data}
-                scroll={{ x: 'max-content' }}
-                pagination={{
-                    current: page,
-                    pageSize,
-                    total,
-                    showSizeChanger: true,
-                    responsive: true,
-                }}
-                onChange={(pagination, _, sorter) => {
-                    setPage(pagination.current);
-                    setPageSize(pagination.pageSize);
+                        <Col xs={24} sm={12} md={8} lg={6}>
+                            <Form.Item
+                                label="دسته‌بندی"
+                                name="productCategoryId"
+                            >
+                                <CategoryTreeSelect
+                                    allowClear
+                                    placeholder="انتخاب دسته‌بندی"
+                                />
+                            </Form.Item>
+                        </Col>
 
-                    if (sorter?.order) {
-                        // تبدیل نام فیلد به format مورد نیاز backend
-                        let sortField = sorter.field;
-                        if (sorter.field === "viewCount") {
-                            sortField = "viewCount";
-                        } else if (sorter.field === "contactClickCount") {
-                            sortField = "contactClickCount";
-                        } else if (sorter.field === "productName") {
-                            sortField = "productName";
-                        } else if (sorter.field === "createdAt") {
-                            sortField = "createdAt";
-                        } else if (sorter.field === "id") {
-                            sortField = "createdAt"; // شناسه را بر اساس تاریخ ایجاد sort می‌کنیم
+                        <Col xs={24} sm={12} md={8} lg={6}>
+                            <Form.Item
+                                label="تامین‌کننده"
+                                name="supplierUserId"
+                            >
+                                <Select
+                                    allowClear
+                                    placeholder="انتخاب تامین‌کننده"
+                                    showSearch
+                                    filterOption={(input, option) =>
+                                        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                                    }
+                                    options={suppliers.map(s => ({
+                                        value: s.userId,
+                                        label: s.businessName || s.userPhoneNumber || "نامشخص",
+                                    }))}
+                                />
+                            </Form.Item>
+                        </Col>
+
+                        <Col xs={24} sm={12} md={8} lg={6}>
+                            <Form.Item
+                                label="وضعیت"
+                                name="status"
+                            >
+                                <Select placeholder="همه وضعیت‌ها" allowClear>
+                                    {STATUS_OPTIONS.map(opt => (
+                                        <Option key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                        </Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+
+                        <Col xs={24} sm={24} md={24} lg={24}>
+                            <Space>
+                                <Button
+                                    type="primary"
+                                    icon={<SearchOutlined />}
+                                    onClick={handleSearch}
+                                >
+                                    جستجو
+                                </Button>
+                                <Button onClick={handleClear}>
+                                    پاک کردن
+                                </Button>
+                            </Space>
+                        </Col>
+                    </Row>
+                </Form>
+
+                {/* Table */}
+                <Table
+                    columns={columns}
+                    dataSource={data}
+                    loading={loading}
+                    rowKey="id"
+                    scroll={{ x: 'max-content' }}
+                    pagination={{
+                        current: page,
+                        pageSize: pageSize,
+                        total: total,
+                        showSizeChanger: true,
+                        showTotal: (total) => `مجموع: ${total}`,
+                        onChange: (newPage, newPageSize) => {
+                            setPage(newPage);
+                            setPageSize(newPageSize);
+                            loadOffers(newPage, newPageSize);
+                        },
+                    }}
+                    onChange={(pagination, filters, sorter) => {
+                        if (sorter.field) {
+                            setSortBy(sorter.field);
+                            setSortDirection(
+                                sorter.order === "ascend" ? "asc" : "desc"
+                            );
+                            loadOffers(page, pageSize, sorter);
                         }
-                        
-                        setSortBy(sortField);
-                        setSortDirection(
-                            sorter.order === "ascend"
-                                ? "asc"
-                                : "desc"
-                        );
-                    } else {
-                        setSortBy(null);
-                        setSortDirection(null);
-                    }
+                    }}
+                />
+            </Card>
 
-                    loadOffers(
-                        pagination.current,
-                        pagination.pageSize,
-                        sorter
-                    );
-                }}                
-            />
+            {/* Reject Modal */}
+            <Modal
+                title="رد کردن آگهی"
+                open={rejectModalVisible}
+                onOk={handleRejectSubmit}
+                onCancel={() => {
+                    setRejectModalVisible(false);
+                    rejectForm.resetFields();
+                }}
+                okText="رد کردن"
+                cancelText="انصراف"
+                okButtonProps={{ danger: true }}
+            >
+                <Form form={rejectForm} layout="vertical">
+                    <Form.Item
+                        name="reason"
+                        label="دلیل رد"
+                        rules={[
+                            { required: true, message: "لطفاً دلیل رد را وارد کنید" },
+                            { min: 10, message: "دلیل رد باید حداقل 10 کاراکتر باشد" },
+                        ]}
+                    >
+                        <TextArea
+                            rows={4}
+                            placeholder="لطفاً دلیل رد کردن این آگهی را به صورت کامل وارد کنید..."
+                        />
+                    </Form.Item>
+                </Form>
+            </Modal>
 
             {/* Detail Drawer with Tabs */}
             <Drawer
@@ -559,25 +627,44 @@ const MyOffersPage = () => {
                                 label: "جزئیات آگهی",
                                 children: (
                                     <div>
-                                        {/* Offer Details */}
+                                        {/* Rejection Alert */}
+                                        {selectedOfferDetail.header?.rejectedReason && (
+                                            <Alert
+                                                message="دلیل رد آگهی"
+                                                description={selectedOfferDetail.header.rejectedReason}
+                                                type="error"
+                                                showIcon
+                                                style={{ marginBottom: 24 }}
+                                            />
+                                        )}
+
+                                        {/* Offer Details - New Order */}
                                         <Descriptions
                                             bordered
                                             column={2}
                                             size="small"
                                             style={{ marginBottom: 24 }}
                                         >
+                                            {/* وضعیت - سطر اول */}
                                             <Descriptions.Item label="وضعیت" span={2}>
                                                 <Tag color={getStatusColor(selectedOfferDetail.header?.status)}>
                                                     {getStatusLabel(selectedOfferDetail.header?.status)}
                                                 </Tag>
                                             </Descriptions.Item>
 
+                                            {/* دلیل رد - اگر رد شده */}
                                             {selectedOfferDetail.header?.rejectedReason && (
                                                 <Descriptions.Item label="دلیل رد" span={2}>
                                                     {selectedOfferDetail.header.rejectedReason}
                                                 </Descriptions.Item>
                                             )}
 
+                                            {/* نام تأمین‌کننده */}
+                                            <Descriptions.Item label="نام تأمین‌کننده" span={2}>
+                                                {selectedOfferDetail.header?.supplierBusinessName || "-"}
+                                            </Descriptions.Item>
+
+                                            {/* دسته محصول و نام محصول - یک سطر */}
                                             <Descriptions.Item label="دسته محصول">
                                                 {selectedOfferDetail.header?.productCategoryName || "-"}
                                             </Descriptions.Item>
@@ -585,6 +672,7 @@ const MyOffersPage = () => {
                                                 {selectedOfferDetail.header?.productName || "-"}
                                             </Descriptions.Item>
 
+                                            {/* قیمت واحد و مقدار - یک سطر */}
                                             <Descriptions.Item label="قیمت واحد">
                                                 {formatPrice(selectedOfferDetail.header?.unitPrice)} تومان
                                             </Descriptions.Item>
@@ -592,6 +680,7 @@ const MyOffersPage = () => {
                                                 {selectedOfferDetail.header?.quantity ?? "-"} {selectedOfferDetail.header?.unit || ""}
                                             </Descriptions.Item>
 
+                                            {/* قیمت کل و مالیات - یک سطر */}
                                             <Descriptions.Item label="قیمت کل">
                                                 {formatPrice(selectedOfferDetail.header?.totalPrice)} تومان
                                             </Descriptions.Item>
@@ -611,6 +700,7 @@ const MyOffersPage = () => {
                                                 </Descriptions.Item>
                                             )}
 
+                                            {/* تاریخ ایجاد و تاریخ انتشار - یک سطر */}
                                             <Descriptions.Item label="تاریخ ایجاد">
                                                 {toShamsi(selectedOfferDetail.header?.createdAt) || "-"}
                                             </Descriptions.Item>
@@ -620,6 +710,7 @@ const MyOffersPage = () => {
                                                 </Descriptions.Item>
                                             )}
 
+                                            {/* تاریخ انقضا - سطر آخر */}
                                             {selectedOfferDetail.header?.expireAtBySupplier && (
                                                 <Descriptions.Item label="تاریخ انقضا" span={2}>
                                                     {toShamsi(selectedOfferDetail.header.expireAtBySupplier) || "-"}
@@ -657,7 +748,7 @@ const MyOffersPage = () => {
                                                                                 size="small"
                                                                                 onClick={async () => {
                                                                                     try {
-                                                                                        await offersApi.downloadOfferFile(
+                                                                                        await offersApi.downloadPublicOfferFile(
                                                                                             selectedOfferDetail.header.id,
                                                                                             doc.filePath,
                                                                                             doc.value
@@ -700,7 +791,7 @@ const MyOffersPage = () => {
                                             </Card>
                                         )}
 
-                                        {/* Cancel Button - فقط برای Published */}
+                                        {/* Reject Button - فقط برای Published */}
                                         {selectedOfferDetail.header?.status === 3 && (
                                             <div style={{ textAlign: "left", marginTop: 16 }}>
                                                 <Button
@@ -708,10 +799,10 @@ const MyOffersPage = () => {
                                                     icon={<CloseCircleOutlined />}
                                                     onClick={() => {
                                                         handleCloseDetailDrawer();
-                                                        handleCancel(selectedOfferDetail.header.id);
+                                                        handleReject(selectedOfferDetail.header.id);
                                                     }}
                                                 >
-                                                    لغو آگهی
+                                                    رد کردن آگهی
                                                 </Button>
                                             </div>
                                         )}
@@ -726,44 +817,7 @@ const MyOffersPage = () => {
                                         rowKey="id"
                                         loading={loadingHistory}
                                         dataSource={historyData}
-                                        columns={[
-                                            {
-                                                title: "از وضعیت",
-                                                dataIndex: "oldStatus",
-                                                render: (status) => (
-                                                    <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
-                                                ),
-                                            },
-                                            {
-                                                title: "به وضعیت",
-                                                dataIndex: "newStatus",
-                                                render: (status) => (
-                                                    <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
-                                                ),
-                                            },
-                                            {
-                                                title: "توسط",
-                                                render: (_, r) => r.adminDisplayName || r.adminUserId || "-",
-                                            },
-                                            {
-                                                title: "یادداشت",
-                                                dataIndex: "note",
-                                                render: (v) => v || "-",
-                                            },
-                                            {
-                                                title: "تاریخ",
-                                                dataIndex: "createdAt",
-                                                render: (date) => {
-                                                    const { date: shamsiDate, time } = toShamsiWithTime(date);
-                                                    return (
-                                                        <div style={{ display: "flex", flexDirection: "column" }}>
-                                                            <span>{shamsiDate}</span>
-                                                            {time && <span style={{ fontSize: "12px", color: "#999" }}>{time}</span>}
-                                                        </div>
-                                                    );
-                                                },
-                                            },
-                                        ]}
+                                        columns={historyColumns}
                                         pagination={false}
                                     />
                                 ),
@@ -772,8 +826,8 @@ const MyOffersPage = () => {
                     />
                 )}
             </Drawer>
-        </Card>
+        </>
     );
 };
 
-export default MyOffersPage;
+export default AdminOffersPage;

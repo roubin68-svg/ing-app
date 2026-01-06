@@ -40,6 +40,52 @@ const productsApi = {
         const res = await apiClient.put(`/products/${id}/deactivate`);
         return res.data;
     },
+
+    /**
+     * POST /api/v1/products/upload-image
+     * multipart/form-data: productId, file
+     * خروجی: { filePath, originalFileName, size }
+     */
+    uploadProductImage: async ({ productId, file }) => {
+        const formData = new FormData();
+        formData.append("productId", String(productId));
+        formData.append("file", file);
+
+        const res = await apiClient.post("/products/upload-image", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
+        return res.data;
+    },
+
+    /**
+     * GET /api/v1/products/upload-image/image
+     * query: { productId, filePath }
+     * دریافت تصویر محصول به صورت blob و برگرداندن blob URL
+     */
+    getProductImageBlobUrl: async (productId, filePath) => {
+        if (!filePath) return null;
+        try {
+            const res = await apiClient.get("/products/upload-image/image", {
+                params: { productId, filePath },
+                responseType: "blob",
+            });
+            const blob = new Blob([res.data]);
+            return window.URL.createObjectURL(blob);
+        } catch (error) {
+            console.error("Error loading product image:", error);
+            return null;
+        }
+    },
+
+    /**
+     * GET /api/v1/products/upload-image/image
+     * query: { productId, filePath }
+     * دریافت URL تصویر محصول (deprecated - استفاده از getProductImageBlobUrl)
+     */
+    getProductImageUrl: (productId, filePath) => {
+        if (!filePath) return null;
+        return `${apiClient.defaults.baseURL}/products/upload-image/image?productId=${productId}&filePath=${encodeURIComponent(filePath)}`;
+    },
 };
 
 export default productsApi;

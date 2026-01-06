@@ -197,8 +197,8 @@ const offersApi = {
     },
 
     /**
-     * GET /api/v1/product-attribute-templates/by-product/{productId}
-     */
+ * GET /api/v1/product-attribute-templates/by-product/{productId}
+ */
     getProductAttributeTemplates: async (productId) => {
         const res = await apiClient.get(
             `/product-attribute-templates/${productId}`
@@ -225,6 +225,29 @@ const offersApi = {
      */
     getSupplierContact: async (offerId) => {
         const res = await apiClient.get(`/offers/${offerId}/supplier-contact`);
+        return res.data;
+    },
+
+    // ============================================
+    // Admin APIs
+    // ============================================
+    getAdminOffers: async (params) => {
+        const res = await apiClient.get("/admin/offers", { params });
+        return res.data;
+    },
+
+    rejectOffer: async (offerId, reason) => {
+        const res = await apiClient.put(`/admin/offers/${offerId}/reject`, { reason });
+        return res.data;
+    },
+
+    getAdminOfferDetail: async (offerId) => {
+        const res = await apiClient.get(`/admin/offers/${offerId}`);
+        return res.data;
+    },
+
+    getOfferStatusHistory: async (offerId) => {
+        const res = await apiClient.get(`/admin/offers/${offerId}/status-history`);
         return res.data;
     },
 };

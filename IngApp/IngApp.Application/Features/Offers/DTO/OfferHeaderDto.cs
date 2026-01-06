@@ -8,6 +8,7 @@ public class OfferHeaderDto
 
     public int ProductId { get; set; }
     public string ProductName { get; set; } = null!;
+    public string? ProductImagePath { get; set; }
 
     public decimal UnitPrice { get; set; }
     public decimal TotalPrice { get; set; }
@@ -26,4 +27,11 @@ public class OfferHeaderDto
     public OfferWizardStep WizardStep { get; set; }
 
     public Guid SupplierUserId { get; set; }
+
+    public string? RejectedReason { get; set; }
+
+    // Additional fields for Admin view
+    public int? ProductCategoryId { get; set; }
+    public string? ProductCategoryName { get; set; }
+    public string? SupplierBusinessName { get; set; }
 }

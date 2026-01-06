@@ -47,6 +47,7 @@ public class AppDbContext : DbContext
     public DbSet<Offer> Offers => Set<Offer>();
     public DbSet<OfferDocument> OfferDocuments => Set<OfferDocument>();
     public DbSet<OfferClickLog> OfferClickLogs => Set<OfferClickLog>();
+    public DbSet<OfferStatusHistory> OfferStatusHistories => Set<OfferStatusHistory>();
 
 
 

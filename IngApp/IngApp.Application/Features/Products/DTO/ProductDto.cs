@@ -11,6 +11,8 @@ public class ProductDto
 
     public string? Unit { get; set; }
 
+    public string? ImagePath { get; set; }
+
     public bool IsActive { get; set; }
 
     public string CategoryName { get; set; } = string.Empty;

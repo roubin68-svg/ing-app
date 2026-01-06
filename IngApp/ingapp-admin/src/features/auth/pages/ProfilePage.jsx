@@ -44,6 +44,20 @@ const toShamsi = (gregorian) => {
     }
 };
 
+// Helper functions for BusinessType enum
+const getBusinessTypeLabel = (value) => {
+    if (value === 1 || value === "Natural" || value === "1") return "حقیقی";
+    if (value === 2 || value === "Legal" || value === "2") return "حقوقی";
+    return value || "-";
+};
+
+// Helper functions for ContactPosition enum
+const getContactPositionLabel = (value) => {
+    if (value === 1 || value === "PurchaseManager" || value === "1") return "مسئول خرید";
+    if (value === 2 || value === "CEO" || value === "2") return "مدیر عامل";
+    return value || "-";
+};
+
 const getUserTypeLabel = (userType) => {
     switch (userType) {
         case "Buyer": return "خریدار";
@@ -411,7 +425,7 @@ const ProfilePage = () => {
                         column={2}
                         style={{ marginBottom: 24 }}
                     >
-                        <Descriptions.Item label="وضعیت" span={2}>
+                        <Descriptions.Item label="وضعیت" span={1}>
                             <Tag color={getVerificationStatusColor(
                                 supplierProfile.verificationStatus === "Approved" ? 2 :
                                 supplierProfile.verificationStatus === "Pending" ? 1 :
@@ -421,6 +435,9 @@ const ProfilePage = () => {
                                  supplierProfile.verificationStatus === "Pending" ? "در انتظار بررسی" :
                                  supplierProfile.verificationStatus === "Rejected" ? "رد شده" : "ارسال نشده"}
                             </Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="شماره موبایل (Login)" span={1}>
+                            {supplierProfile.userPhoneNumber || "-"}
                         </Descriptions.Item>
                         <Descriptions.Item label="تاریخ ایجاد" span={1}>
                             {supplierProfile.createdAt ? toShamsi(supplierProfile.createdAt) : "-"}
@@ -442,32 +459,38 @@ const ProfilePage = () => {
                         <Descriptions.Item label="نوع تأمین‌کننده" span={2}>
                             {supplierProfile.supplierTypeName || "-"}
                         </Descriptions.Item>
-                        <Descriptions.Item label="نام کسب‌وکار" span={2}>
+                        <Descriptions.Item label="نوع کسب‌وکار" span={1}>
+                            {getBusinessTypeLabel(supplierProfile.businessType)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="نام کسب‌وکار" span={1}>
                             {supplierProfile.businessName || "-"}
                         </Descriptions.Item>
-                        <Descriptions.Item label="شماره موبایل (Login)" span={2}>
-                            {supplierProfile.userPhoneNumber || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="شماره تماس">
-                            {supplierProfile.contactPhone || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="کد ملی">
+                        <Descriptions.Item label="کد ملی / شماره ملی" span={1}>
                             {supplierProfile.nationalId || "-"}
                         </Descriptions.Item>
-                        <Descriptions.Item label="شماره مجوز">
+                        <Descriptions.Item label="شماره ثبت" span={1}>
                             {supplierProfile.licenseNumber || "-"}
                         </Descriptions.Item>
-                        <Descriptions.Item label="نام رابط">
-                            {supplierProfile.contactName || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="استان">
+                        <Descriptions.Item label="استان" span={1}>
                             {supplierProfile.province || "-"}
                         </Descriptions.Item>
-                        <Descriptions.Item label="شهر">
+                        <Descriptions.Item label="شهر" span={1}>
                             {supplierProfile.city || "-"}
                         </Descriptions.Item>
                         <Descriptions.Item label="آدرس" span={2}>
                             {supplierProfile.address || "-"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="نام رابط" span={1}>
+                            {supplierProfile.contactName || "-"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="سمت رابط" span={1}>
+                            {getContactPositionLabel(supplierProfile.contactPosition)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="شماره موبایل رابط" span={1}>
+                            {supplierProfile.contactMobile || "-"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="شماره تماس کسب‌وکار" span={1}>
+                            {supplierProfile.contactPhone || "-"}
                         </Descriptions.Item>
                     </Descriptions>
 

@@ -12,6 +12,8 @@ public class Product
     public int CategoryId { get; set; }
     public ProductCategory Category { get; set; } = null!;
 
+    public string? ImagePath { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     // Navigation

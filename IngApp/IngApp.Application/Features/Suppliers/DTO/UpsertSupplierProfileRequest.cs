@@ -1,4 +1,6 @@
-﻿namespace IngApp.Application.Features.Suppliers.DTO
+﻿using IngApp.Domain.Enums;
+
+namespace IngApp.Application.Features.Suppliers.DTO
 {
     /// <summary>
     /// ورودی برای ساخت/ویرایش پروفایل Supplier توسط خود کاربر.
@@ -15,7 +17,10 @@
         public string? City { get; set; }
         public string? Address { get; set; }
 
-        public string? ContactName { get; set; }
+        public BusinessType BusinessType { get; set; }
+        public string ContactName { get; set; } = null!;
+        public ContactPosition ContactPosition { get; set; }
+        public string ContactMobile { get; set; } = null!;
         public string? ContactPhone { get; set; }
     }
 }

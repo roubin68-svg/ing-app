@@ -15,11 +15,13 @@ import {
     Tag,
     Empty,
     Pagination,
+    Image,
 } from "antd";
 import {
     SearchOutlined,
     ReloadOutlined,
     EyeOutlined,
+    PictureOutlined,
 } from "@ant-design/icons";
 import { useSearchParams } from "react-router-dom";
 import dayjs from "dayjs";
@@ -27,6 +29,7 @@ import jalaali from "jalaali-js";
 import offersApi from "../api/offersApi";
 import CategoryTreeSelect from "../../products/components/CategoryTreeSelect";
 import OfferDetailDrawer from "../components/OfferDetailDrawer";
+import productsApi from "../../products/api/productsApi";
 
 // تبدیل تاریخ میلادی به شمسی
 const toShamsi = (gregorian) => {
@@ -78,6 +81,7 @@ const OffersSearchPage = () => {
     const [pageSize, setPageSize] = useState(20);
     const [selectedOfferId, setSelectedOfferId] = useState(null);
     const [drawerVisible, setDrawerVisible] = useState(false);
+    const [imageBlobUrls, setImageBlobUrls] = useState({}); // { "productId_imagePath": blobUrl }
 
     // چک کردن وجود offerId در URL برای باز کردن دراور در ابتدا
     useEffect(() => {
@@ -112,7 +116,41 @@ const OffersSearchPage = () => {
             Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
 
             const result = await offersApi.searchPublic(params);
-            setOffers(result || []);
+            const offersList = result || [];
+            setOffers(offersList);
+
+            // ساخت blob URLs برای تصاویر محصولات
+            const blobUrlPromises = offersList
+                .filter(offer => offer.productImagePath && offer.productId)
+                .map(async (offer) => {
+                    try {
+                        const blobUrl = await productsApi.getProductImageBlobUrl(offer.productId, offer.productImagePath);
+                        if (blobUrl) {
+                            return { key: `${offer.productId}_${offer.productImagePath}`, blobUrl };
+                        }
+                    } catch (err) {
+                        console.error(`Error loading image for product ${offer.productId}:`, err);
+                    }
+                    return null;
+                });
+
+            const blobUrlResults = await Promise.all(blobUrlPromises);
+            const newBlobUrls = {};
+            blobUrlResults.forEach(result => {
+                if (result) {
+                    newBlobUrls[result.key] = result.blobUrl;
+                }
+            });
+
+            // Revoke old URLs
+            setImageBlobUrls(prev => {
+                Object.values(prev).forEach(url => {
+                    if (url && typeof url === 'string') {
+                        window.URL.revokeObjectURL(url);
+                    }
+                });
+                return newBlobUrls;
+            });
         } catch (error) {
             messageApi.error("خطا در بارگذاری آگهی‌ها");
             console.error(error);
@@ -124,6 +162,17 @@ const OffersSearchPage = () => {
     useEffect(() => {
         loadOffers();
     }, [loadOffers]);
+
+    // Cleanup: Revoke blob URLs when component unmounts
+    useEffect(() => {
+        return () => {
+            Object.values(imageBlobUrls).forEach(url => {
+                if (url && typeof url === 'string') {
+                    window.URL.revokeObjectURL(url);
+                }
+            });
+        };
+    }, [imageBlobUrls]);
 
     // -----------------------
     // Handlers
@@ -260,7 +309,8 @@ const OffersSearchPage = () => {
                             <Col xs={24} sm={12} md={8} lg={6} key={offer.id}>
                                 <Card
                                     hoverable
-                                    style={{ height: "100%", cursor: "pointer" }}
+                                    style={{ height: "100%", cursor: "pointer", display: "flex", flexDirection: "column" }}
+                                    bodyStyle={{ flex: 1, display: "flex", flexDirection: "column" }}
                                     onClick={() => handleViewOffer(offer.id)}
                                     actions={[
                                         <Button
@@ -276,33 +326,72 @@ const OffersSearchPage = () => {
                                         </Button>
                                     ]}
                                 >
-                                    <div style={{ marginBottom: 12 }}>
-                                        <Tag color="blue" style={{ marginBottom: 8 }}>
-                                            #{offer.id}
-                                        </Tag>
-                                    </div>
-                                    <Card.Meta
-                                        title={
-                                            <div style={{ fontSize: 16, fontWeight: "bold", marginBottom: 12 }}>
-                                                {offer.productName}
+                                    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                                        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 15 }}>
+                                            <div style={{ flex: 1 }}>
+                                                <Tag color="blue" style={{ marginBottom: 8 }}>
+                                                    #{offer.id}
+                                                </Tag>
+                                                <div style={{ fontSize: 16, fontWeight: "bold", marginBottom: 8 }}>
+                                                    {offer.productName}
+                                                </div>
+                                                <Tag>{offer.productCategoryName}</Tag>
                                             </div>
-                                        }
-                                        description={
-                                            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-                                                <div>
-                                                    <Tag>{offer.productCategoryName}</Tag>
-                                                </div>
-                                                <div style={{ fontSize: 13, color: "#666" }}>
-                                                    <div style={{ marginBottom: 6 }}>قیمت واحد: {formatPrice(offer.unitPrice)} تومان</div>
-                                                    <div style={{ marginBottom: 6 }}>قیمت کل: {formatPrice(offer.totalPrice)} تومان</div>
-                                                    <div style={{ marginBottom: 6 }}>مقدار: {formatPrice(offer.quantity)} {offer.unit}</div>
-                                                    <div style={{ marginTop: 8, fontSize: 12 }}>
-                                                        تاریخ انتشار: {toShamsi(offer.publishedAt) || "-"}
+                                            {(() => {
+                                                const blobUrlKey = offer.productImagePath && offer.productId 
+                                                    ? `${offer.productId}_${offer.productImagePath}` 
+                                                    : null;
+                                                const imageUrl = blobUrlKey ? imageBlobUrls[blobUrlKey] : null;
+                                                
+                                                return imageUrl ? (
+                                                    <Image
+                                                        src={imageUrl}
+                                                        alt={offer.productName}
+                                                        width={80}
+                                                        height={80}
+                                                        style={{ objectFit: "cover", borderRadius: 4, flexShrink: 0, border: "1px solid #f0f0f0" }}
+                                                        preview={false}
+                                                    />
+                                                ) : (
+                                                    <div
+                                                        style={{
+                                                            width: 80,
+                                                            height: 80,
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            background: "#f0f0f0",
+                                                            borderRadius: 4,
+                                                            border: "1px solid #d9d9d9",
+                                                            flexShrink: 0,
+                                                        }}
+                                                    >
+                                                        <PictureOutlined style={{ fontSize: 28, color: "#999" }} />
                                                     </div>
+                                                );
+                                            })()}
+                                        </div>
+                                        <div style={{ fontSize: 13, color: "#666", flex: 1, display: "flex", flexDirection: "column" }}>
+                                            <div style={{ marginBottom: 6 }}>قیمت واحد: {formatPrice(offer.unitPrice)} تومان</div>
+                                            <div style={{ marginBottom: 6 }}>مقدار: {formatPrice(offer.quantity)} {offer.unit}</div>
+                                            <div style={{ marginBottom: 6, fontWeight: 500 }}>قیمت کل: {formatPrice(offer.totalPrice)} تومان</div>
+                                            {offer.hasTax && offer.taxAmount ? (
+                                                <>
+                                                    <div style={{ marginBottom: 6 }}>مبلغ مالیات: {formatPrice(offer.taxAmount)} تومان</div>
+                                                    <div style={{ marginBottom: 6, fontWeight: 500 }}>
+                                                        قیمت کل + مالیات: {formatPrice((offer.totalPrice || 0) + (offer.taxAmount || 0))} تومان
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div style={{ marginBottom: 6, color: "#52c41a", fontSize: 12 }}>
+                                                    این کالا مالیات ندارد
                                                 </div>
-                                            </Space>
-                                        }
-                                    />
+                                            )}
+                                            <div style={{ marginTop: "auto", fontSize: 12 }}>
+                                                تاریخ انتشار: {toShamsi(offer.publishedAt) || "-"}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </Card>
                             </Col>
                         ))}

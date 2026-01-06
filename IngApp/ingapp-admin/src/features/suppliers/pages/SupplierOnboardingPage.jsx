@@ -32,6 +32,32 @@ import apiClient from "../../../core/api/apiClient";
 const { Text } = Typography;
 const { Option } = Select;
 
+// Helper functions for BusinessType enum
+const getBusinessTypeLabel = (value) => {
+    if (value === 1 || value === "Natural" || value === "1") return "حقیقی";
+    if (value === 2 || value === "Legal" || value === "2") return "حقوقی";
+    return value || "-";
+};
+
+const getBusinessTypeValue = (label) => {
+    if (label === "حقیقی") return 1;
+    if (label === "حقوقی") return 2;
+    return label;
+};
+
+// Helper functions for ContactPosition enum
+const getContactPositionLabel = (value) => {
+    if (value === 1 || value === "PurchaseManager" || value === "1") return "مسئول خرید";
+    if (value === 2 || value === "CEO" || value === "2") return "مدیر عامل";
+    return value || "-";
+};
+
+const getContactPositionValue = (label) => {
+    if (label === "مسئول خرید") return 1;
+    if (label === "مدیر عامل") return 2;
+    return label;
+};
+
 /**
  * DataType mapping (Backend enum):
  * 1 = File
@@ -89,27 +115,9 @@ const SupplierOnboardingPage = () => {
     // API Base (Dev/Prod)
     // --------------------------------------------------
     const apiBaseUrl = useMemo(() => {
-        try {
-            if (typeof import.meta !== "undefined" && import.meta.env) {
-                return (
-                    import.meta.env.VITE_API_BASE_URL ||
-                    import.meta.env.VITE_API_URL ||
-                    ""
-                );
-            }
-        } catch {
-            // ignore
-        }
-
-        if (typeof process !== "undefined" && process.env) {
-            return (
-                process.env.REACT_APP_API_BASE_URL ||
-                process.env.REACT_APP_API_URL ||
-                ""
-            );
-        }
-
-        return "http://localhost:5273";
+        // استفاده از apiClient.defaults.baseURL و حذف /api/v1 برای base URL
+        const baseURL = apiClient.defaults.baseURL?.replace("/api/v1", "") || "";
+        return baseURL;
     }, []);
 
     const getAccessToken = () => {
@@ -268,30 +276,33 @@ const SupplierOnboardingPage = () => {
     // --------------------------------------------------
     const loadMyProfile = useCallback(async () => {
         try {
-            const raw = await supplierOnboardingApi.getMyProfile();
-            const res = unwrapApiResult(raw);
+        const raw = await supplierOnboardingApi.getMyProfile();
+        const res = unwrapApiResult(raw);
 
-            setProfile(res);
+        setProfile(res);
 
-            if (res?.supplierTypeId && selectedSupplierTypeId === null) {
-                setSelectedSupplierTypeId(res.supplierTypeId);
+        if (res?.supplierTypeId && selectedSupplierTypeId === null) {
+            setSelectedSupplierTypeId(res.supplierTypeId);
 
-                // فرم را پر می‌کنیم که اگر برگشت Stage 2 لازم شد، آماده باشد
-                form.setFieldsValue({
-                    businessName: res.businessName,
-                    nationalId: res.nationalId,
-                    licenseNumber: res.licenseNumber,
-                    province: res.province,
-                    city: res.city,
-                    address: res.address,
-                    contactName: res.contactName,
-                    contactPhone: res.contactPhone,
-                });
+            // فرم را پر می‌کنیم که اگر برگشت Stage 2 لازم شد، آماده باشد
+            form.setFieldsValue({
+                businessName: res.businessName,
+                nationalId: res.nationalId,
+                licenseNumber: res.licenseNumber,
+                province: res.province,
+                city: res.city,
+                address: res.address,
+                businessType: res.businessType, // enum value (1 or 2)
+                contactName: res.contactName,
+                contactPosition: res.contactPosition, // enum value (1 or 2)
+                contactMobile: res.contactMobile,
+                contactPhone: res.contactPhone,
+            });
 
-                setSelectedProvince(res.province || null);
-            }
+            setSelectedProvince(res.province || null);
+        }
 
-            return res;
+        return res;
         } catch (error) {
             // اگر 404 بود (پروفایل یافت نشد)، این طبیعی است و null برمی‌گردانیم
             if (error?.response?.status === 404 || error?.status === 404) {
@@ -871,7 +882,6 @@ const SupplierOnboardingPage = () => {
             String(draft?.valueDraft).trim() !== "";
 
         const isUploading = Boolean(draft?.uploading);
-        const isImageDraft = Boolean(draft?.localPreviewUrl);
 
         const hasPersistedFile = Boolean(persistedFilePath);
         const hasPersistedValue =
@@ -949,7 +959,7 @@ const SupplierOnboardingPage = () => {
                                                 border: "1px solid #d9d9d9"
                                             }}>
                                                 <Spin size="small" />
-                                            </div>
+                                </div>
                                         );
                                     }
                                     if (isPdf) return <FilePdfOutlined style={{ fontSize: 24, color: "#f5222d" }} />;
@@ -959,10 +969,10 @@ const SupplierOnboardingPage = () => {
                                 <div>
                                     <div style={{ fontWeight: 500, fontSize: 13 }}>{persistedFileName || "فایل"}</div>
                                     <div style={{ fontSize: 11, color: "#666" }}>فایل ثبت‌شده</div>
-                                </div>
+                            </div>
                             </Space>
                             <Space>
-                                <Button 
+                                <Button
                                     size="small"
                                     icon={<DownloadOutlined />}
                                     onClick={() => downloadPersistedFile(doc.id, persistedFileName || "document")}
@@ -985,7 +995,7 @@ const SupplierOnboardingPage = () => {
                         >
                             <Space direction="vertical" size="small" style={{ width: "100%" }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <Space>
+                            <Space>
                                         {(() => {
                                             // برای draft files، از localPreviewUrl استفاده کن
                                             if (draft.localPreviewUrl) {
@@ -1016,7 +1026,7 @@ const SupplierOnboardingPage = () => {
                                             if (isWord) return <FileWordOutlined style={{ fontSize: 32, color: "#1890ff" }} />;
                                             return <FileOutlined style={{ fontSize: 32, color: "#666" }} />;
                                         })()}
-                                    </Space>
+                            </Space>
                                     <Space>
                                         <div>
                                             <div style={{ fontWeight: 500, fontSize: 13 }}>
@@ -1067,26 +1077,26 @@ const SupplierOnboardingPage = () => {
                                     >
                                         حذف فایل
                                     </Button>
-                                )}
-                            </Space>
+                            )}
+                        </Space>
                         </div>
                     )}
 
                     {/* Upload Button */}
                     {(!hasPersistedFile || (hasPersistedFile && !draft?.fileDraft)) && (
-                        <Upload
-                            beforeUpload={(file) => uploadKycFileWithProgress(attrId, file)}
-                            showUploadList={false}
-                        >
-                            <Button 
+                            <Upload
+                                beforeUpload={(file) => uploadKycFileWithProgress(attrId, file)}
+                                showUploadList={false}
+                            >
+                                <Button
                                 icon={<UploadOutlined />} 
                                 disabled={isUploading}
                                 loading={isUploading}
-                            >
+                                >
                                 {hasPersistedFile ? "تغییر فایل" : "انتخاب فایل"}
-                            </Button>
+                                </Button>
                         </Upload>
-                    )}
+                            )}
 
                     {doc?.adminNote && (
                         <Alert type="warning" message={doc.adminNote} showIcon />
@@ -1373,6 +1383,19 @@ const SupplierOnboardingPage = () => {
                     <Row gutter={16}>
                         <Col span={12}>
                             <Form.Item
+                                label="نوع کسب‌وکار"
+                                name="businessType"
+                                rules={[{ required: true, message: "نوع کسب‌وکار الزامی است" }]}
+                            >
+                                <Select placeholder="انتخاب نوع کسب‌وکار">
+                                    <Option value={1}>حقیقی</Option>
+                                    <Option value={2}>حقوقی</Option>
+                                </Select>
+                            </Form.Item>
+                        </Col>
+
+                        <Col span={12}>
+                            <Form.Item
                                 label="نام کسب‌وکار"
                                 name="businessName"
                                 rules={[{ required: true, message: "نام کسب‌وکار الزامی است" }]}
@@ -1382,13 +1405,13 @@ const SupplierOnboardingPage = () => {
                         </Col>
 
                         <Col span={12}>
-                            <Form.Item label="کد ملی" name="nationalId">
+                            <Form.Item label="کد ملی / شماره ملی" name="nationalId">
                                 <Input />
                             </Form.Item>
                         </Col>
 
                         <Col span={12}>
-                            <Form.Item label="شماره مجوز" name="licenseNumber">
+                            <Form.Item label="شماره ثبت" name="licenseNumber">
                                 <Input />
                             </Form.Item>
                         </Col>
@@ -1443,16 +1466,43 @@ const SupplierOnboardingPage = () => {
                         </Col>
 
                         <Col span={12}>
-                            <Form.Item label="نام رابط" name="contactName">
+                            <Form.Item
+                                label="نام رابط"
+                                name="contactName"
+                                rules={[{ required: true, message: "نام رابط الزامی است" }]}
+                            >
                                 <Input />
                             </Form.Item>
                         </Col>
 
                         <Col span={12}>
                             <Form.Item
-                                label="شماره تماس"
+                                label="سمت رابط"
+                                name="contactPosition"
+                                rules={[{ required: true, message: "سمت رابط الزامی است" }]}
+                            >
+                                <Select placeholder="انتخاب سمت رابط">
+                                    <Option value={1}>مسئول خرید</Option>
+                                    <Option value={2}>مدیر عامل</Option>
+                                </Select>
+                            </Form.Item>
+                        </Col>
+
+                        <Col span={12}>
+                            <Form.Item
+                                label="شماره موبایل رابط"
+                                name="contactMobile"
+                                rules={[{ required: true, message: "شماره موبایل رابط الزامی است" }]}
+                            >
+                                <Input />
+                            </Form.Item>
+                        </Col>
+
+                        <Col span={12}>
+                            <Form.Item
+                                label="شماره تماس کسب‌وکار"
                                 name="contactPhone"
-                                rules={[{ required: true, message: "شماره تماس الزامی است" }]}
+                                rules={[{ required: true, message: "شماره تماس کسب‌وکار الزامی است" }]}
                             >
                                 <Input />
                             </Form.Item>
@@ -1570,7 +1620,7 @@ const SupplierOnboardingPage = () => {
 
                                 <Card title="خلاصه اطلاعات تأمین‌کننده" style={{ marginBottom: 24 }}>
                                     <Row gutter={[16, 16]}>
-                                        <Col span={12}>
+                                        <Col span={24}>
                                             <Text type="secondary">نوع تأمین‌کننده</Text>
                                             <div>
                                                 <Text strong>
@@ -1583,10 +1633,22 @@ const SupplierOnboardingPage = () => {
                                             </div>
                                         </Col>
                                         <Col span={12}>
+                                            <Text type="secondary">نوع کسب‌وکار</Text>
+                                            <div><Text strong>{getBusinessTypeLabel(profile?.businessType)}</Text></div>
+                                        </Col>
+                                        <Col span={12}>
                                             <Text type="secondary">نام کسب‌وکار</Text>
                                             <div>
                                                 <Text strong>{profile?.businessName || "-"}</Text>
                                             </div>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Text type="secondary">کد ملی / شماره ملی</Text>
+                                            <div><Text strong>{profile?.nationalId || "-"}</Text></div>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Text type="secondary">شماره ثبت</Text>
+                                            <div><Text strong>{profile?.licenseNumber || "-"}</Text></div>
                                         </Col>
                                         <Col span={12}>
                                             <Text type="secondary">استان</Text>
@@ -1600,28 +1662,27 @@ const SupplierOnboardingPage = () => {
                                                 <Text strong>{profile?.city || "-"}</Text>
                                             </div>
                                         </Col>
-
-                                        <Col span={12}>
-                                            <Text type="secondary">شماره تماس</Text>
-                                            <div>
-                                                <Text strong>{profile?.contactPhone || "-"}</Text>
-                                            </div>
-                                        </Col>
-                                        <Col span={12}>
-                                            <Text type="secondary">کد ملی</Text>
-                                            <div><Text strong>{profile?.nationalId || "-"}</Text></div>
-                                        </Col>
-                                        <Col span={12}>
-                                            <Text type="secondary">شماره مجوز</Text>
-                                            <div><Text strong>{profile?.licenseNumber || "-"}</Text></div>
+                                        <Col span={24}>
+                                            <Text type="secondary">آدرس</Text>
+                                            <div><Text strong>{profile?.address || "-"}</Text></div>
                                         </Col>
                                         <Col span={12}>
                                             <Text type="secondary">نام رابط</Text>
                                             <div><Text strong>{profile?.contactName || "-"}</Text></div>
                                         </Col>
-                                        <Col span={24}>
-                                            <Text type="secondary">آدرس</Text>
-                                            <div><Text strong>{profile?.address || "-"}</Text></div>
+                                        <Col span={12}>
+                                            <Text type="secondary">سمت رابط</Text>
+                                            <div><Text strong>{getContactPositionLabel(profile?.contactPosition)}</Text></div>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Text type="secondary">شماره موبایل رابط</Text>
+                                            <div><Text strong>{profile?.contactMobile || "-"}</Text></div>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Text type="secondary">شماره تماس کسب‌وکار</Text>
+                                            <div>
+                                                <Text strong>{profile?.contactPhone || "-"}</Text>
+                                            </div>
                                         </Col>
                                     </Row>
                                 </Card>

@@ -73,6 +73,7 @@ public static class DependencyInjection
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IProductAttributeTemplateService, ProductAttributeTemplateService>();
         services.AddScoped<ISupplierCategoryAccessService, SupplierCategoryAccessService>();
+        services.AddScoped<IProductFileStorageService, ProductFileStorageService>();
 
         //Offer Services
         services.AddScoped<IOfferService, OfferService>();

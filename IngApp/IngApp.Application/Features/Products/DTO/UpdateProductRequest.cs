@@ -8,4 +8,6 @@ public class UpdateProductRequest
     public int CategoryId { get; set; }
 
     public string? Unit { get; set; } = string.Empty;
+
+    public string? ImagePath { get; set; }
 }

@@ -1,9 +1,26 @@
 ﻿// src/core/api/apiClient.js
 import axios from "axios";
 
-// در صورت نیاز می‌تونی از env بخونی
+// دریافت baseURL از environment variables
+const getBaseURL = () => {
+    // بررسی Vite env variables (برای Vite-based projects)
+    if (typeof import.meta !== "undefined" && import.meta.env) {
+        const viteUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
+        if (viteUrl) return viteUrl;
+    }
+
+    // بررسی React env variables (برای Create React App)
+    if (typeof process !== "undefined" && process.env) {
+        const reactUrl = process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_URL;
+        if (reactUrl) return reactUrl;
+    }
+
+    // Fallback به localhost (فقط برای development)
+    return "http://localhost:5273/api/v1";
+};
+
 const apiClient = axios.create({
-    baseURL: "http://localhost:5273/api/v1",
+    baseURL: getBaseURL(),
     timeout: 60000, // 60 ثانیه timeout برای درخواست‌های طولانی (مثل migration)
 });
 

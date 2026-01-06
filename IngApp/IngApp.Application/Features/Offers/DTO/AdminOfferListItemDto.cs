@@ -1,8 +1,8 @@
-﻿using IngApp.Domain.Enums;
+using IngApp.Domain.Enums;
 
 namespace IngApp.Application.Features.Offers.DTO;
 
-public class OfferListItemDto
+public class AdminOfferListItemDto
 {
     public int Id { get; set; }
 
@@ -21,7 +21,13 @@ public class OfferListItemDto
     public DateTime? PublishedAt { get; set; }
     public string? RejectedReason { get; set; }
 
+    // Supplier Info
+    public Guid SupplierUserId { get; set; }
+    public string SupplierBusinessName { get; set; } = null!;
+    public string? SupplierPhoneNumber { get; set; }
+
     // آمار کلیک‌ها
     public int ViewCount { get; set; }
     public int ContactClickCount { get; set; }
 }
+

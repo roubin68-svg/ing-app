@@ -1,8 +1,10 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Card, Divider, Spin, message, Space, TreeSelect, Button, Alert, App, Form, InputNumber, Switch, Input, Upload, Progress, Typography } from "antd";
-import { DownloadOutlined, FileOutlined, FilePdfOutlined, FileWordOutlined, DeleteOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { Card, Divider, Spin, message, Space, TreeSelect, Button, Alert, App, Form, InputNumber, Switch, Input, Upload, Progress, Typography, Row, Col, Image, Tag } from "antd";
+import { DownloadOutlined, FileOutlined, FilePdfOutlined, FileWordOutlined, DeleteOutlined, CheckCircleOutlined, PictureOutlined } from "@ant-design/icons";
 import offersApi from "../api/offersApi";
+import apiClient from "../../../core/api/apiClient";
+import productsApi from "../../products/api/productsApi";
 import { DatePicker as JalaliDatePicker } from "antd-jalali";
 import dayjs from "dayjs";
 import jalaali from "jalaali-js";
@@ -89,7 +91,78 @@ const ensureShamsiDayjs = (date) => {
     return todayShamsi();
 };
 
+// Component for displaying product with image and category
+const ProductDisplayCard = ({ offerId, productId, productName, productCategoryName, productImagePath }) => {
+    const [imageBlobUrl, setImageBlobUrl] = useState(null);
 
+    useEffect(() => {
+        if (!productImagePath || !productId) return;
+
+        let mounted = true;
+        const loadImage = async () => {
+            try {
+                const url = await productsApi.getProductImageBlobUrl(productId, productImagePath);
+                if (mounted) {
+                    setImageBlobUrl(url);
+                }
+            } catch (error) {
+                console.error("Error loading product image:", error);
+            }
+        };
+        loadImage();
+
+        return () => {
+            mounted = false;
+            if (imageBlobUrl) {
+                window.URL.revokeObjectURL(imageBlobUrl);
+            }
+        };
+    }, [productId, productImagePath]);
+
+    return (
+        <Card size="small" style={{ marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                {imageBlobUrl ? (
+                    <Image
+                        src={imageBlobUrl}
+                        alt={productName}
+                        width={80}
+                        height={80}
+                        style={{ objectFit: "cover", borderRadius: 4 }}
+                        preview={false}
+                    />
+                ) : (
+                    <div
+                        style={{
+                            width: 80,
+                            height: 80,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "#f0f0f0",
+                            borderRadius: 4,
+                        }}
+                    >
+                        <PictureOutlined style={{ fontSize: 32, color: "#999" }} />
+                    </div>
+                )}
+                <div style={{ flex: 1 }}>
+                    {offerId && (
+                        <Tag color="blue" style={{ marginBottom: 8 }}>
+                            #{offerId}
+                        </Tag>
+                    )}
+                    <div style={{ fontSize: 16, fontWeight: "bold", marginBottom: 8 }}>
+                        {productName || "-"}
+                    </div>
+                    {productCategoryName && (
+                        <Tag>{productCategoryName}</Tag>
+                    )}
+                </div>
+            </div>
+        </Card>
+    );
+};
 
 export default function OfferManagementPage() {
     const { modal } = App.useApp();
@@ -478,13 +551,13 @@ export default function OfferManagementPage() {
                                         if (isImage) {
                                             return (
                                                 <img
-                                                    src={`http://localhost:5273/api/v1/offers/my/upload-file/file?offerId=${offerId}&filePath=${encodeURIComponent(persisted.filePath)}`}
+                                                    src={`${apiClient.defaults.baseURL.replace('/api/v1', '')}/api/v1/offers/my/upload-file/file?offerId=${offerId}&filePath=${encodeURIComponent(persisted.filePath)}`}
                                                     alt={persisted.value}
                                                     style={{
                                                         width: 40,
                                                         height: 40,
                                                         objectFit: "cover",
-                                                        borderRadius: 4,
+                                    borderRadius: 4,
                                                         border: "1px solid #d9d9d9",
                                                     }}
                                                 />
@@ -500,19 +573,19 @@ export default function OfferManagementPage() {
                                     </div>
                                 </Space>
                                 <Space>
-                                    <Button 
-                                        size="small"
+                                <Button 
+                                    size="small"
                                         icon={<DownloadOutlined />}
-                                        onClick={async () => {
-                                            try {
-                                                await offersApi.downloadOfferFile(offerId, persisted.filePath, persisted.value);
-                                            } catch (error) {
-                                                message.error(getErrorMessage(error, "خطا در دانلود فایل"));
-                                            }
-                                        }}
-                                    >
+                                    onClick={async () => {
+                                        try {
+                                            await offersApi.downloadOfferFile(offerId, persisted.filePath, persisted.value);
+                                        } catch (error) {
+                                            message.error(getErrorMessage(error, "خطا در دانلود فایل"));
+                                        }
+                                    }}
+                                >
                                         دانلود
-                                    </Button>
+                                </Button>
                                     <Button 
                                         size="small"
                                         danger
@@ -558,14 +631,14 @@ export default function OfferManagementPage() {
                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                         <Space>
                                             {draft.localPreviewUrl ? (
-                                                <img
-                                                    src={draft.localPreviewUrl}
-                                                    alt="preview"
-                                                    style={{
+                            <img
+                                src={draft.localPreviewUrl}
+                                alt="preview"
+                                style={{
                                                         width: 50,
                                                         height: 50,
                                                         objectFit: "cover",
-                                                        borderRadius: 4,
+                                    borderRadius: 4,
                                                         border: "1px solid #d9d9d9",
                                                     }}
                                                 />
@@ -691,76 +764,76 @@ export default function OfferManagementPage() {
 
                         {/* آپلود فایل جدید */}
                         {(!persisted || (draft?.fileDraft && !draft.uploading && draft.fileDraft.filePath)) && (
-                            <Upload
-                                showUploadList={false}
-                                beforeUpload={async (file) => {
-                                    try {
-                                        const isImage = file.type.startsWith("image/");
-                                        const localPreviewUrl = isImage
-                                            ? URL.createObjectURL(file)
-                                            : null;
+                        <Upload
+                            showUploadList={false}
+                            beforeUpload={async (file) => {
+                                try {
+                                    const isImage = file.type.startsWith("image/");
+                                    const localPreviewUrl = isImage
+                                        ? URL.createObjectURL(file)
+                                        : null;
 
-                                        setDocDraftByAttrId(prev => ({
-                                            ...prev,
-                                            [attrId]: {
-                                                uploading: true,
+                                    setDocDraftByAttrId(prev => ({
+                                        ...prev,
+                                        [attrId]: {
+                                            uploading: true,
                                                 uploadProgress: 0,
-                                                localPreviewUrl,
-                                                fileDraft: {
-                                                    fileName: file.name,
-                                                    size: file.size,
-                                                    mimeType: file.type,
-                                                },
+                                            localPreviewUrl,
+                                            fileDraft: {
+                                                fileName: file.name,
+                                                size: file.size,
+                                                mimeType: file.type,
                                             },
-                                        }));
+                                        },
+                                    }));
 
-                                        const res = await offersApi.uploadMyOfferFile({
-                                            offerId,
-                                            file,
-                                        });
+                                    const res = await offersApi.uploadMyOfferFile({
+                                        offerId,
+                                        file,
+                                    });
 
-                                        setDocDraftByAttrId(prev => ({
-                                            ...prev,
-                                            [attrId]: {
-                                                uploading: false,
+                                    setDocDraftByAttrId(prev => ({
+                                        ...prev,
+                                        [attrId]: {
+                                            uploading: false,
                                                 uploadProgress: 100,
-                                                localPreviewUrl,
-                                                fileDraft: {
-                                                    ...prev[attrId].fileDraft,
-                                                    filePath: res.filePath,
-                                                },
+                                            localPreviewUrl,
+                                            fileDraft: {
+                                                ...prev[attrId].fileDraft,
+                                                filePath: res.filePath,
                                             },
-                                        }));
+                                        },
+                                    }));
 
-                                        // مهم: هم‌زمان documentsDraft رو هم آپدیت کن
-                                        updateValue(file.name);
-                                        updateFile(res.filePath);
+                                    // مهم: هم‌زمان documentsDraft رو هم آپدیت کن
+                                    updateValue(file.name);
+                                    updateFile(res.filePath);
                                         
                                         message.success("فایل با موفقیت آپلود شد");
                                         return false;
-                                    } catch (error) {
-                                        // Reset uploading state on error
-                                        setDocDraftByAttrId(prev => ({
-                                            ...prev,
-                                            [attrId]: {
-                                                uploading: false,
+                                } catch (error) {
+                                    // Reset uploading state on error
+                                    setDocDraftByAttrId(prev => ({
+                                        ...prev,
+                                        [attrId]: {
+                                            uploading: false,
                                                 uploadProgress: 0,
                                                 localPreviewUrl: null,
                                                 fileDraft: null,
-                                            },
-                                        }));
-                                        message.error(getErrorMessage(error, "خطا در آپلود فایل"));
-                                    }
-                                    return false;
-                                }}
-                            >
+                                        },
+                                    }));
+                                    message.error(getErrorMessage(error, "خطا در آپلود فایل"));
+                                }
+                                return false;
+                            }}
+                        >
                                 <Button 
                                     loading={draft?.uploading}
                                     disabled={draft?.uploading}
                                 >
                                     {persisted ? "تغییر فایل" : "انتخاب فایل"}
-                                </Button>
-                            </Upload>
+                            </Button>
+                        </Upload>
                         )}
                     </div>
                 );
@@ -957,7 +1030,7 @@ export default function OfferManagementPage() {
                                         <Form.Item label={`مبلغ مالیات (${TAX_RATE * 100}٪) (تومان)`}>
                                             <Input 
                                                 value={taxAmount != null
-                                                    ? taxAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                                                ? taxAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                                                     : "-"}
                                                 disabled 
                                                 placeholder="پس از وارد کردن قیمت واحد و مقدار محاسبه می‌شود"
@@ -1017,52 +1090,63 @@ export default function OfferManagementPage() {
             {wizardStep === 4 && (
 
                 <Card>
-                    <Divider orientation="right">
-                        بازبینی نهایی آگهی
-                    </Divider>
-
-                    {/* خلاصه اطلاعات */}
-                    <Space direction="vertical" size={16} style={{ width: "100%" }}>
-
-                        {/* محصول */}
-                        <Card size="small" title="محصول">
-                            <div>{offerDetail?.header?.productName || "-"}</div>
-                        </Card>
-
-                        {/* اطلاعات اصلی */}
-                        <Card size="small" title="اطلاعات آگهی">
-                            <div>قیمت واحد: {formatPrice(offerDetail?.header?.unitPrice)} تومان</div>
-                            <div>مقدار: {offerDetail?.header?.quantity ?? "-"}</div>
-
-                            <div>
-                                قیمت کل: {formatPrice(offerDetail?.header?.totalPrice)} تومان
-                            </div>
-
-                            {offerDetail?.header?.hasTax && (
+                    {/* Alert‌های وضعیت آگهی */}
+                    {offerDetail?.header?.status === 5 && offerDetail?.header?.rejectedReason ? (
+                        // Alert رد آگهی
+                        <Alert
+                            message="آگهی شما توسط مدیر سیستم رد شده است و در لیست آگهی‌ها نمایش داده نخواهد شد"
+                            description={
                                 <div>
-                                    مبلغ مالیات: {formatPrice(offerDetail?.header?.taxAmount)} تومان
+                                    <div style={{ marginTop: 8, fontWeight: 500 }}>دلیل رد آگهی:</div>
+                                    <div style={{ marginTop: 4 }}>{offerDetail.header.rejectedReason}</div>
                                 </div>
-                            )}
+                            }
+                            type="error"
+                            showIcon
+                            style={{ marginBottom: 24 }}
+                        />
+                    ) : offerDetail?.header?.status === 3 ? (
+                        // Alert منتشر شده
+                        <Alert
+                            message="آگهی منتشر شده است"
+                            type="success"
+                            showIcon
+                            style={{ marginBottom: 24 }}
+                        />
+                    ) : offerDetail?.header?.status === 4 ? (
+                        // Alert لغو شده
+                        <Alert
+                            message="آگهی شما لغو شده است"
+                            type="error"
+                            showIcon
+                            style={{ marginBottom: 24 }}
+                        />
+                    ) : (
+                        // Alert هنوز منتشر نشده
+                        <Alert
+                            message="آگهی هنوز منتشر نشده و به کسی نمایش داده نمی‌شود"
+                            type="warning"
+                            showIcon
+                            style={{ marginBottom: 24 }}
+                        />
+                    )}
 
-                            <div>
-                                تاریخ انقضا:{" "}
-                                {offerDetail?.header?.expireAtBySupplier
-                                    ? toShamsi(offerDetail.header.expireAtBySupplier).format("YYYY/MM/DD")
-                                    : "-"}
-                            </div>
-                        </Card>
+                    {/* نمایش محصول با دسته و تصویر */}
+                    <ProductDisplayCard 
+                        offerId={offerDetail?.header?.id}
+                        productId={offerDetail?.header?.productId}
+                        productName={offerDetail?.header?.productName}
+                        productCategoryName={offerDetail?.header?.productCategoryName}
+                        productImagePath={offerDetail?.header?.productImagePath}
+                    />
 
-
-                        {/* ویژگی‌ها و مدارک */}
-                        <Card size="small" title="ویژگی‌ها و مدارک">
-                            {attributeTemplates.map(attr => {
-                                const doc = offerDetail?.documents?.find(
-                                    d => d.attributeDefinitionId === attr.attributeDefinitionId
-                                );
-
-                                return (
+                    {/* اطلاعات آگهی و ویژگی‌ها - کنار هم در desktop */}
+                    <Row gutter={[16, 16]}>
+                        {/* اطلاعات آگهی */}
+                        <Col xs={24} md={12}>
+                            <Card size="small" title="اطلاعات آگهی">
+                                <Space direction="vertical" style={{ width: "100%" }} size="middle">
                                     <div
-                                        key={attr.attributeDefinitionId}
                                         style={{
                                             display: "flex",
                                             justifyContent: "space-between",
@@ -1070,71 +1154,153 @@ export default function OfferManagementPage() {
                                             borderBottom: "1px dashed #eee",
                                         }}
                                     >
-                                        <span>{attr.displayName}</span>
-
-                                        {attr.dataType === 5 ? (
-                                            // File type: نمایش نام فایل + دکمه Download
-                                            doc?.filePath ? (
-                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                    <span>{doc?.value || "فایل"}</span>
-                                                    <Button 
-                                                        size="small"
-                                                        onClick={async () => {
-                                                            try {
-                                                                await offersApi.downloadOfferFile(offerId, doc.filePath, doc.value);
-                                                            } catch (error) {
-                                                                message.error(getErrorMessage(error, "خطا در دانلود فایل"));
-                                                            }
-                                                        }}
-                                                    >
-                                                        دانلود فایل
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                <span>-</span>
-                                            )
-                                        ) : attr.dataType === 4 ? (
-                                            // Date type: تبدیل gregorian به شمسی
-                                            doc?.value ? (
-                                                <span>{toShamsi(doc.value).format("YYYY/MM/DD")}</span>
-                                            ) : (
-                                                <span>-</span>
-                                            )
-                                        ) : attr.dataType === 3 ? (
-                                            // Boolean type: نمایش "بله" یا "خیر"
-                                            doc?.value === "true" ? (
-                                                <span>بله</span>
-                                            ) : doc?.value === "false" ? (
-                                                <span>خیر</span>
-                                            ) : (
-                                                <span>-</span>
-                                            )
-                                        ) : (
-                                            // Text, Number: نمایش مستقیم
-                                            <span>{doc?.value ?? "-"}</span>
-                                        )}
+                                        <span>قیمت واحد</span>
+                                        <span>{formatPrice(offerDetail?.header?.unitPrice)} تومان</span>
                                     </div>
-                                );
-                            })}
-                        </Card>
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            padding: "6px 0",
+                                            borderBottom: "1px dashed #eee",
+                                        }}
+                                    >
+                                        <span>مقدار</span>
+                                        <span>
+                                            {offerDetail?.header?.quantity ?? "-"} {offerDetail?.header?.unit || ""}
+                                        </span>
+                                    </div>
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            padding: "6px 0",
+                                            borderBottom: "1px dashed #eee",
+                                        }}
+                                    >
+                                        <span>قیمت کل</span>
+                                        <span>{formatPrice(offerDetail?.header?.totalPrice)} تومان</span>
+                                    </div>
+                                    {offerDetail?.header?.hasTax && (
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                padding: "6px 0",
+                                                borderBottom: "1px dashed #eee",
+                                            }}
+                                        >
+                                            <span>مبلغ مالیات</span>
+                                            <span>{formatPrice(offerDetail?.header?.taxAmount)} تومان</span>
+                                        </div>
+                                    )}
+                                    {offerDetail?.header?.hasTax && (
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                padding: "6px 0",
+                                                borderBottom: "1px dashed #eee",
+                                                fontWeight: 500,
+                                            }}
+                                        >
+                                            <span>قیمت کل + مالیات</span>
+                                            <span>
+                                                {formatPrice(
+                                                    (offerDetail?.header?.totalPrice || 0) + 
+                                                    (offerDetail?.header?.taxAmount || 0)
+                                                )} تومان
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            padding: "6px 0",
+                                            borderBottom: "1px dashed #eee",
+                                        }}
+                                    >
+                                        <span>تاریخ انقضا</span>
+                                        <span>
+                                            {offerDetail?.header?.expireAtBySupplier
+                                                ? toShamsi(offerDetail.header.expireAtBySupplier).format("YYYY/MM/DD")
+                                                : "-"}
+                                        </span>
+                                    </div>
+                                </Space>
+                            </Card>
+                        </Col>
 
-                        {/* نمایش وضعیت آگهی */}
-                        {offerDetail?.header?.status !== undefined && (
-                            <Alert
-                                type={
-                                    offerDetail.header.status === 3 ? "success" : // Published
-                                    offerDetail.header.status === 4 ? "error" : // Cancel
-                                    "warning" // Draft
-                                }
-                                message={
-                                    offerDetail.header.status === 3 ? "آگهی منتشر شده است" :
-                                    offerDetail.header.status === 4 ? "آگهی شما لغو شده است" :
-                                    "آگهی هنوز منتشر نشده و به کسی نمایش داده نمی‌شود"
-                                }
-                                showIcon
-                            />
-                        )}
-                    </Space>
+                        {/* ویژگی‌ها و مدارک */}
+                        <Col xs={24} md={12}>
+                            <Card size="small" title="ویژگی‌ها و مدارک">
+                                <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                                    {attributeTemplates.map(attr => {
+                                        const doc = offerDetail?.documents?.find(
+                                            d => d.attributeDefinitionId === attr.attributeDefinitionId
+                                        );
+
+                                        return (
+                                            <div
+                                                key={attr.attributeDefinitionId}
+                                                style={{
+                                                    display: "flex",
+                                                    justifyContent: "space-between",
+                                                    padding: "6px 0",
+                                                    borderBottom: "1px dashed #eee",
+                                                }}
+                                            >
+                                                <span>{attr.displayName}</span>
+
+                                                {attr.dataType === 5 ? (
+                                                    // File type: نمایش نام فایل + دکمه Download
+                                                    doc?.filePath ? (
+                                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                            <span>{doc?.value || "فایل"}</span>
+                                                            <Button 
+                                                                size="small"
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        await offersApi.downloadOfferFile(offerId, doc.filePath, doc.value);
+                                                                    } catch (error) {
+                                                                        message.error(getErrorMessage(error, "خطا در دانلود فایل"));
+                                                                    }
+                                                                }}
+                                                            >
+                                                                دانلود فایل
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
+                                                        <span>-</span>
+                                                    )
+                                                ) : attr.dataType === 4 ? (
+                                                    // Date type: تبدیل gregorian به شمسی
+                                                    doc?.value ? (
+                                                        <span>{toShamsi(doc.value).format("YYYY/MM/DD")}</span>
+                                                    ) : (
+                                                        <span>-</span>
+                                                    )
+                                                ) : attr.dataType === 3 ? (
+                                                    // Boolean type: نمایش "بله" یا "خیر"
+                                                    doc?.value === "true" ? (
+                                                        <span>بله</span>
+                                                    ) : doc?.value === "false" ? (
+                                                        <span>خیر</span>
+                                                    ) : (
+                                                        <span>-</span>
+                                                    )
+                                                ) : (
+                                                    // Text, Number: نمایش مستقیم
+                                                    <span>{doc?.value ?? "-"}</span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </Space>
+                            </Card>
+                        </Col>
+                    </Row>
                 </Card>
             )}
 
@@ -1242,7 +1408,7 @@ export default function OfferManagementPage() {
                                 try {
                                     // Validation اضافی: چک کردن که قیمت و مقدار معتبر باشند
                                     const values = await headerForm.validateFields();
-                                    
+
                                     if (!values.unitPrice || values.unitPrice <= 0) {
                                         message.error("لطفاً قیمت واحد را وارد کنید");
                                         return;
@@ -1398,6 +1564,9 @@ export default function OfferManagementPage() {
                         ) : offerDetail?.header?.status === 4 ? (
                             // اگر لغو شده: هیچ دکمه‌ای نمایش نده
                             null
+                        ) : offerDetail?.header?.status === 5 ? (
+                            // اگر رد شده: هیچ دکمه‌ای نمایش نده
+                            null
                         ) : (
                             // اگر Draft: دکمه‌های معمولی
                             <>
@@ -1434,6 +1603,7 @@ export default function OfferManagementPage() {
 
 
             </Space>
+
         </Card>
     );
 }

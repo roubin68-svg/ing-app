@@ -50,6 +50,7 @@ public class ProductService : IProductService
             Name = request.Name.Trim(),
             CategoryId = request.CategoryId,
             Unit = request.Unit?.Trim(),
+            ImagePath = request.ImagePath,
             IsActive = true
         };
 
@@ -97,6 +98,7 @@ public class ProductService : IProductService
         product.Name = request.Name.Trim();
         product.CategoryId = request.CategoryId;
         product.Unit = request.Unit?.Trim();
+        product.ImagePath = request.ImagePath;
 
         await _context.SaveChangesAsync();
 
@@ -110,12 +112,22 @@ public class ProductService : IProductService
     {
         var product = await _context.Products
             .AsNoTracking()
+            .Include(x => x.Category)
             .FirstOrDefaultAsync(x => x.Id == id);
 
         if (product == null)
             throw new NotFoundException("محصول مورد نظر یافت نشد.");
 
-        return MapToDto(product);
+        return new ProductDto
+        {
+            Id = product.Id,
+            Name = product.Name,
+            CategoryId = product.CategoryId,
+            CategoryName = product.Category?.Name ?? string.Empty,
+            Unit = product.Unit,
+            ImagePath = product.ImagePath,
+            IsActive = product.IsActive
+        };
     }
 
     // =====================================================
@@ -171,6 +183,7 @@ public class ProductService : IProductService
         CategoryId = x.CategoryId,
         CategoryName = x.Category.Name,
         Unit = x.Unit,
+        ImagePath = x.ImagePath,
         IsActive = x.IsActive
     })
     .ToListAsync();
@@ -219,15 +232,4 @@ public class ProductService : IProductService
     // =====================================================
     // MAPPER
     // =====================================================
-    private static ProductDto MapToDto(Product product)
-    {
-        return new ProductDto
-        {
-            Id = product.Id,
-            Name = product.Name,
-            CategoryId = product.CategoryId,
-            Unit = product.Unit,
-            IsActive = product.IsActive
-        };
-    }
 }

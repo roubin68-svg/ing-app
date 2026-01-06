@@ -28,4 +28,10 @@ public interface IOfferService
     Task EnsureEditableDraftAsync(Guid supplierUserId, int offerId);
     Task DeleteDocumentFileAsync(Guid supplierUserId, int offerId, string filePath);
 
+    // Admin methods
+    Task<PagedResult<AdminOfferListItemDto>> GetAdminOffersAsync(AdminOffersQuery query);
+    Task<OfferDetailDto> GetAdminOfferDetailAsync(int offerId);
+    Task RejectOfferAsync(int offerId, RejectOfferRequest request, string adminUserId);
+    Task<List<OfferStatusHistoryDto>> GetOfferStatusHistoryAsync(int offerId);
+
 }
