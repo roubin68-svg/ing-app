@@ -1,5 +1,5 @@
 // src/features/offers/components/OfferDetailDrawer.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
     Drawer,
     Spin,
@@ -11,7 +11,6 @@ import {
     Divider,
     Image,
     Tag,
-    Modal,
 } from "antd";
 import { DownloadOutlined, FileOutlined, FilePdfOutlined, FileWordOutlined, PhoneOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -74,9 +73,9 @@ const OfferDetailDrawer = ({ offerId, visible, onClose }) => {
     const { width } = useWindowSize();
     const [loading, setLoading] = useState(false);
     const [offerDetail, setOfferDetail] = useState(null);
-    const [contactModalVisible, setContactModalVisible] = useState(false);
     const [contactInfo, setContactInfo] = useState(null);
     const [loadingContact, setLoadingContact] = useState(false);
+    const [showContactInfo, setShowContactInfo] = useState(false);
     const [attributeTemplates, setAttributeTemplates] = useState([]);
     const [productImageBlobUrl, setProductImageBlobUrl] = useState(null);
 
@@ -84,17 +83,43 @@ const OfferDetailDrawer = ({ offerId, visible, onClose }) => {
     const drawerWidth = width < 768 ? "100%" : width < 1024 ? "90%" : 600;
 
     // -----------------------
+    // Helper: Transform contact info from PascalCase to camelCase
+    // -----------------------
+    const transformContactInfo = (rawInfo) => {
+        if (!rawInfo) return null;
+        return {
+            businessName: rawInfo?.BusinessName || rawInfo?.businessName,
+            supplierTypeName: rawInfo?.SupplierTypeName || rawInfo?.supplierTypeName,
+            contactPhone: rawInfo?.ContactPhone || rawInfo?.contactPhone,
+            mobile: rawInfo?.Mobile || rawInfo?.mobile,
+            address: rawInfo?.Address || rawInfo?.address,
+            province: rawInfo?.Province || rawInfo?.province,
+            city: rawInfo?.City || rawInfo?.city,
+        };
+    };
+
+    // -----------------------
     // Handle Contact Click
     // -----------------------
     const handleShowContact = async () => {
         try {
-            setLoadingContact(true);
-            // ثبت کلیک
+            // همیشه ثبت کلیک (حتی اگر اطلاعات قبلاً load شده باشد)
             await offersApi.logContactClick(offerId);
+            
+            // اگر قبلاً اطلاعات تماس load شده، فقط نمایش بده
+            if (contactInfo) {
+                setShowContactInfo(true);
+                return;
+            }
+
+            setLoadingContact(true);
             // دریافت اطلاعات تماس
-            const info = await offersApi.getSupplierContact(offerId);
+            const result = await offersApi.getSupplierContact(offerId);
+            // Response structure: { data: { BusinessName, SupplierTypeName, ... } }
+            const rawInfo = result?.data || result;
+            const info = transformContactInfo(rawInfo);
             setContactInfo(info);
-            setContactModalVisible(true);
+            setShowContactInfo(true);
         } catch (error) {
             message.error("خطا در دریافت اطلاعات تماس");
             console.error(error);
@@ -109,51 +134,113 @@ const OfferDetailDrawer = ({ offerId, visible, onClose }) => {
     useEffect(() => {
         if (!visible || !offerId) {
             setOfferDetail(null);
+            setContactInfo(null);
+            setShowContactInfo(false);
             return;
         }
+
+        let isMounted = true;
 
         const load = async () => {
             try {
                 setLoading(true);
+                
+                // 1. Load offer detail
                 const result = await offersApi.getPublicDetail(offerId);
+                if (!isMounted) return;
                 setOfferDetail(result);
                 
-                // Load attribute templates if productId exists
+                // 2. Load attribute templates if productId exists
                 if (result?.header?.productId) {
                     try {
                         const templatesRes = await offersApi.getProductAttributeTemplates(result.header.productId);
+                        if (!isMounted) return;
                         const templates = templatesRes?.data ?? templatesRes ?? [];
                         setAttributeTemplates(templates);
                     } catch (e) {
                         console.error("Error loading attribute templates:", e);
-                        setAttributeTemplates([]);
+                        if (isMounted) setAttributeTemplates([]);
                     }
                 }
 
-                // Load product image if exists
+                // 3. Load product image if exists
                 if (result?.header?.productImagePath && result?.header?.productId) {
                     try {
                         const url = await productsApi.getProductImageBlobUrl(
                             result.header.productId,
                             result.header.productImagePath
                         );
+                        if (!isMounted) return;
                         setProductImageBlobUrl(url);
                     } catch (e) {
                         console.error("Error loading product image:", e);
-                        setProductImageBlobUrl(null);
+                        if (isMounted) setProductImageBlobUrl(null);
                     }
                 } else {
-                    setProductImageBlobUrl(null);
+                    if (isMounted) setProductImageBlobUrl(null);
+                }
+
+                // 4. Check if user has viewed contact info (from backend) - ALWAYS check from backend
+                try {
+                    const hasViewedResult = await offersApi.hasViewedContact(offerId);
+                    if (!isMounted) return;
+                    
+                    // apiClient interceptor unwraps ApiResult, so response is: { hasViewed: true/false }
+                    const hasViewed = hasViewedResult?.hasViewed === true;
+                    
+                    if (hasViewed) {
+                        // اگر قبلاً دیده باشد، اطلاعات تماس را مستقیماً load کن
+                        try {
+                            setLoadingContact(true);
+                            const contactResult = await offersApi.getSupplierContact(offerId);
+                            if (!isMounted) return;
+                            
+                            // Response structure: { data: { BusinessName, SupplierTypeName, ... } }
+                            const rawInfo = contactResult?.data || contactResult;
+                            const info = transformContactInfo(rawInfo);
+                            
+                            if (isMounted) {
+                                setContactInfo(info);
+                                setShowContactInfo(true);
+                            }
+                        } catch (e) {
+                            console.error("Error loading contact info:", e);
+                            if (isMounted) {
+                                setContactInfo(null);
+                                setShowContactInfo(false);
+                            }
+                        } finally {
+                            if (isMounted) setLoadingContact(false);
+                        }
+                    } else {
+                        // اگر قبلاً ندیده باشد، اطلاعات تماس را reset کن
+                        if (isMounted) {
+                            setContactInfo(null);
+                            setShowContactInfo(false);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error checking viewed contact:", e);
+                    if (isMounted) {
+                        setContactInfo(null);
+                        setShowContactInfo(false);
+                    }
                 }
             } catch (error) {
-                message.error("خطا در بارگذاری جزئیات آگهی");
-                console.error(error);
+                if (isMounted) {
+                    message.error("خطا در بارگذاری جزئیات آگهی");
+                    console.error(error);
+                }
             } finally {
-                setLoading(false);
+                if (isMounted) setLoading(false);
             }
         };
 
         load();
+
+        return () => {
+            isMounted = false;
+        };
     }, [visible, offerId]);
 
     // Cleanup blob URL
@@ -495,78 +582,119 @@ const OfferDetailDrawer = ({ offerId, visible, onClose }) => {
                         </Card>
                     )}
 
-                    {/* دکمه نمایش اطلاعات تماس */}
-                    <Card size="small">
-                        <Button
-                            type="primary"
-                            icon={<PhoneOutlined />}
-                            loading={loadingContact}
-                            onClick={handleShowContact}
-                            block
-                        >
-                            نمایش اطلاعات تماس
-                        </Button>
-                    </Card>
+                    {/* دکمه نمایش اطلاعات تماس - فقط اگر اطلاعات تماس نمایش داده نشده باشد */}
+                    {!showContactInfo && (
+                        <Card size="small">
+                            <Button
+                                type="primary"
+                                icon={<PhoneOutlined />}
+                                loading={loadingContact}
+                                onClick={handleShowContact}
+                                block
+                            >
+                                نمایش اطلاعات تماس
+                            </Button>
+                        </Card>
+                    )}
+
+                    {/* نمایش اطلاعات تماس - زیر ویژگی‌ها و مدارک */}
+                    {showContactInfo && contactInfo && (
+                        <Card title="اطلاعات تماس تأمین‌کننده" size="small">
+                            <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        padding: "6px 0",
+                                        borderBottom: "1px dashed #eee",
+                                    }}
+                                >
+                                    <span>نام کسب‌وکار</span>
+                                    <span>{contactInfo.businessName || "-"}</span>
+                                </div>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        padding: "6px 0",
+                                        borderBottom: "1px dashed #eee",
+                                    }}
+                                >
+                                    <span>نوع تأمین‌کننده</span>
+                                    <span>{contactInfo.supplierTypeName || "-"}</span>
+                                </div>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        padding: "6px 0",
+                                        borderBottom: "1px dashed #eee",
+                                    }}
+                                >
+                                    <span>موبایل</span>
+                                    <span>{contactInfo.mobile || "-"}</span>
+                                </div>
+                                {contactInfo.contactPhone && (
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            padding: "6px 0",
+                                            borderBottom: "1px dashed #eee",
+                                        }}
+                                    >
+                                        <span>شماره تماس دفتر</span>
+                                        <span>{contactInfo.contactPhone}</span>
+                                    </div>
+                                )}
+                                {contactInfo.province && (
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            padding: "6px 0",
+                                            borderBottom: "1px dashed #eee",
+                                        }}
+                                    >
+                                        <span>استان</span>
+                                        <span>{contactInfo.province}</span>
+                                    </div>
+                                )}
+                                {contactInfo.city && (
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            padding: "6px 0",
+                                            borderBottom: "1px dashed #eee",
+                                        }}
+                                    >
+                                        <span>شهر</span>
+                                        <span>{contactInfo.city}</span>
+                                    </div>
+                                )}
+                                {contactInfo.address && (
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            padding: "6px 0",
+                                            borderBottom: "1px dashed #eee",
+                                        }}
+                                    >
+                                        <span>آدرس</span>
+                                        <span>{contactInfo.address}</span>
+                                    </div>
+                                )}
+                            </Space>
+                        </Card>
+                    )}
                 </Space>
             ) : (
                 <div style={{ textAlign: "center", padding: 48 }}>
                     <p>آگهی یافت نشد</p>
                 </div>
             )}
-
-            {/* Modal نمایش اطلاعات تماس */}
-            <Modal
-                title="اطلاعات تماس تأمین‌کننده"
-                open={contactModalVisible}
-                onCancel={() => {
-                    setContactModalVisible(false);
-                    setContactInfo(null);
-                }}
-                footer={[
-                    <Button key="close" onClick={() => {
-                        setContactModalVisible(false);
-                        setContactInfo(null);
-                    }}>
-                        بستن
-                    </Button>
-                ]}
-            >
-                {contactInfo ? (
-                    <Descriptions column={1} bordered size="small">
-                        <Descriptions.Item label="نام کسب‌وکار">
-                            {contactInfo.businessName || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="نوع تأمین‌کننده">
-                            {contactInfo.supplierTypeName || "-"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="موبایل">
-                            {contactInfo.mobile || "-"}
-                        </Descriptions.Item>
-                        {contactInfo.contactPhone && (
-                            <Descriptions.Item label="شماره تماس دفتر">
-                                {contactInfo.contactPhone}
-                            </Descriptions.Item>
-                        )}
-                        {contactInfo.province && (
-                            <Descriptions.Item label="استان">
-                                {contactInfo.province}
-                            </Descriptions.Item>
-                        )}
-                        {contactInfo.city && (
-                            <Descriptions.Item label="شهر">
-                                {contactInfo.city}
-                            </Descriptions.Item>
-                        )}
-                        {contactInfo.address && (
-                            <Descriptions.Item label="آدرس">
-                                {contactInfo.address}
-                            </Descriptions.Item>
-                        )}
-                    </Descriptions>
-                ) : (
-                    <Spin />
-                )}
-            </Modal>
         </Drawer>
     );
 };

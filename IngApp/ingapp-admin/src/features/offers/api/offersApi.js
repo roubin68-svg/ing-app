@@ -220,6 +220,15 @@ const offersApi = {
     },
 
     /**
+     * GET /api/v1/offers/{offerId}/has-viewed-contact
+     * بررسی اینکه آیا کاربر قبلاً اطلاعات تماس این آگهی را دیده است یا نه
+     */
+    hasViewedContact: async (offerId) => {
+        const res = await apiClient.get(`/offers/${offerId}/has-viewed-contact`);
+        return res.data;
+    },
+
+    /**
      * GET /api/v1/offers/{offerId}/supplier-contact
      * دریافت اطلاعات تماس supplier
      */

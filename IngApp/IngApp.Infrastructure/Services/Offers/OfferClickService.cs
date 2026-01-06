@@ -54,5 +54,18 @@ public class OfferClickService : IOfferClickService
             ContactClickCount = stats.FirstOrDefault(x => x.ClickType == OfferClickType.ContactClick)?.Count ?? 0
         };
     }
+
+    public async Task<bool> HasUserViewedContactAsync(int offerId, Guid? userId)
+    {
+        if (!userId.HasValue)
+            return false;
+
+        return await _db.OfferClickLogs
+            .AsNoTracking()
+            .AnyAsync(x => 
+                x.OfferId == offerId && 
+                x.UserId == userId.Value && 
+                x.ClickType == OfferClickType.ContactClick);
+    }
 }
 

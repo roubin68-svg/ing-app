@@ -110,6 +110,21 @@ public class OffersController : ControllerBase
     }
 
     // ---------------------------------------
+    // Check if user has viewed contact info
+    // ---------------------------------------
+    [HttpGet("{offerId:int}/has-viewed-contact")]
+    public async Task<IActionResult> HasViewedContact(int offerId)
+    {
+        // بررسی اینکه آگهی Published باشد
+        await _service.GetPublicDetailAsync(offerId);
+        
+        var userId = GetCurrentUserIdIfExists();
+        var hasViewed = await _clickService.HasUserViewedContactAsync(offerId, userId);
+        
+        return Ok(ApiResult.Ok(new { hasViewed }));
+    }
+
+    // ---------------------------------------
     // Get Supplier Contact Info
     // ---------------------------------------
     [HttpGet("{offerId:int}/supplier-contact")]

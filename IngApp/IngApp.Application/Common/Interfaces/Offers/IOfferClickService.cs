@@ -21,6 +21,11 @@ public interface IOfferClickService
     /// دریافت آمار کلیک‌های یک آگهی
     /// </summary>
     Task<OfferClickStatsDto> GetClickStatsAsync(int offerId);
+
+    /// <summary>
+    /// بررسی اینکه آیا کاربر قبلاً اطلاعات تماس این آگهی را دیده است یا نه
+    /// </summary>
+    Task<bool> HasUserViewedContactAsync(int offerId, Guid? userId);
 }
 
 /// <summary>
