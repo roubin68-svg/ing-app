@@ -237,6 +237,15 @@ const offersApi = {
         return res.data;
     },
 
+    /**
+     * POST /api/v1/offers/{offerId}/unlock-contact
+     * باز کردن اطلاعات تماس (با پرداخت از کیف پول)
+     */
+    unlockContact: async (offerId) => {
+        const res = await apiClient.post(`/offers/${offerId}/unlock-contact`);
+        return res.data;
+    },
+
     // ============================================
     // Admin APIs
     // ============================================

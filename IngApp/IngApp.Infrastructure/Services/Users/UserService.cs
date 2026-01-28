@@ -5,6 +5,7 @@ using IngApp.Application.Features.Users.DTO;
 using IngApp.Domain.Entities.Users;
 using IngApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using IngApp.Infrastructure.Common.Hashing;
 
 namespace IngApp.Infrastructure.Services.Users
 {
@@ -30,11 +31,18 @@ namespace IngApp.Infrastructure.Services.Users
             if (exists)
                 throw new ValidationException(new() { "کاربری با این شماره موبایل قبلاً ثبت شده است." });
 
+            // تبدیل UserTypeCode به UserTypeId
+            var userType = await _context.UserTypes
+                .FirstOrDefaultAsync(ut => ut.Code == dto.UserTypeCode && ut.IsActive);
+
+            if (userType == null)
+                throw new ValidationException(new() { $"نوع کاربر '{dto.UserTypeCode}' معتبر نیست." });
+
             var user = new User
             {
                 PhoneNumber = phone,
                 DisplayName = dto.DisplayName?.Trim(),
-                UserType = dto.UserType,
+                UserTypeId = userType.Id,
                 SubscriptionLevel = dto.SubscriptionLevel,
                 VerificationStatus = dto.VerificationStatus,
                 IsActive = dto.IsActive,
@@ -63,6 +71,7 @@ namespace IngApp.Infrastructure.Services.Users
             await _context.SaveChangesAsync();
 
             var created = await _context.Users
+                .Include(u => u.UserType)
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                 .AsNoTracking()
@@ -78,6 +87,7 @@ namespace IngApp.Infrastructure.Services.Users
         public async Task<List<UserDto>> GetAllAsync()
         {
             var users = await _context.Users
+                .Include(u => u.UserType)
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                 .AsNoTracking()
@@ -90,6 +100,7 @@ namespace IngApp.Infrastructure.Services.Users
         public async Task<PagedResult<UserDto>> GetPagedAsync(UserListQueryDto filter)
         {
             var query = _context.Users
+                .Include(u => u.UserType)
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                 .AsNoTracking()
@@ -103,8 +114,8 @@ namespace IngApp.Infrastructure.Services.Users
                     u.DisplayName != null &&
                     u.DisplayName.Contains(filter.DisplayName.Trim()));
 
-            if (filter.UserType.HasValue)
-                query = query.Where(u => u.UserType == filter.UserType.Value);
+            if (!string.IsNullOrWhiteSpace(filter.UserTypeCode))
+                query = query.Where(u => u.UserType.Code == filter.UserTypeCode);
 
             if (filter.SubscriptionLevel.HasValue)
                 query = query.Where(u => u.SubscriptionLevel == filter.SubscriptionLevel.Value);
@@ -131,8 +142,8 @@ namespace IngApp.Infrastructure.Services.Users
                          : query.OrderBy(u => u.DisplayName),
 
                 "usertype" =>
-                    desc ? query.OrderByDescending(u => u.UserType)
-                         : query.OrderBy(u => u.UserType),
+                    desc ? query.OrderByDescending(u => u.UserType.Title)
+                         : query.OrderBy(u => u.UserType.Title),
 
                 "subscriptionlevel" =>
                     desc ? query.OrderByDescending(u => u.SubscriptionLevel)
@@ -172,6 +183,7 @@ namespace IngApp.Infrastructure.Services.Users
         public async Task<UserDto?> GetByIdAsync(Guid id)
         {
             var user = await _context.Users
+                .Include(u => u.UserType)
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                 .AsNoTracking()
@@ -229,9 +241,16 @@ namespace IngApp.Infrastructure.Services.Users
             if (user == null)
                 throw new NotFoundException("کاربر پیدا نشد.");
 
+            // تبدیل UserTypeCode به UserTypeId
+            var userType = await _context.UserTypes
+                .FirstOrDefaultAsync(ut => ut.Code == dto.UserTypeCode && ut.IsActive);
+
+            if (userType == null)
+                throw new ValidationException(new() { $"نوع کاربر '{dto.UserTypeCode}' معتبر نیست." });
+
             user.PhoneNumber = dto.PhoneNumber.Trim();
             user.DisplayName = dto.DisplayName?.Trim();
-            user.UserType = dto.UserType;
+            user.UserTypeId = userType.Id;
             user.SubscriptionLevel = dto.SubscriptionLevel;
             user.VerificationStatus = dto.VerificationStatus;
 
@@ -255,6 +274,27 @@ namespace IngApp.Infrastructure.Services.Users
             await _context.SaveChangesAsync();
         }
 
+        // -------------------- Set Password (Admin) --------------------
+        public async Task SetPasswordAsync(Guid userId, string password)
+        {
+            if (string.IsNullOrWhiteSpace(password))
+                throw new ValidationException(new() { "رمز عبور اجباری است." });
+
+            if (password.Length < 6)
+                throw new ValidationException(new() { "رمز عبور باید حداقل 6 کاراکتر باشد." });
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+                throw new NotFoundException("کاربر پیدا نشد.");
+
+            user.PasswordHash = PasswordHasher.HashPassword(password);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+        }
+
         // -------------------- Private Mapper --------------------
         private UserDto MapToUserDto(User user)
         {
@@ -263,7 +303,8 @@ namespace IngApp.Infrastructure.Services.Users
                 Id = user.Id,
                 PhoneNumber = user.PhoneNumber,
                 DisplayName = user.DisplayName,
-                UserType = user.UserType,
+                UserTypeCode = user.UserType?.Code ?? string.Empty,
+                UserTypeTitle = user.UserType?.Title ?? string.Empty,
                 SubscriptionLevel = user.SubscriptionLevel,
                 VerificationStatus = user.VerificationStatus,
                 IsActive = user.IsActive,

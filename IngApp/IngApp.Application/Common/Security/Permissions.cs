@@ -44,4 +44,17 @@ public static class Permissions
     {
         public const string Manage = "Offer.Manage";
     }
+
+    public static class Visitors
+    {
+        public const string View = "Visitor.View";
+        public const string Manage = "Visitor.Manage";
+    }
+
+    public static class Financial
+    {
+        public const string Manage = "Financial.Manage";
+        public const string CommissionRuleManage = "Financial.CommissionRule.Manage";
+        public const string WalletManage = "Financial.Wallet.Manage";
+    }
 }

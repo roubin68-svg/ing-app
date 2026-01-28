@@ -313,7 +313,7 @@ const MyOffersPage = () => {
         {
             title: "شناسه",
             dataIndex: "id",
-            width: 90,
+
             sorter: true,
         },
         {
@@ -332,7 +332,7 @@ const MyOffersPage = () => {
         {
             title: "وضعیت",
             dataIndex: "status",
-            width: 140,
+
             render: (status) => {
                 const statusStr = getStatusString(status);
                 return <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>;
@@ -350,20 +350,17 @@ const MyOffersPage = () => {
         {
             title: "تعداد بازدید",
             dataIndex: "viewCount",
-            width: 120,
             sorter: true,
             render: (count) => count ?? 0,
         },
         {
             title: "کلیک تماس",
             dataIndex: "contactClickCount",
-            width: 120,
             sorter: true,
             render: (count) => count ?? 0,
         },
         {
             title: "عملیات",
-            width: 200,
             render: (_, record) => {
                 const statusStr = getStatusString(record.status);
                 return (

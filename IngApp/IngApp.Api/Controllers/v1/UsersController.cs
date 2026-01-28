@@ -85,5 +85,14 @@ namespace IngApp.Api.Controllers.v1
             await _userService.RemoveRoleAsync(id, roleId);
             return Ok(ApiResult.Ok());
         }
+
+        // -------------------- SET PASSWORD (Admin) --------------------
+        [HttpPost("{id:guid}/set-password")]
+        [Authorize(Policy = Permissions.Users.Manage)]
+        public async Task<IActionResult> SetPassword(Guid id, [FromBody] SetUserPasswordDto dto)
+        {
+            await _userService.SetPasswordAsync(id, dto.Password);
+            return Ok(ApiResult.Ok("رمز عبور با موفقیت تنظیم شد."));
+        }
     }
 }

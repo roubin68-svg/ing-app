@@ -82,6 +82,9 @@ const SupplierOnboardingPage = () => {
 
     const [kycLoading, setKycLoading] = useState(false);
     const [submittingKyc, setSubmittingKyc] = useState(false);
+    const [submittingProfile, setSubmittingProfile] = useState(false);
+    const [hasPaidOnboarding, setHasPaidOnboarding] = useState(false);
+    const [checkingOnboardingFee, setCheckingOnboardingFee] = useState(false);
 
     const [kycRequirements, setKycRequirements] = useState([]);
     const [kycDocuments, setKycDocuments] = useState([]);
@@ -426,6 +429,64 @@ const SupplierOnboardingPage = () => {
     }, []);
 
     // --------------------------------------------------
+    // Check Onboarding Fee Payment Status
+    // --------------------------------------------------
+    const checkOnboardingFee = useCallback(async () => {
+        try {
+            setCheckingOnboardingFee(true);
+            const result = await supplierOnboardingApi.hasPaidOnboarding();
+            setHasPaidOnboarding(result?.hasPaid === true);
+        } catch (error) {
+            console.error("Error checking onboarding fee:", error);
+            setHasPaidOnboarding(false);
+        } finally {
+            setCheckingOnboardingFee(false);
+        }
+    }, []);
+
+    // --------------------------------------------------
+    // Submit Profile (with Onboarding Fee)
+    // --------------------------------------------------
+    const handleSubmitProfile = async () => {
+        try {
+            setSubmittingProfile(true);
+
+            const result = await supplierOnboardingApi.submit();
+
+            if (result?.onboardingFee?.chargedAmountToman) {
+                message.success(
+                    `پروفایل با موفقیت ارسال شد. هزینه ثبت‌نام: ${result.onboardingFee.chargedAmountToman.toLocaleString("fa-IR")} تومان`
+                );
+                // به‌روزرسانی موجودی کیف پول در header
+                window.dispatchEvent(new CustomEvent('walletBalanceChanged'));
+            } else if (result?.onboardingFee === null) {
+                message.success("پروفایل با موفقیت ارسال شد (هزینه قبلاً پرداخت شده بود)");
+            } else {
+                message.success("پروفایل با موفقیت ارسال شد");
+            }
+
+            // Reload profile to get updated status
+            const updatedProfile = await loadMyProfile();
+            const nextStage = deriveStageFromProfile(updatedProfile);
+            setStage(nextStage);
+        } catch (error) {
+            const errorMsg =
+                error?.response?.data?.message ||
+                error?.message ||
+                "خطا در ارسال پروفایل";
+            
+            if (errorMsg.includes("موجودی") || errorMsg.includes("کافی نیست")) {
+                message.error("موجودی کیف پول کافی نیست. لطفاً ابتدا کیف پول خود را شارژ کنید.");
+            } else {
+                message.error(errorMsg);
+            }
+            console.error(error);
+        } finally {
+            setSubmittingProfile(false);
+        }
+    };
+
+    // --------------------------------------------------
     // Init
     // --------------------------------------------------
     useEffect(() => {
@@ -441,6 +502,11 @@ const SupplierOnboardingPage = () => {
                 // فقط وقتی وارد KYC/Status هستیم، KYC را لود کن
                 if (nextStage === "kyc" || nextStage === "status") {
                     await loadKyc(prof?.supplierTypeId, false);
+                }
+
+                // Check onboarding fee payment status
+                if (prof && nextStage === "status") {
+                    await checkOnboardingFee();
                 }
 
                 setLoading(false);
@@ -1732,6 +1798,41 @@ const SupplierOnboardingPage = () => {
                                     <Button type="primary" onClick={() => setStage("profile")}>
                                         ویرایش و ارسال مجدد
                                     </Button>
+                                )}
+
+                                {/* Submit نهایی پروفایل (فقط اگر NotSubmitted باشد) */}
+                                {profile?.verificationStatus === "NotSubmitted" && (
+                                    <>
+                                        {checkingOnboardingFee ? (
+                                            <Spin />
+                                        ) : (
+                                            <>
+                                                {hasPaidOnboarding ? (
+                                                    <Alert
+                                                        type="info"
+                                                        message="هزینه ثبت‌نام قبلاً پرداخت شده است."
+                                                        style={{ marginBottom: 16 }}
+                                                        showIcon
+                                                    />
+                                                ) : (
+                                                    <Alert
+                                                        type="warning"
+                                                        message="برای ارسال نهایی پروفایل، هزینه ثبت‌نام از کیف پول شما کسر خواهد شد."
+                                                        style={{ marginBottom: 16 }}
+                                                        showIcon
+                                                    />
+                                                )}
+                                                <Button
+                                                    type="primary"
+                                                    size="large"
+                                                    loading={submittingProfile}
+                                                    onClick={handleSubmitProfile}
+                                                >
+                                                    ارسال نهایی پروفایل برای بررسی
+                                                </Button>
+                                            </>
+                                        )}
+                                    </>
                                 )}
                             </Space>
                         </>

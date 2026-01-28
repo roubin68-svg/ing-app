@@ -26,5 +26,8 @@ namespace IngApp.Application.Common.Interfaces.Users
         // نقش‌ها
         Task AssignRoleAsync(Guid userId, Guid roleId);
         Task RemoveRoleAsync(Guid userId, Guid roleId);
+
+        // تنظیم رمز عبور (Admin)
+        Task SetPasswordAsync(Guid userId, string password);
     }
 }

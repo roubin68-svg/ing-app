@@ -8,7 +8,6 @@ public class ProductAttributeTemplateConfiguration : IEntityTypeConfiguration<Pr
 {
     public void Configure(EntityTypeBuilder<ProductAttributeTemplate> builder)
     {
-        builder.ToTable("ProductAttributeTemplates");
 
         builder.HasKey(t => t.Id);
 

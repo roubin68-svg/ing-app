@@ -1,4 +1,5 @@
 ﻿using IngApp.Domain.Entities;
+using IngApp.Domain.Entities.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

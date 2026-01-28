@@ -1,4 +1,5 @@
 ﻿using IngApp.Application.Common.Interfaces.Authentication;
+using IngApp.Application.Common.Interfaces.Financial;
 using IngApp.Application.Common.Interfaces.Kyc;
 using IngApp.Application.Common.Interfaces.Menus;
 using IngApp.Application.Common.Interfaces.Offers;
@@ -10,6 +11,7 @@ using IngApp.Application.Common.Interfaces.Users;
 using IngApp.Infrastructure.Persistence;
 using IngApp.Infrastructure.Repositories;
 using IngApp.Infrastructure.Services.Auth;
+using IngApp.Infrastructure.Services.Financial;
 using IngApp.Infrastructure.Services.Kyc;
 using IngApp.Infrastructure.Services.Menus;
 using IngApp.Infrastructure.Services.Offers;
@@ -52,6 +54,10 @@ public static class DependencyInjection
 
         // User Services  🔥 این خطِ مهم بود که نداشتی
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IVisitorProfileService, VisitorProfileService>();
+        services.AddScoped<IVisitorManagementService, VisitorManagementService>();
+        services.AddScoped<IBuyerProfileService, BuyerProfileService>();
+        services.AddScoped<IBuyerManagementService, BuyerManagementService>();
 
         // OTP / SMS
         services.AddScoped<IOtpCodeRepository, OtpCodeRepository>();
@@ -79,10 +85,18 @@ public static class DependencyInjection
         services.AddScoped<IOfferService, OfferService>();
         services.AddScoped<IOfferClickService, OfferClickService>();
         services.AddScoped<IOfferFileStorageService, OfferFileStorageService>();
-        services.AddScoped<IOfferService, OfferService>();
-        services.AddScoped<IOfferClickService, OfferClickService>();
 
-
+        // Financial Services
+        services.AddScoped<IWalletService, WalletService>();
+        services.AddScoped<IWalletManagementService, WalletManagementService>();
+        services.AddScoped<ISubscriptionService, SubscriptionService>();
+        services.AddScoped<IUnlockContactService, UnlockContactService>();
+        services.AddScoped<ISupplierOnboardingService, SupplierOnboardingService>();
+        services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<ICommissionService, CommissionService>();
+        services.AddScoped<ICommissionRuleService, CommissionRuleService>();
+        services.AddScoped<IPlanManagementService, PlanManagementService>();
+        services.AddScoped<IUserSubscriptionManagementService, UserSubscriptionManagementService>();
 
         return services;
     }

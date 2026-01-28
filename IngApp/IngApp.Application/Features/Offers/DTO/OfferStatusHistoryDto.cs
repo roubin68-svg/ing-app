@@ -18,3 +18,13 @@ public class OfferStatusHistoryDto
     public DateTime CreatedAt { get; set; }
 }
 
+
+
+
+
+
+
+
+
+
+

@@ -1,7 +1,7 @@
 ﻿// src/core/auth/AuthContext.jsx
 import React, { createContext, useContext, useState } from "react";
 import { message } from "antd";
-import { sendOtpApi, verifyOtpApi } from "../../features/auth/api/authApi";
+import { sendOtpApi, verifyOtpApi, loginWithPasswordApi } from "../../features/auth/api/authApi";
 
 const AuthContext = createContext();
 
@@ -90,6 +90,38 @@ export const AuthProvider = ({ children }) => {
     };
 
     // ---------------------------------------------------
+    // LOGIN WITH PASSWORD  — returns:  { ok: boolean, message: string }
+    // ---------------------------------------------------
+    const loginWithPassword = async (phoneNumber, password) => {
+        setIsLoading(true);
+
+        try {
+            const res = await loginWithPasswordApi(phoneNumber, password);
+            const data = res?.data || {};
+
+            const jwt = data.token || data.jwt || null;
+            const msg = data.message || "ورود با موفقیت انجام شد.";
+
+            if (!jwt) {
+                message.error(msg);
+                return { ok: false, message: msg };
+            }
+
+            localStorage.setItem("token", jwt);
+            setToken(jwt);
+
+            message.success(msg);
+            return { ok: true, message: msg };
+        } catch (err) {
+            const msg = extractMessage(err);
+            message.error(msg);
+            return { ok: false, message: msg };
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // ---------------------------------------------------
     // LOGOUT
     // ---------------------------------------------------
     const logout = () => {
@@ -104,6 +136,7 @@ export const AuthProvider = ({ children }) => {
                 isLoading,
                 sendOtp,
                 loginWithOtp,
+                loginWithPassword,
                 logout,
                 isAuthenticated: !!token,
             }}

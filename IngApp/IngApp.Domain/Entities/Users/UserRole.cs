@@ -1,9 +1,10 @@
-﻿using IngApp.Domain.Entities.Roles;
-using IngApp.Domain.Entities.Users;
+﻿namespace IngApp.Domain.Entities.Users;
+
+using IngApp.Domain.Entities.Roles;
 
 public class UserRole
 {
-    public Guid RoleId { get; set; }  
+    public Guid RoleId { get; set; }
     public Role? Role { get; set; }
 
     public Guid UserId { get; set; }

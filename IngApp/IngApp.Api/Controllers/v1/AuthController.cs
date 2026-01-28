@@ -39,6 +39,17 @@ public class AuthController : ControllerBase
         return Ok(ApiResult.Ok(result, "ورود موفقیت‌آمیز بود"));
     }
 
+    // ============================================
+    // LOGIN WITH PASSWORD
+    // ============================================
+    [HttpPost("login-with-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> LoginWithPassword([FromBody] LoginWithPasswordRequest request)
+    {
+        var result = await _auth.LoginWithPasswordAsync(request);
+        return Ok(ApiResult.Ok(result, "ورود موفقیت‌آمیز بود"));
+    }
+
 
     // ============================================
     // GET CURRENT USER INFO
@@ -64,5 +75,18 @@ public class AuthController : ControllerBase
 
         await _auth.UpdateMyProfileAsync(userId, request);
         return Ok(ApiResult.Ok("پروفایل با موفقیت به‌روزرسانی شد."));
+    }
+
+    // ============================================
+    // SET PASSWORD (Change or Set)
+    // ============================================
+    [HttpPost("set-password")]
+    [Authorize]
+    public async Task<IActionResult> SetPassword([FromBody] SetPasswordRequest request)
+    {
+        var userId = Guid.Parse(User.Claims.First(c => c.Type == "uid").Value);
+
+        await _auth.SetPasswordAsync(userId, request);
+        return Ok(ApiResult.Ok("رمز عبور با موفقیت تنظیم شد."));
     }
 }

@@ -3,6 +3,7 @@ using IngApp.Domain.Entities.Auth;
 using IngApp.Domain.Enums;
 using IngApp.Infrastructure.Common.Hashing;
 using IngApp.Infrastructure.Services.Sms;
+using Microsoft.Extensions.Configuration;
 
 namespace IngApp.Infrastructure.Services.Auth;
 
@@ -10,15 +11,17 @@ public class OtpService : IOtpService
 {
     private readonly IOtpCodeRepository _repository;
     private readonly SmsIrSender _smsSender;
+    private readonly IConfiguration _configuration;
 
     // محدودیت‌ها
     private const int MaxWrongAttempts = 5;
     private const int BlockMinutes = 3;
 
-    public OtpService(IOtpCodeRepository repository, SmsIrSender smsSender)
+    public OtpService(IOtpCodeRepository repository, SmsIrSender smsSender, IConfiguration configuration)
     {
         _repository = repository;
         _smsSender = smsSender;
+        _configuration = configuration;
     }
 
     public async Task<string> GenerateCodeAsync(string phoneNumber)
@@ -53,7 +56,37 @@ public class OtpService : IOtpService
         await _repository.AddAsync(otp);
         await _repository.SaveChangesAsync();
 
-        await _smsSender.SendOtpAsync(phoneNumber, code);
+        // بررسی اینکه آیا باید SMS را skip کنیم (برای Development)
+        var skipSms = _configuration.GetValue<bool>("SmsIr:SkipSms", false);
+
+        if (skipSms)
+        {
+            // در حالت Development، SMS ارسال نمی‌کنیم و فقط کد را در console نمایش می‌دهیم
+            Console.WriteLine("========================================");
+            Console.WriteLine($"[OTP Service] Development Mode - SMS Skipped");
+            Console.WriteLine($"[OTP Service] Phone: {phoneNumber}");
+            Console.WriteLine($"[OTP Service] OTP Code: {code}");
+            Console.WriteLine("========================================");
+        }
+        else
+        {
+            // در حالت Production، SMS ارسال می‌کنیم
+            try
+            {
+                await _smsSender.SendOtpAsync(phoneNumber, code);
+                Console.WriteLine($"[OTP Service] SMS sent successfully to {phoneNumber}");
+            }
+            catch (Exception ex)
+            {
+                // اگر ارسال SMS با خطا مواجه شد، OTP را حذف نکنیم
+                // چون ممکن است کاربر بتواند از کد استفاده کند
+                // فقط لاگ کنیم
+                Console.WriteLine($"[OTP Service] Failed to send SMS to {phoneNumber}: {ex.Message}");
+                Console.WriteLine($"[OTP Service] Exception Details: {ex}");
+                // در محیط production می‌توانید از ILogger استفاده کنید
+                // _logger.LogError(ex, "Failed to send OTP SMS to {PhoneNumber}", phoneNumber);
+            }
+        }
 
         return code;
     }

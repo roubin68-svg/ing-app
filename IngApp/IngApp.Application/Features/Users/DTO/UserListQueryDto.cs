@@ -22,7 +22,10 @@ namespace IngApp.Application.Features.Users.DTO
         public string? PhoneNumber { get; set; }
         public string? DisplayName { get; set; }
 
-        public UserType? UserType { get; set; }
+        /// <summary>
+        /// فیلتر بر اساس نوع کاربر (Code: Buyer, Supplier, Admin, Visitor)
+        /// </summary>
+        public string? UserTypeCode { get; set; }
         public SubscriptionLevel? SubscriptionLevel { get; set; }
         public VerificationStatus? VerificationStatus { get; set; }
 

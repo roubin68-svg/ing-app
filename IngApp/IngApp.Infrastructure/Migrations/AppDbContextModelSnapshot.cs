@@ -68,6 +68,1214 @@ namespace IngApp.Infrastructure.Migrations
                     b.ToTable("OtpCodes");
                 });
 
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.CommissionRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("CommissionPercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("EffectiveFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EffectiveTo")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("CommissionRules");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "UnlockContactCommission",
+                            CommissionPercentage = 10.00m,
+                            CreatedAt = new DateTime(2026, 1, 28, 10, 6, 55, 400, DateTimeKind.Utc).AddTicks(2049),
+                            Description = "پورسانت از هزینه باز کردن اطلاعات تماس آگهی",
+                            IsActive = true,
+                            Title = "پورسانت باز کردن اطلاعات تماس"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "SubscriptionCommission",
+                            CommissionPercentage = 15.00m,
+                            CreatedAt = new DateTime(2026, 1, 28, 10, 6, 55, 400, DateTimeKind.Utc).AddTicks(2052),
+                            Description = "پورسانت از خرید اشتراک",
+                            IsActive = true,
+                            Title = "پورسانت خرید اشتراک"
+                        });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.CommissionTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BuyerUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("CommissionAmountRial")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("CommissionPercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int?>("CommissionRuleId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CommissionType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<long>("OriginalAmountRial")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("ReferenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReferenceType")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("VisitorCommissionRuleId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("VisitorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("WalletTransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuyerUserId");
+
+                    b.HasIndex("CommissionRuleId");
+
+                    b.HasIndex("ReferenceId");
+
+                    b.HasIndex("VisitorCommissionRuleId");
+
+                    b.HasIndex("VisitorUserId");
+
+                    b.HasIndex("VisitorUserId", "CommissionType");
+
+                    b.ToTable("CommissionTransactions");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.Currency", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("ExchangeRateToRial")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Symbol")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Currencies");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "IRR",
+                            ExchangeRateToRial = 1m,
+                            IsActive = true,
+                            Symbol = "ریال",
+                            Title = "ریال ایران"
+                        });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.FinancialOperationType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("FinancialOperationTypes");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "TopUp",
+                            Description = "واریز وجه به کیف پول",
+                            IsActive = true,
+                            Title = "شارژ کیف پول"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "UnlockContactFee",
+                            Description = "هزینه نمایش اطلاعات تماس آگهی",
+                            IsActive = true,
+                            Title = "هزینه باز کردن اطلاعات تماس"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Code = "SubscriptionPurchase",
+                            Description = "خرید پکیج/اشتراک",
+                            IsActive = true,
+                            Title = "خرید اشتراک"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Code = "OnboardingFee",
+                            Description = "هزینه یک‌باره ثبت‌نام به عنوان تأمین‌کننده",
+                            IsActive = true,
+                            Title = "هزینه ثبت‌نام تأمین‌کننده"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Code = "CommissionEarned",
+                            Description = "پورسانت دریافتی از بازاریابی",
+                            IsActive = true,
+                            Title = "دریافت پورسانت"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Code = "ManualDeposit",
+                            Description = "واریز دستی توسط مدیر",
+                            IsActive = true,
+                            Title = "واریز دستی"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Code = "ManualWithdrawal",
+                            Description = "برداشت دستی توسط مدیر",
+                            IsActive = true,
+                            Title = "برداشت دستی"
+                        });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.FinancialReferenceType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("FinancialReferenceTypes");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "Offer",
+                            Description = "مرجع: آگهی",
+                            IsActive = true,
+                            Title = "آگهی"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "Subscription",
+                            Description = "مرجع: اشتراک/پکیج",
+                            IsActive = true,
+                            Title = "اشتراک"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Code = "Payment",
+                            Description = "مرجع: پرداخت/شارژ",
+                            IsActive = true,
+                            Title = "پرداخت"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Code = "SupplierOnboarding",
+                            Description = "مرجع: ثبت‌نام تأمین‌کننده",
+                            IsActive = true,
+                            Title = "ثبت‌نام تأمین‌کننده"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Code = "WalletTransaction",
+                            Description = "مرجع: تراکنش دیگر (مثلاً برای پورسانت)",
+                            IsActive = true,
+                            Title = "تراکنش کیف پول"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Code = "AdminAction",
+                            Description = "مرجع: عملیات دستی توسط مدیر",
+                            IsActive = true,
+                            Title = "عملیات مدیر"
+                        });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.FinancialTransactionStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("FinancialTransactionStatuses");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "Pending",
+                            Description = "تراکنش در حال پردازش",
+                            IsActive = true,
+                            Title = "در انتظار"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "Committed",
+                            Description = "تراکنش با موفقیت انجام شد",
+                            IsActive = true,
+                            Title = "تأیید شده"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Code = "Failed",
+                            Description = "تراکنش با خطا مواجه شد",
+                            IsActive = true,
+                            Title = "ناموفق"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Code = "Reversed",
+                            Description = "تراکنش برگشت داده شد",
+                            IsActive = true,
+                            Title = "برگشت خورده"
+                        });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.Payment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("AmountRial")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("GatewayId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("GatewayResponseJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GatewayTransactionId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("StatusId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("WalletTransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GatewayId");
+
+                    b.HasIndex("GatewayTransactionId");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("StatusId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "StatusId");
+
+                    b.ToTable("Payments");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.PaymentGateway", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("PaymentGateways");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "Mock",
+                            Description = "درگاه پرداخت Mock برای تست",
+                            IsActive = true,
+                            Title = "درگاه پرداخت آزمایشی"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "Zarinpal",
+                            Description = "درگاه پرداخت زرین‌پال",
+                            IsActive = false,
+                            Title = "زرین‌پال"
+                        });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.PaymentStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("PaymentStatuses");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "Pending",
+                            Description = "پرداخت در انتظار است",
+                            IsActive = true,
+                            Title = "در انتظار"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "Success",
+                            Description = "پرداخت با موفقیت انجام شد",
+                            IsActive = true,
+                            Title = "موفق"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Code = "Failed",
+                            Description = "پرداخت ناموفق بود",
+                            IsActive = true,
+                            Title = "ناموفق"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Code = "Cancelled",
+                            Description = "پرداخت لغو شد",
+                            IsActive = true,
+                            Title = "لغو شده"
+                        });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.Plan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("DurationMonths")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<long>("PriceRial")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("UnlimitedContactViews")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Plans");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "Plan1Month",
+                            CreatedAt = new DateTime(2026, 1, 28, 10, 6, 55, 405, DateTimeKind.Utc).AddTicks(1997),
+                            Description = "اشتراک 1 ماهه با دسترسی نامحدود به اطلاعات تماس",
+                            DisplayOrder = 1,
+                            DurationMonths = 1,
+                            IsActive = true,
+                            PriceRial = 1000000L,
+                            Title = "پلن 1 ماهه",
+                            UnlimitedContactViews = true
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "Plan3Month",
+                            CreatedAt = new DateTime(2026, 1, 28, 10, 6, 55, 405, DateTimeKind.Utc).AddTicks(2001),
+                            Description = "اشتراک 3 ماهه با دسترسی نامحدود به اطلاعات تماس",
+                            DisplayOrder = 2,
+                            DurationMonths = 3,
+                            IsActive = true,
+                            PriceRial = 2700000L,
+                            Title = "پلن 3 ماهه",
+                            UnlimitedContactViews = true
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Code = "Plan6Month",
+                            CreatedAt = new DateTime(2026, 1, 28, 10, 6, 55, 405, DateTimeKind.Utc).AddTicks(2004),
+                            Description = "اشتراک 6 ماهه با دسترسی نامحدود به اطلاعات تماس",
+                            DisplayOrder = 3,
+                            DurationMonths = 6,
+                            IsActive = true,
+                            PriceRial = 5100000L,
+                            Title = "پلن 6 ماهه",
+                            UnlimitedContactViews = true
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Code = "Plan12Month",
+                            CreatedAt = new DateTime(2026, 1, 28, 10, 6, 55, 405, DateTimeKind.Utc).AddTicks(2006),
+                            Description = "اشتراک 12 ماهه با دسترسی نامحدود به اطلاعات تماس",
+                            DisplayOrder = 4,
+                            DurationMonths = 12,
+                            IsActive = true,
+                            PriceRial = 9600000L,
+                            Title = "پلن 12 ماهه",
+                            UnlimitedContactViews = true
+                        });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.Pricing", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<long>("AmountRial")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("EffectiveFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EffectiveTo")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Pricings");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            AmountRial = 10000L,
+                            Code = "UnlockContactFee",
+                            CreatedAt = new DateTime(2026, 1, 28, 10, 6, 55, 405, DateTimeKind.Utc).AddTicks(7212),
+                            Description = "هزینه یک‌باره برای نمایش اطلاعات تماس یک آگهی",
+                            EffectiveFrom = new DateTime(2026, 1, 28, 10, 6, 55, 405, DateTimeKind.Utc).AddTicks(7206),
+                            IsActive = true,
+                            Title = "هزینه باز کردن اطلاعات تماس"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            AmountRial = 50000L,
+                            Code = "OnboardingFee",
+                            CreatedAt = new DateTime(2026, 1, 28, 10, 6, 55, 405, DateTimeKind.Utc).AddTicks(7216),
+                            Description = "هزینه یک‌باره ثبت‌نام به عنوان تأمین‌کننده",
+                            EffectiveFrom = new DateTime(2026, 1, 28, 10, 6, 55, 405, DateTimeKind.Utc).AddTicks(7215),
+                            IsActive = true,
+                            Title = "هزینه ثبت‌نام تأمین‌کننده"
+                        });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.SubscriptionStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("SubscriptionStatuses");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "Active",
+                            Description = "اشتراک فعال است",
+                            IsActive = true,
+                            Title = "فعال"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "Expired",
+                            Description = "اشتراک منقضی شده است",
+                            IsActive = true,
+                            Title = "منقضی شده"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Code = "Cancelled",
+                            Description = "اشتراک لغو شده است",
+                            IsActive = true,
+                            Title = "لغو شده"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Code = "Pending",
+                            Description = "اشتراک در انتظار فعال‌سازی",
+                            IsActive = true,
+                            Title = "در انتظار"
+                        });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.TransactionDirection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("TransactionDirections");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "Credit",
+                            Description = "افزایش موجودی کیف پول",
+                            IsActive = true,
+                            Title = "واریز"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "Debit",
+                            Description = "کاهش موجودی کیف پول",
+                            IsActive = true,
+                            Title = "برداشت"
+                        });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.UnlockSourceType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("UnlockSourceTypes");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "Paid",
+                            Description = "از طریق پرداخت از کیف پول",
+                            IsActive = true,
+                            Title = "پرداخت شده"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "Subscription",
+                            Description = "از طریق اشتراک فعال",
+                            IsActive = true,
+                            Title = "اشتراک"
+                        });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.UserSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("PaymentTransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("PlanId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PurchasedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("StatusId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EndDate");
+
+                    b.HasIndex("PlanId");
+
+                    b.HasIndex("StatusId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "StatusId");
+
+                    b.ToTable("UserSubscriptions");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.VisitorCommissionRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("CommissionPercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("CommissionRuleCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EffectiveFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EffectiveTo")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("VisitorProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VisitorProfileId", "CommissionRuleCode", "IsActive")
+                        .HasDatabaseName("IX_VisitorCommissionRule_Visitor_Code_Active");
+
+                    b.HasIndex("VisitorProfileId", "CommissionRuleCode", "EffectiveFrom", "EffectiveTo")
+                        .HasDatabaseName("IX_VisitorCommissionRule_Visitor_Code_Dates");
+
+                    b.ToTable("VisitorCommissionRules");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.Wallet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("BalanceRial")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CurrencyId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("WalletTypeId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrencyId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.HasIndex("WalletTypeId");
+
+                    b.HasIndex("UserId", "WalletTypeId")
+                        .IsUnique();
+
+                    b.ToTable("Wallets");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.WalletTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("AmountRial")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("DirectionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("OperationTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("ReferenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ReferenceTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StatusId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("WalletId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DirectionId");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("OperationTypeId");
+
+                    b.HasIndex("StatusId");
+
+                    b.HasIndex("WalletId");
+
+                    b.HasIndex("ReferenceTypeId", "ReferenceId");
+
+                    b.ToTable("WalletTransactions");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.WalletType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("WalletTypes");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "Main",
+                            IsActive = true,
+                            Title = "کیف پول اصلی"
+                        });
+                });
+
             modelBuilder.Entity("IngApp.Domain.Entities.Kyc.KycAttributeDefinition", b =>
                 {
                     b.Property<int>("Id")
@@ -95,7 +1303,7 @@ namespace IngApp.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("KycAttributeDefinitions", (string)null);
+                    b.ToTable("KycAttributeDefinitions");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Kyc.UserDocument", b =>
@@ -141,7 +1349,7 @@ namespace IngApp.Infrastructure.Migrations
 
                     b.HasIndex("UserId", "KycAttributeDefinitionId", "IsDeleted");
 
-                    b.ToTable("UserDocuments", (string)null);
+                    b.ToTable("UserDocuments");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Menus.MenuItem", b =>
@@ -230,34 +1438,23 @@ namespace IngApp.Infrastructure.Migrations
                         {
                             Id = 4,
                             IsActive = true,
-                            Key = "category-management",
+                            Key = "products-categories",
                             Order = 2,
                             ParentId = 2,
                             RequiredPermissionCode = "ProductCategory.Manage",
                             Route = "/product-categories",
-                            Title = "مدیریت دسته‌بندی‌ها"
+                            Title = "دسته‌بندی محصولات"
                         },
                         new
                         {
-                            Id = 5,
-                            Icon = "SettingOutlined",
+                            Id = 18,
+                            Icon = "FileTextOutlined",
                             IsActive = true,
-                            Key = "settings",
-                            Order = 4,
-                            RequiredPermissionCode = "Settings.View",
-                            Route = "#",
-                            Title = "تنظیمات"
-                        },
-                        new
-                        {
-                            Id = 10,
-                            IsActive = true,
-                            Key = "menu-settings",
+                            Key = "offer-managment",
                             Order = 2,
-                            ParentId = 5,
-                            RequiredPermissionCode = "Menu.Manage",
-                            Route = "/menu-settings",
-                            Title = "تنظیمات منو"
+                            RequiredPermissionCode = "Offer.Manage",
+                            Route = "/offer-managment",
+                            Title = "مدیریت آگهی ها"
                         },
                         new
                         {
@@ -265,7 +1462,7 @@ namespace IngApp.Infrastructure.Migrations
                             Icon = "TeamOutlined",
                             IsActive = true,
                             Key = "user-management",
-                            Order = 3,
+                            Order = 5,
                             RequiredPermissionCode = "User.Manage",
                             Route = "#",
                             Title = "مدیریت کاربران"
@@ -305,25 +1502,89 @@ namespace IngApp.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = 11,
-                            Icon = "TeamOutlined",
+                            Id = 22,
+                            Icon = "WalletOutlined",
                             IsActive = true,
-                            Key = "suppliers",
-                            Order = 5,
-                            RequiredPermissionCode = "Supplier.View",
+                            Key = "financial",
+                            Order = 6,
                             Route = "#",
-                            Title = "مدیریت تأمین‌کنندگان"
+                            Title = "سیستم مالی"
+                        },
+                        new
+                        {
+                            Id = 1001,
+                            IsActive = true,
+                            Key = "subscriptions",
+                            Order = 1,
+                            ParentId = 22,
+                            Route = "/subscriptions",
+                            Title = "اشتراک‌ها"
+                        },
+                        new
+                        {
+                            Id = 1002,
+                            IsActive = true,
+                            Key = "top-up",
+                            Order = 2,
+                            ParentId = 22,
+                            Route = "/top-up",
+                            Title = "شارژ کیف پول"
+                        },
+                        new
+                        {
+                            Id = 1003,
+                            IsActive = true,
+                            Key = "wallet-transactions",
+                            Order = 3,
+                            ParentId = 22,
+                            Route = "/wallet-transactions",
+                            Title = "تراکنش‌های کیف پول"
+                        },
+                        new
+                        {
+                            Id = 1006,
+                            IsActive = true,
+                            Key = "commission-rules",
+                            Order = 4,
+                            ParentId = 22,
+                            Route = "/commission-rules",
+                            Title = "قوانین پورسانت"
                         },
                         new
                         {
                             Id = 12,
                             IsActive = true,
                             Key = "supplier-types",
-                            Order = 2,
-                            ParentId = 11,
-                            RequiredPermissionCode = "SupplierType.Manage",
+                            Order = 3,
                             Route = "/supplier-types",
-                            Title = "مدیریت نوع تأمین‌کننده"
+                            Title = "نوع تامین کننده"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            IsActive = true,
+                            Key = "kyc-templates",
+                            Order = 4,
+                            Route = "/kyc-templates",
+                            Title = "قالب‌های KYC"
+                        },
+                        new
+                        {
+                            Id = 1007,
+                            IsActive = true,
+                            Key = "visitor-management",
+                            Order = 7,
+                            Route = "/visitor-management",
+                            Title = "مدیریت بازاریابان"
+                        },
+                        new
+                        {
+                            Id = 1008,
+                            IsActive = true,
+                            Key = "buyer-profiles",
+                            Order = 8,
+                            Route = "/buyer-profiles",
+                            Title = "پروفایل خریداران"
                         });
                 });
 
@@ -407,7 +1668,7 @@ namespace IngApp.Infrastructure.Migrations
 
                     b.HasIndex("SupplierUserId");
 
-                    b.ToTable("Offers", (string)null);
+                    b.ToTable("Offers");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Offers.OfferClickLog", b =>
@@ -444,7 +1705,42 @@ namespace IngApp.Infrastructure.Migrations
 
                     b.HasIndex("OfferId", "ClickType");
 
-                    b.ToTable("OfferClickLogs", (string)null);
+                    b.ToTable("OfferClickLogs");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Offers.OfferContactUnlock", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ChargedTransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("OfferId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SourceTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UnlockedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OfferId");
+
+                    b.HasIndex("SourceTypeId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("OfferId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("OfferContactUnlocks");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Offers.OfferDocument", b =>
@@ -483,7 +1779,7 @@ namespace IngApp.Infrastructure.Migrations
 
                     b.HasIndex("OfferId", "IsDeleted");
 
-                    b.ToTable("OfferDocuments", (string)null);
+                    b.ToTable("OfferDocuments");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Offers.OfferStatusHistory", b =>
@@ -519,7 +1815,7 @@ namespace IngApp.Infrastructure.Migrations
 
                     b.HasIndex("OfferId");
 
-                    b.ToTable("OfferStatusHistories", (string)null);
+                    b.ToTable("OfferStatusHistories");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Permissions.Permission", b =>
@@ -639,6 +1935,30 @@ namespace IngApp.Infrastructure.Migrations
                             Description = "",
                             DisplayName = "مدیریت آگهی‌ها",
                             IsActive = true
+                        },
+                        new
+                        {
+                            Id = new Guid("aaaaaaaa-0000-0000-0000-00000000000c"),
+                            Code = "Visitor.View",
+                            Description = "",
+                            DisplayName = "مشاهده بازاریاب‌ها",
+                            IsActive = true
+                        },
+                        new
+                        {
+                            Id = new Guid("aaaaaaaa-0000-0000-0000-00000000000d"),
+                            Code = "Visitor.Manage",
+                            Description = "",
+                            DisplayName = "مدیریت بازاریاب‌ها",
+                            IsActive = true
+                        },
+                        new
+                        {
+                            Id = new Guid("aaaaaaaa-0000-0000-0000-00000000000e"),
+                            Code = "Financial.Manage",
+                            Description = "",
+                            DisplayName = "مدیریت مالی",
+                            IsActive = true
                         });
                 });
 
@@ -674,7 +1994,7 @@ namespace IngApp.Infrastructure.Migrations
 
                     b.HasIndex("CategoryId", "Name");
 
-                    b.ToTable("Products", (string)null);
+                    b.ToTable("Products");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Products.ProductAttributeDefinition", b =>
@@ -704,7 +2024,7 @@ namespace IngApp.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ProductAttributeDefinitions", (string)null);
+                    b.ToTable("ProductAttributeDefinitions");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Products.ProductAttributeTemplate", b =>
@@ -731,7 +2051,7 @@ namespace IngApp.Infrastructure.Migrations
                     b.HasIndex("ProductId", "AttributeDefinitionId")
                         .IsUnique();
 
-                    b.ToTable("ProductAttributeTemplates", (string)null);
+                    b.ToTable("ProductAttributeTemplates");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Products.ProductCategory", b =>
@@ -765,7 +2085,7 @@ namespace IngApp.Infrastructure.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("ProductCategories", (string)null);
+                    b.ToTable("ProductCategories");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Products.SupplierCategoryAccess", b =>
@@ -795,7 +2115,7 @@ namespace IngApp.Infrastructure.Migrations
                     b.HasIndex("UserId", "ProductCategoryId")
                         .IsUnique();
 
-                    b.ToTable("SupplierCategoryAccesses", (string)null);
+                    b.ToTable("SupplierCategoryAccesses");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Roles.Role", b =>
@@ -828,7 +2148,7 @@ namespace IngApp.Infrastructure.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Roles", "IngAppUser");
+                    b.ToTable("Roles");
 
                     b.HasData(
                         new
@@ -926,6 +2246,21 @@ namespace IngApp.Infrastructure.Migrations
                         {
                             RoleId = new Guid("a3f0b7e8-3a42-4b27-a9c4-64e0a91b9fd1"),
                             PermissionId = new Guid("aaaaaaaa-0000-0000-0000-00000000000b")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("a3f0b7e8-3a42-4b27-a9c4-64e0a91b9fd1"),
+                            PermissionId = new Guid("aaaaaaaa-0000-0000-0000-00000000000c")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("a3f0b7e8-3a42-4b27-a9c4-64e0a91b9fd1"),
+                            PermissionId = new Guid("aaaaaaaa-0000-0000-0000-00000000000d")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("a3f0b7e8-3a42-4b27-a9c4-64e0a91b9fd1"),
+                            PermissionId = new Guid("aaaaaaaa-0000-0000-0000-00000000000e")
                         },
                         new
                         {
@@ -1057,7 +2392,7 @@ namespace IngApp.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SupplierTypes", (string)null);
+                    b.ToTable("SupplierTypes");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Suppliers.SupplierVerificationHistory", b =>
@@ -1091,6 +2426,58 @@ namespace IngApp.Infrastructure.Migrations
                     b.ToTable("SupplierVerificationHistories");
                 });
 
+            modelBuilder.Entity("IngApp.Domain.Entities.Users.BuyerProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("BusinessName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ContactMobile")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Province")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("ReferredByVisitorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReferredByVisitorId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("BuyerProfiles");
+                });
+
             modelBuilder.Entity("IngApp.Domain.Entities.Users.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1107,6 +2494,10 @@ namespace IngApp.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<string>("PasswordHash")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1118,7 +2509,7 @@ namespace IngApp.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("UserType")
+                    b.Property<int>("UserTypeId")
                         .HasColumnType("int");
 
                     b.Property<int>("VerificationStatus")
@@ -1129,20 +2520,167 @@ namespace IngApp.Infrastructure.Migrations
                     b.HasIndex("PhoneNumber")
                         .IsUnique();
 
+                    b.HasIndex("UserTypeId");
+
                     b.ToTable("Users");
 
                     b.HasData(
                         new
                         {
                             Id = new Guid("64fa4b00-95cf-4a58-6f40-08de38f0e8e0"),
-                            CreatedAt = new DateTime(2026, 1, 4, 22, 11, 50, 902, DateTimeKind.Utc).AddTicks(7749),
+                            CreatedAt = new DateTime(2026, 1, 28, 10, 6, 55, 425, DateTimeKind.Utc).AddTicks(2338),
                             DisplayName = "علی هور",
                             IsActive = true,
                             PhoneNumber = "09123823632",
                             SubscriptionLevel = 0,
-                            UserType = 3,
+                            UserTypeId = 3,
                             VerificationStatus = 0
                         });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Users.UserRole", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("UserRoles");
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = new Guid("64fa4b00-95cf-4a58-6f40-08de38f0e8e0"),
+                            RoleId = new Guid("a3f0b7e8-3a42-4b27-a9c4-64e0a91b9fd1")
+                        });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Users.UserType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("UserTypes");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "Buyer",
+                            IsActive = true,
+                            Title = "خریدار"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "Supplier",
+                            IsActive = true,
+                            Title = "تأمین‌کننده"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Code = "Admin",
+                            IsActive = true,
+                            Title = "مدیر سیستم"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Code = "Visitor",
+                            IsActive = true,
+                            Title = "بازاریاب"
+                        });
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Users.VisitorProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("BusinessName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ContactMobile")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Province")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ReferralCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReferralCode")
+                        .IsUnique();
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("VisitorProfiles");
                 });
 
             modelBuilder.Entity("KycTemplate", b =>
@@ -1174,29 +2712,175 @@ namespace IngApp.Infrastructure.Migrations
 
                     b.HasIndex("KycAttributeDefinitionId");
 
-                    b.ToTable("KycTemplates", (string)null);
+                    b.ToTable("KycTemplates");
                 });
 
-            modelBuilder.Entity("UserRole", b =>
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.CommissionTransaction", b =>
                 {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.HasOne("IngApp.Domain.Entities.Users.User", "BuyerUser")
+                        .WithMany()
+                        .HasForeignKey("BuyerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("uniqueidentifier");
+                    b.HasOne("IngApp.Domain.Entities.Financial.CommissionRule", "CommissionRule")
+                        .WithMany()
+                        .HasForeignKey("CommissionRuleId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasKey("UserId", "RoleId");
+                    b.HasOne("IngApp.Domain.Entities.Financial.VisitorCommissionRule", "VisitorCommissionRule")
+                        .WithMany()
+                        .HasForeignKey("VisitorCommissionRuleId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasIndex("RoleId");
+                    b.HasOne("IngApp.Domain.Entities.Users.User", "VisitorUser")
+                        .WithMany()
+                        .HasForeignKey("VisitorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.ToTable("UserRoles");
+                    b.Navigation("BuyerUser");
 
-                    b.HasData(
-                        new
-                        {
-                            UserId = new Guid("64fa4b00-95cf-4a58-6f40-08de38f0e8e0"),
-                            RoleId = new Guid("a3f0b7e8-3a42-4b27-a9c4-64e0a91b9fd1")
-                        });
+                    b.Navigation("CommissionRule");
+
+                    b.Navigation("VisitorCommissionRule");
+
+                    b.Navigation("VisitorUser");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.Payment", b =>
+                {
+                    b.HasOne("IngApp.Domain.Entities.Financial.PaymentGateway", "Gateway")
+                        .WithMany()
+                        .HasForeignKey("GatewayId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IngApp.Domain.Entities.Financial.PaymentStatus", "Status")
+                        .WithMany()
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IngApp.Domain.Entities.Users.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Gateway");
+
+                    b.Navigation("Status");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.UserSubscription", b =>
+                {
+                    b.HasOne("IngApp.Domain.Entities.Financial.Plan", "Plan")
+                        .WithMany("UserSubscriptions")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IngApp.Domain.Entities.Financial.SubscriptionStatus", "Status")
+                        .WithMany()
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IngApp.Domain.Entities.Users.User", "User")
+                        .WithMany("UserSubscriptions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Plan");
+
+                    b.Navigation("Status");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.VisitorCommissionRule", b =>
+                {
+                    b.HasOne("IngApp.Domain.Entities.Users.VisitorProfile", "VisitorProfile")
+                        .WithMany()
+                        .HasForeignKey("VisitorProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("VisitorProfile");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.Wallet", b =>
+                {
+                    b.HasOne("IngApp.Domain.Entities.Financial.Currency", "Currency")
+                        .WithMany()
+                        .HasForeignKey("CurrencyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IngApp.Domain.Entities.Users.User", "User")
+                        .WithOne("Wallet")
+                        .HasForeignKey("IngApp.Domain.Entities.Financial.Wallet", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("IngApp.Domain.Entities.Financial.WalletType", "WalletType")
+                        .WithMany()
+                        .HasForeignKey("WalletTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Currency");
+
+                    b.Navigation("User");
+
+                    b.Navigation("WalletType");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.WalletTransaction", b =>
+                {
+                    b.HasOne("IngApp.Domain.Entities.Financial.TransactionDirection", "Direction")
+                        .WithMany()
+                        .HasForeignKey("DirectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IngApp.Domain.Entities.Financial.FinancialOperationType", "OperationType")
+                        .WithMany()
+                        .HasForeignKey("OperationTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IngApp.Domain.Entities.Financial.FinancialReferenceType", "ReferenceType")
+                        .WithMany()
+                        .HasForeignKey("ReferenceTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IngApp.Domain.Entities.Financial.FinancialTransactionStatus", "Status")
+                        .WithMany()
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IngApp.Domain.Entities.Financial.Wallet", "Wallet")
+                        .WithMany("Transactions")
+                        .HasForeignKey("WalletId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Direction");
+
+                    b.Navigation("OperationType");
+
+                    b.Navigation("ReferenceType");
+
+                    b.Navigation("Status");
+
+                    b.Navigation("Wallet");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Kyc.UserDocument", b =>
@@ -1229,6 +2913,25 @@ namespace IngApp.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Offer");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Offers.OfferContactUnlock", b =>
+                {
+                    b.HasOne("IngApp.Domain.Entities.Offers.Offer", "Offer")
+                        .WithMany()
+                        .HasForeignKey("OfferId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IngApp.Domain.Entities.Financial.UnlockSourceType", "SourceType")
+                        .WithMany()
+                        .HasForeignKey("SourceTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Offer");
+
+                    b.Navigation("SourceType");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Offers.OfferDocument", b =>
@@ -1364,18 +3067,36 @@ namespace IngApp.Infrastructure.Migrations
                     b.Navigation("SupplierProfile");
                 });
 
-            modelBuilder.Entity("KycTemplate", b =>
+            modelBuilder.Entity("IngApp.Domain.Entities.Users.BuyerProfile", b =>
                 {
-                    b.HasOne("IngApp.Domain.Entities.Kyc.KycAttributeDefinition", "KycAttributeDefinition")
+                    b.HasOne("IngApp.Domain.Entities.Users.VisitorProfile", "ReferredByVisitor")
                         .WithMany()
-                        .HasForeignKey("KycAttributeDefinitionId")
+                        .HasForeignKey("ReferredByVisitorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IngApp.Domain.Entities.Users.User", "User")
+                        .WithOne("BuyerProfile")
+                        .HasForeignKey("IngApp.Domain.Entities.Users.BuyerProfile", "UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("KycAttributeDefinition");
+                    b.Navigation("ReferredByVisitor");
+
+                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("UserRole", b =>
+            modelBuilder.Entity("IngApp.Domain.Entities.Users.User", b =>
+                {
+                    b.HasOne("IngApp.Domain.Entities.Users.UserType", "UserType")
+                        .WithMany()
+                        .HasForeignKey("UserTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("UserType");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Users.UserRole", b =>
                 {
                     b.HasOne("IngApp.Domain.Entities.Roles.Role", "Role")
                         .WithMany("UserRoles")
@@ -1392,6 +3113,38 @@ namespace IngApp.Infrastructure.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Users.VisitorProfile", b =>
+                {
+                    b.HasOne("IngApp.Domain.Entities.Users.User", "User")
+                        .WithOne("VisitorProfile")
+                        .HasForeignKey("IngApp.Domain.Entities.Users.VisitorProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("KycTemplate", b =>
+                {
+                    b.HasOne("IngApp.Domain.Entities.Kyc.KycAttributeDefinition", "KycAttributeDefinition")
+                        .WithMany()
+                        .HasForeignKey("KycAttributeDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("KycAttributeDefinition");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.Plan", b =>
+                {
+                    b.Navigation("UserSubscriptions");
+                });
+
+            modelBuilder.Entity("IngApp.Domain.Entities.Financial.Wallet", b =>
+                {
+                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("IngApp.Domain.Entities.Menus.MenuItem", b =>
@@ -1430,9 +3183,17 @@ namespace IngApp.Infrastructure.Migrations
 
             modelBuilder.Entity("IngApp.Domain.Entities.Users.User", b =>
                 {
+                    b.Navigation("BuyerProfile");
+
                     b.Navigation("Documents");
 
                     b.Navigation("UserRoles");
+
+                    b.Navigation("UserSubscriptions");
+
+                    b.Navigation("VisitorProfile");
+
+                    b.Navigation("Wallet");
                 });
 #pragma warning restore 612, 618
         }

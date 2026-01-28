@@ -1,4 +1,5 @@
 ﻿using IngApp.Domain.Entities.Auth;
+using IngApp.Domain.Entities.Financial;
 using IngApp.Domain.Entities.Kyc;
 using IngApp.Domain.Entities.Menus;
 using IngApp.Domain.Entities.Offers;
@@ -20,6 +21,7 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<UserType> UserTypes => Set<UserType>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
@@ -36,6 +38,8 @@ public class AppDbContext : DbContext
     public DbSet<UserDocument> UserDocuments => Set<UserDocument>();
     public DbSet<SupplierVerificationHistory> SupplierVerificationHistories { get; set; } = null!;
     public DbSet<SupplierActivityLog> SupplierActivityLogs { get; set; } = null!;
+    public DbSet<VisitorProfile> VisitorProfiles => Set<VisitorProfile>();
+    public DbSet<BuyerProfile> BuyerProfiles => Set<BuyerProfile>();
 
 
     public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
@@ -48,6 +52,28 @@ public class AppDbContext : DbContext
     public DbSet<OfferDocument> OfferDocuments => Set<OfferDocument>();
     public DbSet<OfferClickLog> OfferClickLogs => Set<OfferClickLog>();
     public DbSet<OfferStatusHistory> OfferStatusHistories => Set<OfferStatusHistory>();
+    public DbSet<OfferContactUnlock> OfferContactUnlocks => Set<OfferContactUnlock>();
+
+    // Financial Entities
+    public DbSet<Currency> Currencies => Set<Currency>();
+    public DbSet<WalletType> WalletTypes => Set<WalletType>();
+    public DbSet<TransactionDirection> TransactionDirections => Set<TransactionDirection>();
+    public DbSet<FinancialOperationType> FinancialOperationTypes => Set<FinancialOperationType>();
+    public DbSet<FinancialTransactionStatus> FinancialTransactionStatuses => Set<FinancialTransactionStatus>();
+    public DbSet<FinancialReferenceType> FinancialReferenceTypes => Set<FinancialReferenceType>();
+    public DbSet<UnlockSourceType> UnlockSourceTypes => Set<UnlockSourceType>();
+    public DbSet<Pricing> Pricings => Set<Pricing>();
+    public DbSet<Wallet> Wallets => Set<Wallet>();
+    public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
+    public DbSet<SubscriptionStatus> SubscriptionStatuses => Set<SubscriptionStatus>();
+    public DbSet<Plan> Plans => Set<Plan>();
+    public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
+    public DbSet<PaymentGateway> PaymentGateways => Set<PaymentGateway>();
+    public DbSet<PaymentStatus> PaymentStatuses => Set<PaymentStatus>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<CommissionRule> CommissionRules => Set<CommissionRule>();
+    public DbSet<CommissionTransaction> CommissionTransactions => Set<CommissionTransaction>();
+    public DbSet<VisitorCommissionRule> VisitorCommissionRules => Set<VisitorCommissionRule>();
 
 
 

@@ -202,10 +202,13 @@ const MenuSettingsPage = () => {
         setEditingItem(item);
         setParentId(item.parentId ?? null);
 
+        // اگر Route "#" باشد، آن را خالی نمایش می‌دهیم تا کاربر راحت‌تر باشد
+        const displayRoute = item.route === "#" ? "" : item.route;
+
         form.setFieldsValue({
             title: item.title,
             key: item.key,
-            route: item.route,
+            route: displayRoute,
             icon: item.icon,
             order: item.order,
             requiredPermissionCode: item.requiredPermissionCode,
@@ -219,7 +222,15 @@ const MenuSettingsPage = () => {
     const handleSubmit = async () => {
         try {
             const values = await form.validateFields();
-            const payload = { ...values, parentId: parentId ?? null };
+            
+            // اگر Route خالی است، آن را به null تبدیل می‌کنیم (Backend خودش "#" را تنظیم می‌کند)
+            const route = values.route?.trim() === "" ? null : values.route?.trim();
+            
+            const payload = { 
+                ...values, 
+                route: route,
+                parentId: parentId ?? null 
+            };
 
             if (editingItem) {
                 await menuApi.update(editingItem.id, payload);
@@ -294,8 +305,12 @@ const MenuSettingsPage = () => {
                         <Input placeholder="menu-settings" />
                     </Form.Item>
 
-                    <Form.Item label="Route" name="route">
-                        <Input placeholder="/menu-settings" />
+                    <Form.Item 
+                        label="Route" 
+                        name="route"
+                        tooltip="برای منوهای اصلی (parent) که Route ندارند، خالی بگذارید یا '#' وارد کنید. برای منوهای فرزند، Route کامل را وارد کنید (مثال: /menu-settings)"
+                    >
+                        <Input placeholder="/menu-settings یا # برای منوهای اصلی" />
                     </Form.Item>
 
                     <Form.Item label="آیکن" name="icon">

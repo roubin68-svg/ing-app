@@ -124,6 +124,23 @@ builder.Services.AddAuthorization(options =>
     // ===================== Menus ===============================
     options.AddPolicy(Permissions.Menus.Manage,
         p => p.Requirements.Add(new PermissionRequirement(Permissions.Menus.Manage)));
+
+    // ===================== Visitors =============================
+    options.AddPolicy(Permissions.Visitors.View,
+        p => p.Requirements.Add(new PermissionRequirement(Permissions.Visitors.View)));
+
+    options.AddPolicy(Permissions.Visitors.Manage,
+        p => p.Requirements.Add(new PermissionRequirement(Permissions.Visitors.Manage)));
+
+    // ===================== Financial =============================
+    options.AddPolicy(Permissions.Financial.Manage,
+        p => p.Requirements.Add(new PermissionRequirement(Permissions.Financial.Manage)));
+
+    options.AddPolicy(Permissions.Financial.CommissionRuleManage,
+        p => p.Requirements.Add(new PermissionRequirement(Permissions.Financial.CommissionRuleManage)));
+
+    options.AddPolicy(Permissions.Financial.WalletManage,
+        p => p.Requirements.Add(new PermissionRequirement(Permissions.Financial.WalletManage)));
 });
 
 builder.Services.AddSingleton<IAuthorizationHandler, AuthorizationHandler>();

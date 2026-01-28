@@ -95,12 +95,15 @@ namespace IngApp.Infrastructure.Services.Menus
                     throw new NotFoundException("والد انتخاب‌شده یافت نشد.");
             }
 
+            // اگر Route خالی یا null باشد، آن را به "#" تبدیل می‌کنیم (برای منوهای parent)
+            var route = string.IsNullOrWhiteSpace(dto.Route) ? "#" : dto.Route.Trim();
+
             var item = new MenuItem
             {
                 Key = dto.Key.Trim(),
                 Title = dto.Title.Trim(),
                 Icon = dto.Icon,
-                Route = dto.Route,
+                Route = route,
                 ParentId = dto.ParentId,
                 Order = dto.Order,
                 RequiredPermissionCode = dto.RequiredPermissionCode,
@@ -141,9 +144,12 @@ namespace IngApp.Infrastructure.Services.Menus
                     throw new ValidationException(new() { "نمی‌توان یک والد را به زیرمجموعه خود منتقل کرد." });
             }
 
+            // اگر Route خالی یا null باشد، آن را به "#" تبدیل می‌کنیم (برای منوهای parent)
+            var route = string.IsNullOrWhiteSpace(dto.Route) ? "#" : dto.Route.Trim();
+
             item.Title = dto.Title.Trim();
             item.Icon = dto.Icon;
-            item.Route = dto.Route;
+            item.Route = route;
             item.ParentId = dto.ParentId;
             item.Order = dto.Order;
             item.RequiredPermissionCode = dto.RequiredPermissionCode;

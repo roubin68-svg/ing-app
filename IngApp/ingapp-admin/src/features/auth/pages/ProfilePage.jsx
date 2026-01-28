@@ -1,13 +1,18 @@
 // src/features/auth/pages/ProfilePage.jsx
 import React, { useEffect, useState } from "react";
-import { Card, Descriptions, Form, Input, Button, Space, message, Modal, Tag, Spin, Alert, Tabs, Table, Image, App } from "antd";
+import { Card, Descriptions, Form, Input, Button, Space, message, Modal, Tag, Spin, Alert, Tabs, Table, Image, App, Row, Col, Typography, Select } from "antd";
 import { useNavigate } from "react-router-dom";
 import { EditOutlined, DownloadOutlined, FilePdfOutlined, FileWordOutlined, FileOutlined } from "@ant-design/icons";
-import { getMeApi, updateMyProfileApi } from "../api/authApi";
+import { getMeApi, updateMyProfileApi, setPasswordApi } from "../api/authApi";
 import { useAuth } from "../../../core/auth/useAuth";
 import supplierOnboardingApi from "../../suppliers/api/supplierOnboardingApi";
+import buyerProfilesApi from "../../buyerProfiles/api/buyerProfilesApi";
+import visitorProfilesApi from "../../visitorProfiles/api/visitorProfilesApi";
 import apiClient from "../../../core/api/apiClient";
 import jalaali from "jalaali-js";
+import { getProvinces, getCitiesByProvince } from "../../../core/location/iranProvinces";
+
+const { Text } = Typography;
 
 // تبدیل تاریخ میلادی به شمسی
 const toShamsi = (gregorian) => {
@@ -63,6 +68,7 @@ const getUserTypeLabel = (userType) => {
         case "Buyer": return "خریدار";
         case "Supplier": return "تأمین‌کننده";
         case "Admin": return "مدیر سیستم";
+        case "Visitor": return "بازاریاب";
         default: return userType;
     }
 };
@@ -139,10 +145,27 @@ const ProfilePage = () => {
     const [saving, setSaving] = useState(false);
     const [userInfo, setUserInfo] = useState(null);
     const [supplierProfile, setSupplierProfile] = useState(null);
+    const [buyerProfile, setBuyerProfile] = useState(null);
+    const [visitorProfile, setVisitorProfile] = useState(null);
     const [kycDocuments, setKycDocuments] = useState([]);
     const [editing, setEditing] = useState(false);
     const [activeTab, setActiveTab] = useState("user");
     const [fileBlobUrls, setFileBlobUrls] = useState({}); // { documentId: blobUrl }
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [passwordForm] = Form.useForm();
+    const [changingPassword, setChangingPassword] = useState(false);
+    
+    // Buyer Profile form state
+    const [buyerForm] = Form.useForm();
+    const [editingBuyer, setEditingBuyer] = useState(false);
+    const [savingBuyer, setSavingBuyer] = useState(false);
+    const [selectedProvince, setSelectedProvince] = useState(null);
+    const [validatingCode, setValidatingCode] = useState(false);
+    const provinces = React.useMemo(() => getProvinces(), []);
+    const cities = React.useMemo(
+        () => getCitiesByProvince(selectedProvince),
+        [selectedProvince]
+    );
 
     useEffect(() => {
         loadProfile();
@@ -240,11 +263,171 @@ const ProfilePage = () => {
                 setSupplierProfile(null);
                 setKycDocuments([]);
             }
+
+            // بارگذاری اطلاعات Buyer (اگر وجود دارد)
+            try {
+                const buyerRes = await buyerProfilesApi.getMyProfile();
+                console.log("[ProfilePage] Buyer profile response:", buyerRes);
+                
+                // API ممکن است null برگرداند اگر پروفایل وجود نداشته باشد
+                // یا یک object برگرداند اگر پروفایل وجود داشته باشد
+                if (buyerRes && typeof buyerRes === 'object' && (buyerRes.id || buyerRes.userId)) {
+                    // پروفایل وجود دارد
+                    console.log("[ProfilePage] Buyer profile found, setting state");
+                    setBuyerProfile(buyerRes);
+                    setSelectedProvince(buyerRes.province || null);
+                    buyerForm.setFieldsValue({
+                        businessName: buyerRes.businessName,
+                        contactMobile: buyerRes.contactMobile,
+                        province: buyerRes.province,
+                        city: buyerRes.city,
+                        address: buyerRes.address,
+                        description: buyerRes.description,
+                        referrerVisitorCode: buyerRes.referredByVisitorCode || null,
+                    });
+                } else {
+                    // پروفایل وجود ندارد
+                    console.log("[ProfilePage] Buyer profile not found (null or invalid response)");
+                    setBuyerProfile(null);
+                }
+            } catch (error) {
+                // اگر خطا رخ داد، لاگ می‌کنیم و پروفایل را null تنظیم می‌کنیم
+                console.error("[ProfilePage] Error loading buyer profile:", error);
+                console.error("[ProfilePage] Error details:", {
+                    status: error?.response?.status,
+                    data: error?.response?.data,
+                    message: error?.message
+                });
+                
+                // اگر خطای 500 باشد، پیام خطا را نمایش می‌دهیم
+                if (error?.response?.status === 500) {
+                    const errorMessage = error?.response?.data?.message || error?.message || "خطا در بارگذاری پروفایل خریدار";
+                    message.error(errorMessage);
+                }
+                
+                setBuyerProfile(null);
+            }
+
+            // بارگذاری اطلاعات Visitor (اگر وجود دارد)
+            try {
+                const visitorRes = await visitorProfilesApi.getMyProfile();
+                setVisitorProfile(visitorRes);
+            } catch {
+                setVisitorProfile(null);
+            }
         } catch (error) {
             message.error("خطا در بارگذاری اطلاعات پروفایل");
             console.error(error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Buyer Profile handlers
+    const handleBuyerSave = async () => {
+        try {
+            const values = await buyerForm.validateFields();
+            
+            // بررسی کد معرف قبل از ارسال (اگر وارد شده باشد)
+            if (values.referrerVisitorCode && values.referrerVisitorCode.trim()) {
+                try {
+                    const visitorProfile = await visitorProfilesApi.getByReferralCode(values.referrerVisitorCode.trim().toUpperCase());
+                    
+                    // بررسی اینکه آیا کد معرف متعلق به خود کاربر است
+                    if (userInfo && visitorProfile && visitorProfile.userId === userInfo.id) {
+                        message.error("شما نمی‌توانید خودتان را به عنوان بازاریاب انتخاب کنید. لطفاً کد معرف را پاک کنید یا کد معرف دیگری وارد کنید.");
+                        buyerForm.setFieldsValue({ referrerVisitorCode: "" });
+                        return;
+                    }
+                    
+                    // بررسی اینکه آیا بازاریاب فعال است
+                    if (visitorProfile && !visitorProfile.isActive) {
+                        message.error("این کد معرف غیرفعال است. لطفاً کد معرف دیگری وارد کنید.");
+                        buyerForm.setFieldsValue({ referrerVisitorCode: "" });
+                        return;
+                    }
+                } catch (error) {
+                    if (error?.response?.status === 404) {
+                        message.error("کد معرف یافت نشد. لطفاً کد معرف را بررسی کنید.");
+                        buyerForm.setFieldsValue({ referrerVisitorCode: "" });
+                        return;
+                    }
+                    // اگر خطای دیگری بود، ادامه می‌دهیم و backend آن را handle می‌کند
+                }
+            }
+            
+            setSavingBuyer(true);
+            const result = await buyerProfilesApi.upsertMyProfile(values);
+            setBuyerProfile(result);
+            setEditingBuyer(false);
+            message.success("پروفایل خریدار با موفقیت ذخیره شد");
+            
+            // بارگذاری مجدد اطلاعات برای به‌روزرسانی فرم
+            await loadProfile();
+        } catch (error) {
+            console.error("Error in handleBuyerSave:", error);
+            
+            // استخراج پیام خطا از response
+            let errorMsg = "خطا در ذخیره پروفایل";
+            
+            if (error?.response?.data) {
+                // اگر ApiResult باشد
+                if (error.response.data.message) {
+                    errorMsg = error.response.data.message;
+                } else if (error.response.data.error) {
+                    errorMsg = error.response.data.error;
+                } else if (typeof error.response.data === 'string') {
+                    errorMsg = error.response.data;
+                }
+            } else if (error?.message) {
+                errorMsg = error.message;
+            }
+            
+            message.error(errorMsg);
+        } finally {
+            setSavingBuyer(false);
+        }
+    };
+
+    const handleValidateReferralCode = async () => {
+        const code = buyerForm.getFieldValue("referrerVisitorCode");
+        if (!code || code.trim() === "") {
+            message.warning("لطفاً کد معرف را وارد کنید");
+            return;
+        }
+
+        try {
+            setValidatingCode(true);
+            const visitorProfile = await visitorProfilesApi.getByReferralCode(code.trim().toUpperCase());
+            
+            if (visitorProfile) {
+                // بررسی اینکه آیا کد معرف متعلق به خود کاربر است
+                if (userInfo && visitorProfile.userId === userInfo.id) {
+                    message.error("شما نمی‌توانید خودتان را به عنوان بازاریاب انتخاب کنید. لطفاً کد معرف دیگری وارد کنید.");
+                    buyerForm.setFieldsValue({ referrerVisitorCode: "" });
+                    return;
+                }
+                
+                // بررسی اینکه آیا بازاریاب فعال است
+                if (!visitorProfile.isActive) {
+                    message.warning("این کد معرف غیرفعال است. لطفاً کد معرف دیگری وارد کنید.");
+                    buyerForm.setFieldsValue({ referrerVisitorCode: "" });
+                    return;
+                }
+                
+                message.success(`کد معرف معتبر است. معرف: ${visitorProfile.businessName || visitorProfile.userDisplayName || "نامشخص"}`);
+            } else {
+                message.warning("کد معرف یافت نشد. لطفاً کد معرف را بررسی کنید.");
+            }
+        } catch (error) {
+            if (error?.response?.status === 404) {
+                message.warning("کد معرف یافت نشد. لطفاً کد معرف را بررسی کنید.");
+            } else {
+                const errorMsg = error?.response?.data?.message || error?.message || "خطا در بررسی کد معرف";
+                message.error(errorMsg);
+            }
+        } finally {
+            setValidatingCode(false);
         }
     };
 
@@ -327,6 +510,26 @@ const ProfilePage = () => {
         }
     };
 
+    const handleChangePassword = async (values) => {
+        try {
+            setChangingPassword(true);
+            await setPasswordApi({
+                currentPassword: values.currentPassword || "",
+                newPassword: values.newPassword,
+                confirmPassword: values.confirmPassword,
+            });
+            message.success("رمز عبور با موفقیت تغییر کرد");
+            setIsPasswordModalOpen(false);
+            passwordForm.resetFields();
+        } catch (error) {
+            const errorMsg =
+                error?.response?.data?.message || error?.message || "خطا در تغییر رمز عبور";
+            message.error(errorMsg);
+        } finally {
+            setChangingPassword(false);
+        }
+    };
+
     if (loading) {
         return (
             <div style={{ textAlign: "center", padding: 48 }}>
@@ -342,28 +545,60 @@ const ProfilePage = () => {
     const userProfileTab = (
         <>
             {!editing ? (
-                <Descriptions column={1} bordered>
-                    <Descriptions.Item label="نام">
-                        {userInfo.displayName || "-"}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="شماره موبایل">
-                        {userInfo.phoneNumber}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="تاریخ عضویت">
-                        {toShamsi(userInfo.createdAt)}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="نوع کاربر">
-                        <Tag>{getUserTypeLabel(userInfo.userType)}</Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="وضعیت تأیید">
-                        <Tag color={getVerificationStatusColor(userInfo.verificationStatus)}>
-                            {getVerificationStatusLabel(userInfo.verificationStatus)}
-                        </Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="سطح اشتراک">
-                        {getSubscriptionLevelLabel(userInfo.subscriptionLevel)}
-                    </Descriptions.Item>
-                </Descriptions>
+                <>
+                    <Descriptions column={1} bordered>
+                        <Descriptions.Item label="نام">
+                            {userInfo.displayName || "-"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="شماره موبایل">
+                            {userInfo.phoneNumber}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="تاریخ عضویت">
+                            {toShamsi(userInfo.createdAt)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="نوع کاربر">
+                            <Tag>{getUserTypeLabel(userInfo.userType)}</Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="وضعیت تأیید">
+                            <Tag color={getVerificationStatusColor(userInfo.verificationStatus)}>
+                                {getVerificationStatusLabel(userInfo.verificationStatus)}
+                            </Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="سطح اشتراک">
+                            {getSubscriptionLevelLabel(userInfo.subscriptionLevel)}
+                        </Descriptions.Item>
+                    </Descriptions>
+                    <Alert
+                        type="info"
+                        message="برای ویرایش نام و شماره موبایل روی دکمه رو به رو کلیک کنید."
+                        action={
+                            <Button
+                                type="primary"
+                                icon={<EditOutlined />}
+                                onClick={() => setEditing(true)}
+                            >
+                                ویرایش نام و شماره موبایل
+                            </Button>
+                        }
+                        style={{ marginTop: 24 }}
+                    />
+                    <Alert
+                        message="برای تغییر رمز عبور روی دکمه رو به رو کلیک کنید."
+                        action={
+                            <Button
+                                type="default"
+                                onClick={() => setIsPasswordModalOpen(true)}
+                            >
+                                تغییر رمز عبور
+                            </Button>
+                        }
+                        style={{ 
+                            marginTop: 16,
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #d9d9d9'
+                        }}
+                    />
+                </>
             ) : (
                 <Form
                     form={form}
@@ -639,20 +874,9 @@ const ProfilePage = () => {
     );
 
     return (
-        <Card
-            title="پروفایل کاربری"
-            extra={
-                activeTab === "user" && !editing && (
-                    <Button
-                        type="primary"
-                        icon={<EditOutlined />}
-                        onClick={() => setEditing(true)}
-                    >
-                        ویرایش نام و شماره موبایل
-                    </Button>
-                )
-            }
-        >
+            <Card
+                title="پروفایل کاربری"
+            >
             <Tabs
                 activeKey={activeTab}
                 onChange={setActiveTab}
@@ -662,13 +886,387 @@ const ProfilePage = () => {
                         label: "اطلاعات کاربری",
                         children: userProfileTab,
                     },
-                    {
-                        key: "supplier",
-                        label: "پروفایل تأمین‌کننده",
-                        children: supplierProfileTab,
-                    },
+                    ...(supplierProfile
+                        ? [
+                              {
+                                  key: "supplier",
+                                  label: "پروفایل تأمین‌کننده",
+                                  children: supplierProfileTab,
+                              },
+                          ]
+                        : []),
+                    ...(buyerProfile || true // همیشه Tab را نمایش بده (حتی اگر پروفایل وجود نداشته باشد)
+                        ? [
+                              {
+                                  key: "buyer",
+                                  label: "پروفایل خریدار",
+                                  children: (
+                                      <>
+                                          {!buyerProfile ? (
+                                              <Alert type="info" message="شما هنوز پروفایل خریدار ایجاد نکرده‌اید. می‌توانید آن را ایجاد کنید." />
+                                          ) : !editingBuyer ? (
+                                              <>
+                                                  <Descriptions 
+                                                      bordered 
+                                                      size="small"
+                                                      column={2}
+                                                      style={{ marginBottom: 24 }}
+                                                  >
+                                                      <Descriptions.Item label="نام کسب‌وکار" span={1}>
+                                                          {buyerProfile.businessName || "-"}
+                                                      </Descriptions.Item>
+                                                      <Descriptions.Item label="شماره تماس اضطراری" span={1}>
+                                                          {buyerProfile.contactMobile || "-"}
+                                                      </Descriptions.Item>
+                                                      <Descriptions.Item label="استان" span={1}>
+                                                          {buyerProfile.province || "-"}
+                                                      </Descriptions.Item>
+                                                      <Descriptions.Item label="شهر" span={1}>
+                                                          {buyerProfile.city || "-"}
+                                                      </Descriptions.Item>
+                                                      <Descriptions.Item label="آدرس" span={2}>
+                                                          {buyerProfile.address || "-"}
+                                                      </Descriptions.Item>
+                                                      {buyerProfile.description && (
+                                                          <Descriptions.Item label="توضیحات" span={2}>
+                                                              {buyerProfile.description}
+                                                          </Descriptions.Item>
+                                                      )}
+                                                      <Descriptions.Item label="بازاریاب معرف" span={2}>
+                                                          {buyerProfile.referredByVisitorName ? (
+                                                              <Space>
+                                                                  <Text strong>{buyerProfile.referredByVisitorName}</Text>
+                                                                  {buyerProfile.referredByVisitorCode && (
+                                                                      <Text type="secondary" code>{buyerProfile.referredByVisitorCode}</Text>
+                                                                  )}
+                                                              </Space>
+                                                          ) : (
+                                                              <Text type="secondary">تنظیم نشده</Text>
+                                                          )}
+                                                      </Descriptions.Item>
+                                                      <Descriptions.Item label="تاریخ ایجاد" span={1}>
+                                                          {buyerProfile.createdAt ? toShamsi(buyerProfile.createdAt) : "-"}
+                                                      </Descriptions.Item>
+                                                      {buyerProfile.updatedAt && (
+                                                          <Descriptions.Item label="آخرین به‌روزرسانی" span={1}>
+                                                              {toShamsi(buyerProfile.updatedAt)}
+                                                          </Descriptions.Item>
+                                                      )}
+                                                  </Descriptions>
+                                                  <Alert
+                                                      type="info"
+                                                      message="برای ثبت بازاریاب و ویرایش پروفایل خریدار روی دکمه رو به رو کلیک کنید."
+                                                      action={
+                                                          <Button
+                                                              type="primary"
+                                                              icon={<EditOutlined />}
+                                                              onClick={() => setEditingBuyer(true)}
+                                                          >
+                                                              ویرایش پروفایل
+                                                          </Button>
+                                                      }
+                                                      style={{ marginTop: 24 }}
+                                                  />
+                                              </>
+                                          ) : (
+                                              <Form
+                                                  form={buyerForm}
+                                                  layout="vertical"
+                                                  onFinish={handleBuyerSave}
+                                              >
+                                                  <Form.Item label="نام کسب‌وکار" name="businessName">
+                                                      <Input placeholder="نام کسب‌وکار یا نام نمایشی" />
+                                                  </Form.Item>
+
+                                                  <Form.Item 
+                                                      label="شماره تماس اضطراری" 
+                                                      name="contactMobile"
+                                                      rules={[
+                                                          {
+                                                              pattern: /^09\d{9}$/,
+                                                              message: "شماره تماس باید 11 رقم و با 09 شروع شود",
+                                                          },
+                                                      ]}
+                                                  >
+                                                      <Input placeholder="09xxxxxxxxx" />
+                                                  </Form.Item>
+
+                                                  <Row gutter={12}>
+                                                      <Col span={12}>
+                                                          <Form.Item label="استان" name="province">
+                                                              <Select
+                                                                  placeholder="انتخاب استان"
+                                                                  allowClear
+                                                                  onChange={(value) => {
+                                                                      setSelectedProvince(value || null);
+                                                                      buyerForm.setFieldsValue({ city: null });
+                                                                  }}
+                                                              >
+                                                                  {provinces.map((p) => (
+                                                                      <Select.Option key={p} value={p}>
+                                                                          {p}
+                                                                      </Select.Option>
+                                                                  ))}
+                                                              </Select>
+                                                          </Form.Item>
+                                                      </Col>
+                                                      <Col span={12}>
+                                                          <Form.Item label="شهر" name="city">
+                                                              <Select
+                                                                  placeholder="انتخاب شهر"
+                                                                  allowClear
+                                                                  disabled={!selectedProvince}
+                                                              >
+                                                                  {cities.map((c) => (
+                                                                      <Select.Option key={c} value={c}>
+                                                                          {c}
+                                                                      </Select.Option>
+                                                                  ))}
+                                                              </Select>
+                                                          </Form.Item>
+                                                      </Col>
+                                                  </Row>
+
+                                                  <Form.Item label="آدرس" name="address">
+                                                      <Input.TextArea rows={2} placeholder="آدرس" />
+                                                  </Form.Item>
+
+                                                  <Form.Item label="توضیحات" name="description">
+                                                      <Input.TextArea rows={3} placeholder="توضیحات" />
+                                                  </Form.Item>
+
+                                                  <Form.Item
+                                                      label="کد معرف بازاریاب (اختیاری)"
+                                                      name="referrerVisitorCode"
+                                                      help={buyerProfile.referredByVisitorCode 
+                                                          ? "کد معرف قبلاً تنظیم شده و قابل تغییر نیست. برای حذف یا تغییر، با مدیر سیستم تماس بگیرید."
+                                                          : "اگر از طریق یک بازاریاب معرفی شده‌اید، کد معرف او را وارد کنید. با این کار، پورسانت خریدهای شما به بازاریاب تعلق می‌گیرد."}
+                                                  >
+                                                      <Input
+                                                          placeholder="کد معرف بازاریاب (4 کاراکتر)"
+                                                          maxLength={4}
+                                                          style={{ textTransform: "uppercase" }}
+                                                          disabled={!!buyerProfile.referredByVisitorCode}
+                                                          addonAfter={
+                                                              !buyerProfile.referredByVisitorCode ? (
+                                                                  <Button
+                                                                      size="small"
+                                                                      onClick={handleValidateReferralCode}
+                                                                      loading={validatingCode}
+                                                                  >
+                                                                      بررسی
+                                                                  </Button>
+                                                              ) : null
+                                                          }
+                                                      />
+                                                  </Form.Item>
+
+                                                  <Space>
+                                                      <Button type="primary" htmlType="submit" loading={savingBuyer}>
+                                                          ذخیره
+                                                      </Button>
+                                                      <Button onClick={() => {
+                                                          setEditingBuyer(false);
+                                                          if (buyerProfile) {
+                                                              buyerForm.setFieldsValue({
+                                                                  businessName: buyerProfile.businessName,
+                                                                  contactMobile: buyerProfile.contactMobile,
+                                                                  province: buyerProfile.province,
+                                                                  city: buyerProfile.city,
+                                                                  address: buyerProfile.address,
+                                                                  description: buyerProfile.description,
+                                                                  referrerVisitorCode: buyerProfile.referredByVisitorCode || null,
+                                                              });
+                                                              setSelectedProvince(buyerProfile.province || null);
+                                                          }
+                                                      }}>
+                                                          انصراف
+                                                      </Button>
+                                                  </Space>
+                                              </Form>
+                                          )}
+                                      </>
+                                  ),
+                              },
+                          ]
+                        : []),
+                    ...(visitorProfile
+                        ? [
+                              {
+                                  key: "visitor",
+                                  label: "پروفایل بازاریاب",
+                                  children: (
+                                      <>
+                                          <Descriptions 
+                                              bordered 
+                                              size="small"
+                                              column={2}
+                                              style={{ marginBottom: 24 }}
+                                          >
+                                              <Descriptions.Item label="کد معرف" span={2}>
+                                                  <Space>
+                                                      <span style={{
+                                                          fontSize: "16px",
+                                                          fontWeight: "bold",
+                                                          color: "#1890ff",
+                                                          fontFamily: "monospace",
+                                                      }}>
+                                                          {visitorProfile.referralCode}
+                                                      </span>
+                                                      <Button
+                                                          size="small"
+                                                          icon={<EditOutlined />}
+                                                          onClick={() => {
+                                                              navigator.clipboard.writeText(visitorProfile.referralCode);
+                                                              message.success("کد معرف کپی شد");
+                                                          }}
+                                                      >
+                                                          کپی
+                                                      </Button>
+                                                  </Space>
+                                              </Descriptions.Item>
+                                              <Descriptions.Item label="وضعیت" span={1}>
+                                                  <Tag color={visitorProfile.isActive ? "success" : "default"}>
+                                                      {visitorProfile.isActive ? "فعال" : "غیرفعال"}
+                                                  </Tag>
+                                              </Descriptions.Item>
+                                              <Descriptions.Item label="شماره موبایل (Login)" span={1}>
+                                                  {visitorProfile.userPhoneNumber || "-"}
+                                              </Descriptions.Item>
+                                              <Descriptions.Item label="نام کسب‌وکار" span={1}>
+                                                  {visitorProfile.businessName || "-"}
+                                              </Descriptions.Item>
+                                              <Descriptions.Item label="شماره تماس اضطراری" span={1}>
+                                                  {visitorProfile.contactMobile || "-"}
+                                              </Descriptions.Item>
+                                              <Descriptions.Item label="استان" span={1}>
+                                                  {visitorProfile.province || "-"}
+                                              </Descriptions.Item>
+                                              <Descriptions.Item label="شهر" span={1}>
+                                                  {visitorProfile.city || "-"}
+                                              </Descriptions.Item>
+                                              <Descriptions.Item label="آدرس" span={2}>
+                                                  {visitorProfile.address || "-"}
+                                              </Descriptions.Item>
+                                              {visitorProfile.description && (
+                                                  <Descriptions.Item label="توضیحات" span={2}>
+                                                      {visitorProfile.description}
+                                                  </Descriptions.Item>
+                                              )}
+                                              <Descriptions.Item label="تاریخ ایجاد" span={1}>
+                                                  {visitorProfile.createdAt ? toShamsi(visitorProfile.createdAt) : "-"}
+                                              </Descriptions.Item>
+                                              {visitorProfile.updatedAt ? (
+                                                  <Descriptions.Item label="آخرین به‌روزرسانی" span={1}>
+                                                      {toShamsi(visitorProfile.updatedAt)}
+                                                  </Descriptions.Item>
+                                              ) : (
+                                                  <Descriptions.Item label="آخرین به‌روزرسانی" span={1}>
+                                                      "-"
+                                                  </Descriptions.Item>
+                                              )}
+                                          </Descriptions>
+                                          <Alert
+                                              type="info"
+                                              message="برای مدیریت خریداران معرفی شده، به صفحه اختصاصی آن بروید."
+                                              action={
+                                                  <Button
+                                                      type="primary"
+                                                      onClick={() => navigate("/my-buyers")}
+                                                  >
+                                                      مدیریت خریداران
+                                                  </Button>
+                                              }
+                                          />
+                                      </>
+                                  ),
+                              },
+                          ]
+                        : []),
                 ]}
             />
+
+            {/* Password Change Modal */}
+            <Modal
+                title="تغییر رمز عبور"
+                open={isPasswordModalOpen}
+                onCancel={() => {
+                    setIsPasswordModalOpen(false);
+                    passwordForm.resetFields();
+                }}
+                footer={null}
+                destroyOnClose
+            >
+                <Form
+                    form={passwordForm}
+                    layout="vertical"
+                    onFinish={handleChangePassword}
+                >
+                    {userInfo?.passwordHash && (
+                        <Form.Item
+                            label="رمز عبور فعلی"
+                            name="currentPassword"
+                            rules={[
+                                { required: true, message: "رمز عبور فعلی را وارد کنید" },
+                            ]}
+                        >
+                            <Input.Password placeholder="رمز عبور فعلی" />
+                        </Form.Item>
+                    )}
+
+                    <Form.Item
+                        label="رمز عبور جدید"
+                        name="newPassword"
+                        rules={[
+                            { required: true, message: "رمز عبور جدید را وارد کنید" },
+                            { min: 6, message: "رمز عبور باید حداقل 6 کاراکتر باشد" },
+                        ]}
+                    >
+                        <Input.Password placeholder="رمز عبور جدید (حداقل 6 کاراکتر)" />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="تأیید رمز عبور جدید"
+                        name="confirmPassword"
+                        dependencies={["newPassword"]}
+                        rules={[
+                            { required: true, message: "تأیید رمز عبور را وارد کنید" },
+                            ({ getFieldValue }) => ({
+                                validator(_, value) {
+                                    if (!value || getFieldValue("newPassword") === value) {
+                                        return Promise.resolve();
+                                    }
+                                    return Promise.reject(
+                                        new Error("رمز عبور جدید و تأیید آن مطابقت ندارند")
+                                    );
+                                },
+                            }),
+                        ]}
+                    >
+                        <Input.Password placeholder="تأیید رمز عبور جدید" />
+                    </Form.Item>
+
+                    <Form.Item>
+                        <Space>
+                            <Button
+                                type="primary"
+                                htmlType="submit"
+                                loading={changingPassword}
+                            >
+                                تغییر رمز عبور
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    setIsPasswordModalOpen(false);
+                                    passwordForm.resetFields();
+                                }}
+                            >
+                                انصراف
+                            </Button>
+                        </Space>
+                    </Form.Item>
+                </Form>
+            </Modal>
         </Card>
     );
 };

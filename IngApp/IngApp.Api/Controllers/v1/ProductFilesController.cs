@@ -5,6 +5,7 @@ using IngApp.Application.Common.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.IO;
 
 namespace IngApp.Api.Controllers.v1;
 
@@ -29,38 +30,71 @@ public class ProductFilesController : ControllerBase
         [FromForm] IFormFile file,
         CancellationToken cancellationToken)
     {
-        if (file == null || file.Length == 0)
-            throw new ValidationException(new() { "فایلی ارسال نشده است." });
-
-        // Validate that product exists
-        var product = await _productService.GetByIdAsync(productId);
-        if (product == null)
-            throw new NotFoundException("محصول یافت نشد.");
-
-        await using var stream = file.OpenReadStream();
-        var relativePath = await _fileStorage.SaveAsync(
-            productId,
-            file.FileName,
-            stream,
-            cancellationToken);
-
-        // Update product ImagePath
-        await _productService.UpdateAsync(productId, new IngApp.Application.Features.Products.DTO.UpdateProductRequest
+        try
         {
-            Name = product.Name,
-            CategoryId = product.CategoryId,
-            Unit = product.Unit ?? string.Empty,
-            ImagePath = relativePath
-        });
+            if (file == null || file.Length == 0)
+                return BadRequest(ApiResult.Fail("فایلی ارسال نشده است."));
 
-        var response = new
+            // Validate file size (max 20MB)
+            if (file.Length > 20_000_000)
+                return BadRequest(ApiResult.Fail("حجم فایل نباید بیشتر از 20 مگابایت باشد."));
+
+            // Validate file type (only images)
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" };
+            var fileExtension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(fileExtension) || !allowedExtensions.Contains(fileExtension))
+                return BadRequest(ApiResult.Fail("فقط فایل‌های تصویری مجاز هستند (jpg, jpeg, png, gif, webp, bmp)."));
+
+            // Validate that product exists
+            var product = await _productService.GetByIdAsync(productId);
+            if (product == null)
+                return NotFound(ApiResult.Fail("محصول یافت نشد."));
+
+            await using var stream = file.OpenReadStream();
+            var relativePath = await _fileStorage.SaveAsync(
+                productId,
+                file.FileName,
+                stream,
+                cancellationToken);
+
+            // Update product ImagePath
+            await _productService.UpdateAsync(productId, new IngApp.Application.Features.Products.DTO.UpdateProductRequest
+            {
+                Name = product.Name,
+                CategoryId = product.CategoryId,
+                Unit = product.Unit ?? string.Empty,
+                ImagePath = relativePath
+            });
+
+            var response = new
+            {
+                FilePath = relativePath,
+                OriginalFileName = file.FileName,
+                Size = file.Length
+            };
+
+            return Ok(ApiResult.Ok(response));
+        }
+        catch (ArgumentException ex)
         {
-            FilePath = relativePath,
-            OriginalFileName = file.FileName,
-            Size = file.Length
-        };
-
-        return Ok(ApiResult.Ok(response));
+            return BadRequest(ApiResult.Fail($"خطا در فایل ارسالی: {ex.Message}"));
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            return StatusCode(500, ApiResult.Fail($"خطا در ایجاد پوشه ذخیره‌سازی: {ex.Message}"));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(500, ApiResult.Fail($"خطا در دسترسی به فایل: {ex.Message}"));
+        }
+        catch (IOException ex)
+        {
+            return StatusCode(500, ApiResult.Fail($"خطا در ذخیره فایل: {ex.Message}"));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResult.Fail($"خطای غیرمنتظره در آپلود تصویر: {ex.Message}"));
+        }
     }
 
     /// <summary>

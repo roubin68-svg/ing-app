@@ -8,7 +8,6 @@ public class OfferStatusHistoryConfiguration : IEntityTypeConfiguration<OfferSta
 {
     public void Configure(EntityTypeBuilder<OfferStatusHistory> builder)
     {
-        builder.ToTable("OfferStatusHistories");
 
         builder.HasKey(x => x.Id);
 
@@ -28,4 +27,14 @@ public class OfferStatusHistoryConfiguration : IEntityTypeConfiguration<OfferSta
         builder.HasIndex(x => x.CreatedAt);
     }
 }
+
+
+
+
+
+
+
+
+
+
 

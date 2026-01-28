@@ -9,6 +9,12 @@ const userApi = {
             .get("/users", { params })
             .then((res) => res.data),
 
+    // دریافت اطلاعات یک کاربر بر اساس شناسه
+    getById: (id) =>
+        apiClient
+            .get(`/users/${id}`)
+            .then((res) => res.data),
+
     // ایجاد کاربر جدید
     create: (payload) =>
         apiClient
@@ -37,6 +43,12 @@ const userApi = {
     removeRole: (userId, roleId) =>
         apiClient
             .delete(`/users/${userId}/roles/${roleId}`)
+            .then((res) => res.data),
+
+    // تنظیم رمز عبور (Admin)
+    setPassword: (userId, password) =>
+        apiClient
+            .post(`/users/${userId}/set-password`, { password })
             .then((res) => res.data),
 };
 

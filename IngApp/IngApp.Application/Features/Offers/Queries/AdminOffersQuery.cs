@@ -21,3 +21,13 @@ public class AdminOffersQuery
     public string? SortDirection { get; set; } // asc | desc
 }
 
+
+
+
+
+
+
+
+
+
+

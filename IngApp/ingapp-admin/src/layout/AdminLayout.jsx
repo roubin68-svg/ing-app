@@ -8,6 +8,8 @@ import {
     UserOutlined,
     LogoutOutlined,
     SolutionOutlined,
+    WalletOutlined,
+    CrownOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 
@@ -17,6 +19,7 @@ import { getMeApi } from "../features/auth/api/authApi";
 
 import suppliersApi from "../features/suppliers/api/suppliersApi";
 import supplierOnboardingApi from "../features/suppliers/api/supplierOnboardingApi";
+import walletApi from "../features/wallet/api/walletApi";
 
 // Hook برای تشخیص موبایل
 const useIsMobile = () => {
@@ -52,6 +55,8 @@ const AdminLayout = ({ children }) => {
     const [pendingCount, setPendingCount] = useState(0);
     const [notifications, setNotifications] = useState([]);
     const [supplierStatus, setSupplierStatus] = useState(null);
+    const [walletBalance, setWalletBalance] = useState(null);
+    const [loadingWallet, setLoadingWallet] = useState(false);
 
     // در موبایل همیشه collapsed باشد
     useEffect(() => {
@@ -167,15 +172,103 @@ const AdminLayout = ({ children }) => {
 
     const userNameText = userInfo?.displayName || "مهمان";
 
+    // ---------- بارگذاری موجودی کیف پول ----------
+    const loadWalletBalance = async () => {
+        try {
+            setLoadingWallet(true);
+            const result = await walletApi.getBalance();
+            setWalletBalance(result);
+        } catch (error) {
+            // Silent fail - اگر خطا داشت، موجودی null می‌ماند
+            console.error("Error loading wallet balance:", error);
+        } finally {
+            setLoadingWallet(false);
+        }
+    };
+
+    useEffect(() => {
+        loadWalletBalance();
+
+        // گوش دادن به event برای به‌روزرسانی موجودی بعد از تراکنش‌های مالی
+        const handleWalletBalanceChanged = () => {
+            loadWalletBalance();
+        };
+
+        window.addEventListener('walletBalanceChanged', handleWalletBalanceChanged);
+
+        return () => {
+            window.removeEventListener('walletBalanceChanged', handleWalletBalanceChanged);
+        };
+    }, []);
+
+    // ---------- فرمت موجودی ----------
+    const formatPrice = (rial) => {
+        if (rial == null) return "۰ تومان";
+        const toman = rial / 10;
+        return `${toman.toLocaleString("fa-IR")} تومان`;
+    };
+
     // ---------- منوی آواتار بالا ----------
     const userMenu = {
         items: [
+            // موجودی کیف پول (Header)
             {
-                key: "profile",
-                label: "پروفایل",
+                key: "wallet-balance",
+                label: (
+                    <div style={{ 
+                        padding: "10px 12px", 
+                        background: "#f0f7ff",
+                        borderRadius: "4px",
+                        margin: "0 -4px"
+                    }}>
+                        <div style={{ 
+                            display: "flex", 
+                            alignItems: "center", 
+                            gap: "6px", 
+                            marginBottom: "4px" 
+                        }}>
+                            <WalletOutlined style={{ color: "#1890ff", fontSize: "14px" }} />
+                            <span style={{ fontSize: "12px", color: "#666" }}>موجودی کیف پول</span>
+                        </div>
+                        {loadingWallet ? (
+                            <Spin size="small" />
+                        ) : (
+                            <div style={{ 
+                                fontSize: "16px", 
+                                fontWeight: "bold", 
+                                color: "#1890ff",
+                                marginTop: "2px"
+                            }}>
+                                {formatPrice(walletBalance?.balanceRial)}
+                            </div>
+                        )}
+                    </div>
+                ),
+                disabled: true,
             },
             {
                 type: "divider",
+                style: { margin: "4px 0" },
+            },
+            {
+                key: "profile",
+                label: "پروفایل",
+                icon: <UserOutlined />,
+            },
+            {
+                key: "wallet",
+                label: "کیف پول",
+                icon: <WalletOutlined />,
+            },
+            {
+                key: "subscriptions",
+                label: "اشتراک‌ها",
+                icon: <CrownOutlined />,
+            },           
+           
+            {
+                type: "divider",
+                style: { margin: "4px 0" },
             },
             {
                 key: "logout",
@@ -187,6 +280,10 @@ const AdminLayout = ({ children }) => {
         onClick: ({ key }) => {
             if (key === "profile") {
                 navigate("/profile");
+            } else if (key === "wallet") {
+                navigate("/wallet");
+            } else if (key === "subscriptions") {
+                navigate("/subscriptions");
             } else if (key === "logout") {
                 handleLogout();
             }

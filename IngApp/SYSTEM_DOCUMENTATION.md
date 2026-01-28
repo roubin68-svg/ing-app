@@ -651,3 +651,13 @@ IngApp/
 
 تمام بخش‌ها با معماری Clean Architecture و الگوی Repository/Service پیاده‌سازی شده‌اند و از Entity Framework Core برای دسترسی به دیتابیس استفاده می‌کنند.
 
+
+
+
+
+
+
+
+
+
+

@@ -27,3 +27,16 @@ export const getMeApi = () => {
 export const updateMyProfileApi = (payload) => {
   return apiClient.put("/auth/me", payload);
 };
+
+// 🔹 ورود با رمز عبور
+export const loginWithPasswordApi = (phoneNumber, password) => {
+  return apiClient.post("/auth/login-with-password", {
+    phoneNumber: phoneNumber,
+    password: password,
+  });
+};
+
+// 🔹 تنظیم یا تغییر رمز عبور
+export const setPasswordApi = (payload) => {
+  return apiClient.post("/auth/set-password", payload);
+};

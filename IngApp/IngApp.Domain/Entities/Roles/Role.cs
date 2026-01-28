@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using IngApp.Domain.Entities.Users;
+using System.Collections.Generic;
 
 namespace IngApp.Domain.Entities.Roles;
 

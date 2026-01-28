@@ -9,16 +9,19 @@ import "../../../theme/login.css";
 const { Title, Text } = Typography;
 
 const LoginPage = () => {
-    const { sendOtp, loginWithOtp, isLoading, isAuthenticated } = useAuth();
+    const { sendOtp, loginWithOtp, loginWithPassword, isLoading, isAuthenticated } = useAuth();
 
+    const [loginMethod, setLoginMethod] = useState("otp"); // "otp" or "password"
     const [step, setStep] = useState("phone");
     const [phoneNumber, setPhoneNumber] = useState("");
     const [lastPhoneNumber, setLastPhoneNumber] = useState("");
     const [resendSeconds, setResendSeconds] = useState(0);
+    const [password, setPassword] = useState("");
 
     const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
     const [otpError, setOtpError] = useState("");
     const [phoneError, setPhoneError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
 
     const inputsRef = useRef([]);
     const [phoneForm] = Form.useForm();
@@ -139,6 +142,28 @@ const LoginPage = () => {
         }
     };
 
+    // ---------------------------------
+    // ورود با رمز عبور
+    // ---------------------------------
+    const handleLoginWithPassword = async () => {
+        if (!validatePhone()) return;
+
+        if (!password.trim()) {
+            setPasswordError("رمز عبور را وارد کنید");
+            return;
+        }
+
+        const result = await loginWithPassword(phoneNumber.trim(), password);
+
+        if (!result.ok) {
+            setPasswordError(result.message);
+            return;
+        }
+
+        // موفق → ورود + ریدایرکت
+        navigate("/", { replace: true });
+    };
+
     const handleOtpKeyDown = (index, e) => {
         if (e.key === "Backspace") {
             if (otpDigits[index] !== "") {
@@ -175,8 +200,40 @@ const LoginPage = () => {
                 <Space direction="vertical" style={{ width: "100%" }} size={12}>
                     <div className="login-header">
                         <Title level={3} className="login-title">سامانه معاملات نگین گوهر</Title>
-                        <Text className="login-subtitle">لطفاً شماره موبایل و کد یک‌بارمصرف را وارد کنید.</Text>
+                        <Text className="login-subtitle">
+                            {loginMethod === "otp"
+                                ? "لطفاً شماره موبایل و کد یک‌بارمصرف را وارد کنید."
+                                : "لطفاً شماره موبایل و رمز عبور خود را وارد کنید."}
+                        </Text>
                     </div>
+
+                    {/* LOGIN METHOD SELECTOR */}
+                    {step === "phone" && (
+                        <div style={{ marginBottom: 16, textAlign: "center" }}>
+                            <Space>
+                                <Button
+                                    type={loginMethod === "otp" ? "primary" : "default"}
+                                    onClick={() => {
+                                        setLoginMethod("otp");
+                                        setPhoneError("");
+                                        setPasswordError("");
+                                    }}
+                                >
+                                    ورود با کد یک‌بارمصرف
+                                </Button>
+                                <Button
+                                    type={loginMethod === "password" ? "primary" : "default"}
+                                    onClick={() => {
+                                        setLoginMethod("password");
+                                        setPhoneError("");
+                                        setPasswordError("");
+                                    }}
+                                >
+                                    ورود با رمز عبور
+                                </Button>
+                            </Space>
+                        </div>
+                    )}
 
                     {/* PHONE STEP */}
                     {step === "phone" && (
@@ -204,18 +261,51 @@ const LoginPage = () => {
                                     <div className="login-error-box">{phoneError}</div>
                                 )}
 
+                                {loginMethod === "password" && (
+                                    <>
+                                        <Form.Item label="رمز عبور" style={{ marginTop: 16 }}>
+                                            <Input.Password
+                                                className="login-input"
+                                                value={password}
+                                                onChange={(e) => {
+                                                    setPassword(e.target.value);
+                                                    if (passwordError) setPasswordError("");
+                                                }}
+                                                placeholder="رمز عبور خود را وارد کنید"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter") {
+                                                        e.preventDefault();
+                                                        handleLoginWithPassword();
+                                                    }
+                                                }}
+                                            />
+                                        </Form.Item>
+                                        {passwordError && (
+                                            <div className="login-error-box">{passwordError}</div>
+                                        )}
+                                    </>
+                                )}
+
                                 <Button
                                     type="primary"
                                     block
                                     size="large"
                                     loading={isLoading}
-                                    disabled={isLoading || isSameNumberBlocked}
+                                    disabled={
+                                        isLoading ||
+                                        (loginMethod === "otp" && isSameNumberBlocked) ||
+                                        (loginMethod === "password" && !password.trim())
+                                    }
                                     className="login-btn"
-                                    onClick={handleSendOtp}
+                                    onClick={
+                                        loginMethod === "otp" ? handleSendOtp : handleLoginWithPassword
+                                    }
                                 >
-                                    {isSameNumberBlocked
-                                        ? `ارسال مجدد (${resendSeconds})`
-                                        : "ارسال کد ورود"}
+                                    {loginMethod === "otp"
+                                        ? isSameNumberBlocked
+                                            ? `ارسال مجدد (${resendSeconds})`
+                                            : "ارسال کد ورود"
+                                        : "ورود"}
                                 </Button>
                             </Form>
                         </>

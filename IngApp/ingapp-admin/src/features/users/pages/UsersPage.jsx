@@ -20,10 +20,14 @@ import {
     PlusOutlined,
     EditOutlined,
     TeamOutlined,
+    LockOutlined,
+    WalletOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 import userApi from "../api/userApi";
 import roleApi from "../../roles/api/rolesApi";
+import walletManagementApi from "../../walletManagement/api/walletManagementApi";
 
 
 const { Option } = Select;
@@ -34,10 +38,23 @@ const { Option } = Select;
 // =======================
 
 const USER_TYPE_OPTIONS = [
-    { value: 1, label: "خریدار" },
-    { value: 2, label: "تأمین‌کننده" },
-    { value: 3, label: "مدیر سیستم" },
+    { value: 1, label: "خریدار", code: "Buyer" },
+    { value: 2, label: "تأمین‌کننده", code: "Supplier" },
+    { value: 3, label: "مدیر سیستم", code: "Admin" },
+    { value: 4, label: "بازاریاب", code: "Visitor" },
 ];
+
+// تبدیل userType (عدد) به UserTypeCode (string)
+const getUserTypeCode = (userTypeId) => {
+    const option = USER_TYPE_OPTIONS.find(opt => opt.value === userTypeId);
+    return option?.code || null;
+};
+
+// تبدیل UserTypeCode (string) به userType (عدد)
+const getUserTypeId = (userTypeCode) => {
+    const option = USER_TYPE_OPTIONS.find(opt => opt.code === userTypeCode);
+    return option?.value || null;
+};
 
 const SUBSCRIPTION_LEVEL_OPTIONS = [
     { value: 0, label: "بدون اشتراک" },
@@ -54,6 +71,7 @@ const VERIFICATION_STATUS_OPTIONS = [
 ];
 
 const UsersPage = () => {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
 
     const [data, setData] = useState([]);
@@ -86,6 +104,11 @@ const UsersPage = () => {
     const [selectedUser, setSelectedUser] = useState(null);
     const [selectedUserRoleNames, setSelectedUserRoleNames] = useState([]); // نقش‌ها بر اساس Name
 
+    // ----- Modal تنظیم رمز عبور -----
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [passwordForm] = Form.useForm();
+    const [settingPassword, setSettingPassword] = useState(false);
+
     // ========================
     // Load Users (Paging + Filter + Sort)
     // ========================
@@ -101,7 +124,7 @@ const UsersPage = () => {
                     sortDesc,
                     phoneNumber: filters.phoneNumber || null,
                     displayName: filters.displayName || null,
-                    userType: filters.userType ?? null,
+                    userTypeCode: filters.userType ? getUserTypeCode(filters.userType) : null,
                     subscriptionLevel: filters.subscriptionLevel ?? null,
                     verificationStatus: filters.verificationStatus ?? null,
                     // در صورت نیاز بعداً roleId هم اضافه می‌کنیم
@@ -202,7 +225,7 @@ const UsersPage = () => {
         userForm.setFieldsValue({
             phoneNumber: user.phoneNumber,
             displayName: user.displayName,
-            userType: user.userType,
+            userType: getUserTypeId(user.userTypeCode || user.userTypeName),
             subscriptionLevel: user.subscriptionLevel,
             verificationStatus: user.verificationStatus,
         });
@@ -219,7 +242,7 @@ const UsersPage = () => {
         const payload = {
             phoneNumber: values.phoneNumber.trim(),
             displayName: values.displayName?.trim() || null,
-            userType: values.userType,
+            userTypeCode: getUserTypeCode(values.userType),
             subscriptionLevel: values.subscriptionLevel,
             verificationStatus: values.verificationStatus,
         };
@@ -309,6 +332,37 @@ const UsersPage = () => {
     };
 
     // ========================
+    // Password Modal
+    // ========================
+    const openPasswordModal = (user) => {
+        setSelectedUser(user);
+        passwordForm.resetFields();
+        setIsPasswordModalOpen(true);
+    };
+
+    const handlePasswordModalCancel = () => {
+        setIsPasswordModalOpen(false);
+        setSelectedUser(null);
+        passwordForm.resetFields();
+    };
+
+    const handleSetPassword = async (values) => {
+        if (!selectedUser) return;
+
+        try {
+            setSettingPassword(true);
+            await userApi.setPassword(selectedUser.id, values.password);
+            message.success("رمز عبور با موفقیت تنظیم شد");
+            handlePasswordModalCancel();
+        } catch (err) {
+            console.error(err);
+            message.error(err.response?.data?.message || "خطا در تنظیم رمز عبور");
+        } finally {
+            setSettingPassword(false);
+        }
+    };
+
+    // ========================
     // Table Columns
     // ========================
     const columns = [
@@ -374,7 +428,7 @@ const UsersPage = () => {
         {
             title: "عملیات",
             key: "actions",
-            width: "16%",
+            width: "26%",
             render: (_, record) => (
                 <Space>
                     <Button
@@ -390,6 +444,20 @@ const UsersPage = () => {
                         onClick={() => openRolesModal(record)}
                     >
                         نقش‌ها
+                    </Button>
+                    <Button
+                        size="small"
+                        icon={<LockOutlined />}
+                        onClick={() => openPasswordModal(record)}
+                    >
+                        رمز عبور
+                    </Button>
+                    <Button
+                        size="small"
+                        icon={<WalletOutlined />}
+                        onClick={() => navigate(`/wallet/admin/${record.id}`)}
+                    >
+                        کیف پول
                     </Button>
                 </Space>
             ),
@@ -605,6 +673,70 @@ const UsersPage = () => {
                         ))}
                     </Row>
                 </Checkbox.Group>
+            </Modal>
+
+            {/* ============ Password Modal ============ */}
+            <Modal
+                open={isPasswordModalOpen}
+                title={
+                    selectedUser
+                        ? `تنظیم رمز عبور برای ${selectedUser.displayName || selectedUser.phoneNumber}`
+                        : "تنظیم رمز عبور"
+                }
+                onCancel={handlePasswordModalCancel}
+                footer={null}
+                destroyOnClose
+            >
+                <Form
+                    form={passwordForm}
+                    layout="vertical"
+                    onFinish={handleSetPassword}
+                >
+                    <Form.Item
+                        label="رمز عبور جدید"
+                        name="password"
+                        rules={[
+                            { required: true, message: "رمز عبور را وارد کنید" },
+                            { min: 6, message: "رمز عبور باید حداقل 6 کاراکتر باشد" },
+                        ]}
+                    >
+                        <Input.Password placeholder="رمز عبور جدید (حداقل 6 کاراکتر)" />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="تأیید رمز عبور"
+                        name="confirmPassword"
+                        dependencies={["password"]}
+                        rules={[
+                            { required: true, message: "تأیید رمز عبور را وارد کنید" },
+                            ({ getFieldValue }) => ({
+                                validator(_, value) {
+                                    if (!value || getFieldValue("password") === value) {
+                                        return Promise.resolve();
+                                    }
+                                    return Promise.reject(
+                                        new Error("رمز عبور و تأیید آن مطابقت ندارند")
+                                    );
+                                },
+                            }),
+                        ]}
+                    >
+                        <Input.Password placeholder="تأیید رمز عبور" />
+                    </Form.Item>
+
+                    <Form.Item>
+                        <Space>
+                            <Button
+                                type="primary"
+                                htmlType="submit"
+                                loading={settingPassword}
+                            >
+                                تنظیم رمز عبور
+                            </Button>
+                            <Button onClick={handlePasswordModalCancel}>انصراف</Button>
+                        </Space>
+                    </Form.Item>
+                </Form>
             </Modal>
         </>
     );

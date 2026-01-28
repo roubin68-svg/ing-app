@@ -23,8 +23,16 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.DisplayName)
             .HasMaxLength(200);
 
-        builder.Property(u => u.UserType)
+        builder.Property(u => u.PasswordHash)
+            .HasMaxLength(500);
+
+        builder.Property(u => u.UserTypeId)
             .IsRequired();
+
+        builder.HasOne(u => u.UserType)
+            .WithMany()
+            .HasForeignKey(u => u.UserTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(u => u.SubscriptionLevel)
             .IsRequired();
@@ -47,13 +55,14 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasForeignKey(d => d.UserId);
 
         // Seed: کاربر ادمین پیش‌فرض
+        // Note: UserTypeId = 3 برای Admin (بعد از Seed UserType ها)
         builder.HasData(
             new User
             {
                 Id = DefaultAdminUserId,
                 PhoneNumber = "09123823632",
                 DisplayName = "علی هور",
-                UserType = UserType.Admin,
+                UserTypeId = 3, // Admin
                 SubscriptionLevel = SubscriptionLevel.None,
                 VerificationStatus = VerificationStatus.NotSubmitted,
                 IsActive = true,

@@ -8,7 +8,6 @@ namespace IngApp.Infrastructure.Persistence.Configurations
     {
         public void Configure(EntityTypeBuilder<SupplierType> builder)
         {
-            builder.ToTable("SupplierTypes");
 
             builder.HasKey(x => x.Id);
 

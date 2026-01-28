@@ -8,7 +8,6 @@ public class OfferDocumentConfiguration : IEntityTypeConfiguration<OfferDocument
 {
     public void Configure(EntityTypeBuilder<OfferDocument> builder)
     {
-        builder.ToTable("OfferDocuments");
 
         builder.HasKey(x => x.Id);
 

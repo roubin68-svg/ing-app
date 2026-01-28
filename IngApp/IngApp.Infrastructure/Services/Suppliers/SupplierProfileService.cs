@@ -3,6 +3,7 @@ using IngApp.Application.Common.Interfaces.Suppliers;
 using IngApp.Application.Common.Models;
 using IngApp.Application.Features.Suppliers.DTO;
 using IngApp.Domain.Entities.Suppliers;
+using IngApp.Domain.Entities.Users;
 using IngApp.Domain.Enums;
 using IngApp.Infrastructure.Persistence;
 using IngApp.Infrastructure.Persistence.Configurations;
@@ -351,19 +352,26 @@ namespace IngApp.Infrastructure.Services.Suppliers
             });
 
             // --- نقش‌دهی/نقش‌گیری Supplier + تغییر UserType ---
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == supplier.UserId);
+            var user = await _db.Users
+                .Include(u => u.UserType)
+                .FirstOrDefaultAsync(u => u.Id == supplier.UserId);
             if (user == null)
                 throw new NotFoundException("کاربر مرتبط با تأمین‌کننده پیدا نشد.");
 
             var supplierRoleId = RoleConfiguration.SupplierRoleId;
-            var buyerUserType = UserType.Buyer;
-            var supplierUserType = UserType.Supplier;
+            
+            // دریافت UserType های Buyer و Supplier
+            var buyerUserType = await _db.UserTypes.FirstOrDefaultAsync(ut => ut.Code == "Buyer" && ut.IsActive);
+            var supplierUserType = await _db.UserTypes.FirstOrDefaultAsync(ut => ut.Code == "Supplier" && ut.IsActive);
+
+            if (buyerUserType == null || supplierUserType == null)
+                throw new AppException("نوع کاربر Buyer یا Supplier در سیستم یافت نشد.");
 
             if (newStatus == VerificationStatus.Approved)
             {
                 // 1) UserType => Supplier
-                if (user.UserType != supplierUserType)
-                    user.UserType = supplierUserType;
+                if (user.UserTypeId != supplierUserType.Id)
+                    user.UserTypeId = supplierUserType.Id;
 
                 // 2) افزودن Role Supplier اگر وجود ندارد
                 var hasSupplierRole = await _db.UserRoles.AnyAsync(x => x.UserId == user.Id && x.RoleId == supplierRoleId);
@@ -373,8 +381,8 @@ namespace IngApp.Infrastructure.Services.Suppliers
             else
             {
                 // هر وضعیتی غیر از Approved => Role Supplier برداشته شود و UserType برگردد Buyer
-                if (user.UserType == supplierUserType)
-                    user.UserType = buyerUserType;
+                if (user.UserTypeId == supplierUserType.Id)
+                    user.UserTypeId = buyerUserType.Id;
 
                 var existing = await _db.UserRoles.FirstOrDefaultAsync(x => x.UserId == user.Id && x.RoleId == supplierRoleId);
                 if (existing != null)

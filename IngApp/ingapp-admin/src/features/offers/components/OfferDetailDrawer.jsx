@@ -103,21 +103,65 @@ const OfferDetailDrawer = ({ offerId, visible, onClose }) => {
     // -----------------------
     const handleShowContact = async () => {
         try {
-            // همیشه ثبت کلیک (حتی اگر اطلاعات قبلاً load شده باشد)
-            await offersApi.logContactClick(offerId);
+            setLoadingContact(true);
             
             // اگر قبلاً اطلاعات تماس load شده، فقط نمایش بده
-            if (contactInfo) {
-                setShowContactInfo(true);
+            if (contactInfo && showContactInfo) {
                 return;
             }
 
-            setLoadingContact(true);
-            // دریافت اطلاعات تماس
+            // 1. ابتدا Unlock Contact را انجام بده (با پرداخت از کیف پول)
+            try {
+                const unlockResult = await offersApi.unlockContact(offerId);
+                // apiClient interceptor unwraps ApiResult, so unlockResult is: UnlockContactResultDto (PascalCase)
+                
+                // بررسی نتیجه Unlock (PascalCase از Backend)
+                const isUnlocked = unlockResult?.IsUnlocked || unlockResult?.isUnlocked;
+                const charged = unlockResult?.Charged || unlockResult?.charged;
+                const chargedAmountToman = unlockResult?.ChargedAmountToman || unlockResult?.chargedAmountToman;
+                const errorMessage = unlockResult?.ErrorMessage || unlockResult?.errorMessage;
+                
+                if (isUnlocked) {
+                    if (charged) {
+                        message.success(
+                            `اطلاعات تماس با موفقیت باز شد. ${chargedAmountToman ? `مبلغ: ${chargedAmountToman.toLocaleString("fa-IR")} تومان` : ''}`
+                        );
+                        // به‌روزرسانی موجودی کیف پول در header
+                        window.dispatchEvent(new CustomEvent('walletBalanceChanged'));
+                    } else {
+                        message.success("اطلاعات تماس باز شد (رایگان)");
+                    }
+                } else if (errorMessage) {
+                    message.error(errorMessage);
+                    return;
+                } else {
+                    message.error("خطا در باز کردن اطلاعات تماس");
+                    return;
+                }
+            } catch (unlockError) {
+                // اگر خطا در Unlock بود، بررسی کن که آیا به خاطر موجودی ناکافی است
+                const errorMsg = unlockError?.response?.data?.message || unlockError?.message || "خطا در باز کردن اطلاعات تماس";
+                
+                if (errorMsg.includes("موجودی") || errorMsg.includes("کافی نیست")) {
+                    message.error("موجودی کیف پول کافی نیست. لطفاً ابتدا کیف پول خود را شارژ کنید.");
+                } else {
+                    message.error(errorMsg);
+                }
+                console.error("Unlock Contact Error:", unlockError);
+                return;
+            }
+
+            // 2. ثبت کلیک
+            try {
+                await offersApi.logContactClick(offerId);
+            } catch (e) {
+                console.error("Error logging contact click:", e);
+            }
+
+            // 3. دریافت اطلاعات تماس
             const result = await offersApi.getSupplierContact(offerId);
-            // Response structure: { data: { BusinessName, SupplierTypeName, ... } }
-            const rawInfo = result?.data || result;
-            const info = transformContactInfo(rawInfo);
+            // apiClient interceptor unwraps ApiResult, so result is: { BusinessName, SupplierTypeName, ... } (PascalCase)
+            const info = transformContactInfo(result);
             setContactInfo(info);
             setShowContactInfo(true);
         } catch (error) {
@@ -195,9 +239,8 @@ const OfferDetailDrawer = ({ offerId, visible, onClose }) => {
                             const contactResult = await offersApi.getSupplierContact(offerId);
                             if (!isMounted) return;
                             
-                            // Response structure: { data: { BusinessName, SupplierTypeName, ... } }
-                            const rawInfo = contactResult?.data || contactResult;
-                            const info = transformContactInfo(rawInfo);
+                            // apiClient interceptor unwraps ApiResult, so contactResult is: { BusinessName, SupplierTypeName, ... } (PascalCase)
+                            const info = transformContactInfo(contactResult);
                             
                             if (isMounted) {
                                 setContactInfo(info);

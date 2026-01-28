@@ -8,6 +8,7 @@ using IngApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using IngApp.Domain.Entities;
 using IngApp.Infrastructure.Persistence.Configurations;
+using IngApp.Infrastructure.Common.Hashing;
 
 
 namespace IngApp.Infrastructure.Services.Auth;
@@ -69,6 +70,7 @@ public class AuthService : IAuthService
         var phone = request.PhoneNumber.Trim();
 
         var user = await _context.Users
+            .Include(x => x.UserType)
             .Include(x => x.UserRoles)
                 .ThenInclude(x => x.Role)
                     .ThenInclude(x => x.RolePermissions)
@@ -80,14 +82,32 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
+            // دریافت UserType برای Buyer
+            var buyerUserType = await _context.UserTypes
+                .FirstOrDefaultAsync(ut => ut.Code == "Buyer" && ut.IsActive);
+
+            if (buyerUserType == null)
+                throw new AppException("نوع کاربر Buyer در سیستم یافت نشد.");
+
             user = new User
             {
                 PhoneNumber = phone,
-                UserType = UserType.Buyer,
+                UserTypeId = buyerUserType.Id,
                 IsActive = true
             };
 
             _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            // ایجاد خودکار BuyerProfile برای User جدید (پیش‌فرض)
+            var buyerProfile = new BuyerProfile
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.BuyerProfiles.Add(buyerProfile);
             await _context.SaveChangesAsync();
         }
 
@@ -167,7 +187,7 @@ public class AuthService : IAuthService
             Id = user.Id,
             PhoneNumber = user.PhoneNumber,
             DisplayName = user.DisplayName ?? "",
-            UserType = user.UserType.ToString(),
+            UserType = user.UserType?.Code ?? string.Empty,
             IsActive = user.IsActive,
             SubscriptionLevel = (int)user.SubscriptionLevel,
             VerificationStatus = (int)user.VerificationStatus,
@@ -207,6 +227,96 @@ public class AuthService : IAuthService
         if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
             user.PhoneNumber = request.PhoneNumber.Trim();
 
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+    }
+
+    // ============================
+    // LOGIN WITH PASSWORD
+    // ============================
+    public async Task<AuthResponse> LoginWithPasswordAsync(LoginWithPasswordRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.PhoneNumber))
+            throw new ValidationException(new() { "شماره موبایل اجباری است." });
+
+        if (string.IsNullOrWhiteSpace(request.Password))
+            throw new ValidationException(new() { "رمز عبور اجباری است." });
+
+        var phone = request.PhoneNumber.Trim();
+
+        var user = await _context.Users
+            .Include(x => x.UserType)
+            .Include(x => x.UserRoles)
+                .ThenInclude(x => x.Role)
+                    .ThenInclude(x => x.RolePermissions)
+                        .ThenInclude(x => x.Permission)
+            .FirstOrDefaultAsync(x => x.PhoneNumber == phone);
+
+        if (user == null)
+            throw new ValidationException(new() { "شماره موبایل یا رمز عبور اشتباه است." });
+
+        if (!user.IsActive)
+            throw new AppException("حساب کاربری شما غیرفعال شده است.");
+
+        // بررسی Password
+        if (string.IsNullOrWhiteSpace(user.PasswordHash))
+            throw new ValidationException(new() { "رمز عبور برای این کاربر تنظیم نشده است. لطفاً از روش OTP استفاده کنید." });
+
+        if (!PasswordHasher.VerifyPassword(request.Password, user.PasswordHash))
+            throw new ValidationException(new() { "شماره موبایل یا رمز عبور اشتباه است." });
+
+        var roles = user.UserRoles.Select(r => r.Role.Name).Distinct().ToList();
+
+        var permissions = user.UserRoles
+            .SelectMany(r => r.Role.RolePermissions)
+            .Select(p => p.Permission.Code)
+            .Distinct()
+            .ToList();
+
+        var (token, expiration) = _jwtTokenService.GenerateToken(user, permissions);
+
+        return new AuthResponse
+        {
+            Token = token,
+            Expiration = expiration,
+            Roles = roles,
+            Permissions = permissions
+        };
+    }
+
+    // ============================
+    // SET PASSWORD (Change or Set)
+    // ============================
+    public async Task SetPasswordAsync(Guid userId, SetPasswordRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.NewPassword))
+            throw new ValidationException(new() { "رمز عبور جدید اجباری است." });
+
+        if (request.NewPassword.Length < 6)
+            throw new ValidationException(new() { "رمز عبور باید حداقل 6 کاراکتر باشد." });
+
+        if (request.NewPassword != request.ConfirmPassword)
+            throw new ValidationException(new() { "رمز عبور جدید و تأیید آن مطابقت ندارند." });
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.Id == userId);
+
+        if (user == null)
+            throw new NotFoundException("کاربر یافت نشد.");
+
+        // اگر Password قبلاً تنظیم شده، باید CurrentPassword را بررسی کنیم
+        if (!string.IsNullOrWhiteSpace(user.PasswordHash))
+        {
+            if (string.IsNullOrWhiteSpace(request.CurrentPassword))
+                throw new ValidationException(new() { "برای تغییر رمز عبور، رمز عبور فعلی را وارد کنید." });
+
+            if (!PasswordHasher.VerifyPassword(request.CurrentPassword, user.PasswordHash))
+                throw new ValidationException(new() { "رمز عبور فعلی اشتباه است." });
+        }
+
+        // Hash کردن Password جدید
+        user.PasswordHash = PasswordHasher.HashPassword(request.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

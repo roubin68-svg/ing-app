@@ -8,7 +8,6 @@ namespace IngApp.Infrastructure.Persistence.Configurations
     {
         public void Configure(EntityTypeBuilder<KycAttributeDefinition> builder)
         {
-            builder.ToTable("KycAttributeDefinitions");
 
             builder.HasKey(x => x.Id);
 

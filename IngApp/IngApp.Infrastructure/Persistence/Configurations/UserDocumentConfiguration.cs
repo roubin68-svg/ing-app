@@ -8,7 +8,6 @@ namespace IngApp.Infrastructure.Persistence.Configurations
     {
         public void Configure(EntityTypeBuilder<UserDocument> builder)
         {
-            builder.ToTable("UserDocuments");
 
             builder.HasKey(x => x.Id);
 

@@ -31,6 +31,9 @@ public class RolePermissionConfiguration : IEntityTypeConfiguration<RolePermissi
             new RolePermission { RoleId = RoleConfiguration.AdminRoleId, PermissionId = PermissionConfiguration.SupplierManageId },
             new RolePermission { RoleId = RoleConfiguration.AdminRoleId, PermissionId = PermissionConfiguration.KycReviewId },
             new RolePermission { RoleId = RoleConfiguration.AdminRoleId, PermissionId = PermissionConfiguration.OfferManageId },
+            new RolePermission { RoleId = RoleConfiguration.AdminRoleId, PermissionId = PermissionConfiguration.VisitorViewId },
+            new RolePermission { RoleId = RoleConfiguration.AdminRoleId, PermissionId = PermissionConfiguration.VisitorManageId },
+            new RolePermission { RoleId = RoleConfiguration.AdminRoleId, PermissionId = PermissionConfiguration.FinancialManageId },
             
             // Supplier permissions
             new RolePermission { RoleId = RoleConfiguration.SupplierRoleId, PermissionId = PermissionConfiguration.OfferManageId }

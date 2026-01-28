@@ -5,3 +5,13 @@ public class RejectOfferRequest
     public string Reason { get; set; } = null!;
 }
 
+
+
+
+
+
+
+
+
+
+

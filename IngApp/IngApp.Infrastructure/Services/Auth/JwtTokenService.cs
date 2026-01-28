@@ -31,7 +31,7 @@ public class JwtTokenService : IJwtTokenService
         {
             new Claim("uid", user.Id.ToString()),
             new Claim("phone", user.PhoneNumber),
-            new Claim("type", user.UserType.ToString())
+            new Claim("type", user.UserType?.Code ?? string.Empty)
         };
 
         // ==================================

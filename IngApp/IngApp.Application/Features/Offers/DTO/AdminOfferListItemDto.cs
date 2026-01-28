@@ -31,3 +31,13 @@ public class AdminOfferListItemDto
     public int ContactClickCount { get; set; }
 }
 
+
+
+
+
+
+
+
+
+
+

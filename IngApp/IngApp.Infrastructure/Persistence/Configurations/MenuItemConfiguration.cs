@@ -39,50 +39,58 @@ public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
         builder.HasData(
 
              // Dashboard
-             new MenuItem { Id = 1, Key = "dashboard", Title = "داشبورد", Route = "/", Icon = "DashboardOutlined", Order = 1, ParentId = null, RequiredPermissionCode = null },
+             new MenuItem { Id = 1, Key = "dashboard", Title = "داشبورد", Route = "/", Icon = "DashboardOutlined", Order = 1, ParentId = null, RequiredPermissionCode = null, IsActive = true },
 
              // Products
-             new MenuItem { Id = 2, Key = "products", Title = "مدیریت محصولات", Route = "#", Icon = "ShoppingOutlined", Order = 2, ParentId = null, RequiredPermissionCode = "Product.ViewAll" },
+             new MenuItem { Id = 2, Key = "products", Title = "مدیریت محصولات", Route = "#", Icon = "ShoppingOutlined", Order = 2, ParentId = null, RequiredPermissionCode = "Product.ViewAll", IsActive = true },
 
              // Products/Product List
-             new MenuItem { Id = 3, Key = "products-list", Title = "لیست محصولات", Route = "/products", Order = 1, ParentId = 2, RequiredPermissionCode = "Product.ViewAll" },
+             new MenuItem { Id = 3, Key = "products-list", Title = "لیست محصولات", Route = "/products", Order = 1, ParentId = 2, RequiredPermissionCode = "Product.ViewAll", IsActive = true },
 
              // Products/Category Management
-             new MenuItem { Id = 4, Key = "category-management", Title = "مدیریت دسته‌بندی‌ها", Route = "/product-categories", Order = 2, ParentId = 2, RequiredPermissionCode = "ProductCategory.Manage" },
+             new MenuItem { Id = 4, Key = "products-categories", Title = "دسته‌بندی محصولات", Route = "/product-categories", Order = 2, ParentId = 2, RequiredPermissionCode = "ProductCategory.Manage", IsActive = true },
 
-             // Settings
-             new MenuItem { Id = 5, Key = "settings", Title = "تنظیمات", Route = "#", Icon = "SettingOutlined", Order = 4, ParentId = null, RequiredPermissionCode = "Settings.View" },
-
-             // Settings/Menu Settings
-             new MenuItem { Id = 10, Key = "menu-settings", Title = "تنظیمات منو", Route = "/menu-settings", Order = 2, ParentId = 5, RequiredPermissionCode = "Menu.Manage" },
+             // Offer Management
+             new MenuItem { Id = 18, Key = "offer-managment", Title = "مدیریت آگهی ها", Route = "/offer-managment", Icon = "FileTextOutlined", Order = 2, ParentId = null, RequiredPermissionCode = "Offer.Manage", IsActive = true },
 
              // User Management
-             new MenuItem { Id = 6, Key = "user-management", Title = "مدیریت کاربران", Route = "#", Icon = "TeamOutlined", Order = 3, ParentId = null, RequiredPermissionCode = "User.Manage" },
+             new MenuItem { Id = 6, Key = "user-management", Title = "مدیریت کاربران", Route = "#", Icon = "TeamOutlined", Order = 5, ParentId = null, RequiredPermissionCode = "User.Manage", IsActive = true },
 
              // User Management/Users
-             new MenuItem { Id = 7, Key = "users", Title = "کاربران", Route = "/users", Order = 1, ParentId = 6, RequiredPermissionCode = "User.Manage" },
+             new MenuItem { Id = 7, Key = "users", Title = "کاربران", Route = "/users", Order = 1, ParentId = 6, RequiredPermissionCode = "User.Manage", IsActive = true },
 
              // User Management/Roles
-             new MenuItem { Id = 8, Key = "roles", Title = "نقش‌ها", Route = "/roles", Order = 2, ParentId = 6, RequiredPermissionCode = "Role.Manage" },
+             new MenuItem { Id = 8, Key = "roles", Title = "نقش‌ها", Route = "/roles", Order = 2, ParentId = 6, RequiredPermissionCode = "Role.Manage", IsActive = true },
 
              // User Management/Permissions
-             new MenuItem { Id = 9, Key = "permissions", Title = "دسترسی‌ها", Route = "/permissions", Order = 3, ParentId = 6, RequiredPermissionCode = "Permission.Manage" },
+             new MenuItem { Id = 9, Key = "permissions", Title = "دسترسی‌ها", Route = "/permissions", Order = 3, ParentId = 6, RequiredPermissionCode = "Permission.Manage", IsActive = true },
 
-             // Suppliers
-             new MenuItem { Id = 11, Key = "suppliers", Title = "مدیریت تأمین‌کنندگان", Route = "#", Icon = "TeamOutlined", Order = 5, ParentId = null, RequiredPermissionCode = "Supplier.View" },
+             // Financial
+             new MenuItem { Id = 22, Key = "financial", Title = "سیستم مالی", Route = "#", Icon = "WalletOutlined", Order = 6, ParentId = null, RequiredPermissionCode = null, IsActive = true },
 
-             // Suppliers/suppliers list
-            // new MenuItem { Id = 14, Key = "suppliers-list", Title = "لیست تامین کنندگان", Route = "/suppliers-list", Order = 1, ParentId = 11, RequiredPermissionCode = "SuppliersList.Manage" },
+             // Financial/Subscriptions
+             new MenuItem { Id = 1001, Key = "subscriptions", Title = "اشتراک‌ها", Route = "/subscriptions", Order = 1, ParentId = 22, RequiredPermissionCode = null, IsActive = true },
 
-             // Suppliers/supplier types
-             new MenuItem { Id = 12, Key = "supplier-types", Title = "مدیریت نوع تأمین‌کننده", Route = "/supplier-types", Order = 2, ParentId = 11, RequiredPermissionCode = "SupplierType.Manage" }
+             // Financial/Top Up
+             new MenuItem { Id = 1002, Key = "top-up", Title = "شارژ کیف پول", Route = "/top-up", Order = 2, ParentId = 22, RequiredPermissionCode = null, IsActive = true },
 
-             // Suppliers/kyc- attribute definitions
-             //new MenuItem { Id = 13, Key = "kyc-attribute-definitions", Title = "مدیریت مدارک احراز هویت", Route = "/kyc-attribute-definitions", Order = 3, ParentId = 11, RequiredPermissionCode = "KycAttributeDefinitions.Manage" },
+             // Financial/Wallet Transactions
+             new MenuItem { Id = 1003, Key = "wallet-transactions", Title = "تراکنش‌های کیف پول", Route = "/wallet-transactions", Order = 3, ParentId = 22, RequiredPermissionCode = null, IsActive = true },
 
-             // Suppliers/kyc templates 
-             //new MenuItem { Id = 15, Key = "kyc-templates", Title = "مدیریت الگوی مدارک احراز هویت", Route = "/kyc-templates", Order = 4, ParentId = 11, RequiredPermissionCode = "KycTemplates.Manage" }
+             // Financial/Commission Rules
+             new MenuItem { Id = 1006, Key = "commission-rules", Title = "قوانین پورسانت", Route = "/commission-rules", Order = 4, ParentId = 22, RequiredPermissionCode = null, IsActive = true },
 
+             // Supplier Types (Standalone)
+             new MenuItem { Id = 12, Key = "supplier-types", Title = "نوع تامین کننده", Route = "/supplier-types", Order = 3, ParentId = null, RequiredPermissionCode = null, IsActive = true },
+
+             // KYC Templates (Standalone)
+             new MenuItem { Id = 15, Key = "kyc-templates", Title = "قالب‌های KYC", Route = "/kyc-templates", Order = 4, ParentId = null, RequiredPermissionCode = null, IsActive = true },
+
+             // Visitor Management
+             new MenuItem { Id = 1007, Key = "visitor-management", Title = "مدیریت بازاریابان", Route = "/visitor-management", Order = 7, ParentId = null, RequiredPermissionCode = null, IsActive = true },
+
+             // Buyer Profiles
+             new MenuItem { Id = 1008, Key = "buyer-profiles", Title = "پروفایل خریداران", Route = "/buyer-profiles", Order = 8, ParentId = null, RequiredPermissionCode = null, IsActive = true }
 
              );
 

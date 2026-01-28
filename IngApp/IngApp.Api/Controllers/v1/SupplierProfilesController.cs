@@ -1,4 +1,5 @@
-﻿using IngApp.Application.Common.Interfaces.Suppliers;
+﻿using IngApp.Application.Common.Interfaces.Financial;
+using IngApp.Application.Common.Interfaces.Suppliers;
 using IngApp.Application.Common.Models;
 using IngApp.Application.Common.Security;
 using IngApp.Application.Features.Suppliers.DTO;
@@ -17,10 +18,14 @@ namespace IngApp.Api.Controllers.v1
     public class SupplierProfilesController : ControllerBase
     {
         private readonly ISupplierProfileService _service;
+        private readonly ISupplierOnboardingService _onboardingService;
 
-        public SupplierProfilesController(ISupplierProfileService service)
+        public SupplierProfilesController(
+            ISupplierProfileService service,
+            ISupplierOnboardingService onboardingService)
         {
             _service = service;
+            _onboardingService = onboardingService;
         }
 
         // کمک‌کننده برای گرفتن UserId لاگین‌شده (همان الگوی KycController)
@@ -125,8 +130,44 @@ namespace IngApp.Api.Controllers.v1
             return Ok(ApiResult.Ok(count));
         }
 
+        // POST: ارسال پروفایل برای بررسی (با پرداخت Onboarding Fee)
+        [HttpPost("my/submit")]
+        public async Task<IActionResult> SubmitMyProfile()
+        {
+            var userId = GetCurrentUserId();
 
+            // بررسی و پرداخت Onboarding Fee (اگر قبلاً پرداخت نشده باشد)
+            var idempotencyKey = $"supplier-onboarding-{userId}";
+            var onboardingResult = await _onboardingService.PayOnboardingFeeAsync(userId, idempotencyKey);
 
+            if (!onboardingResult.HasPaid)
+            {
+                return BadRequest(ApiResult.Fail(
+                    onboardingResult.ErrorMessage ?? "خطا در پرداخت هزینه ثبت‌نام. لطفاً موجودی کیف پول خود را بررسی کنید."));
+            }
 
+            // ارسال پروفایل برای بررسی
+            await _service.SubmitForUserAsync(userId);
+
+            return Ok(ApiResult.Ok(new
+            {
+                Message = "پروفایل با موفقیت ارسال شد.",
+                OnboardingFee = onboardingResult.Charged ? new
+                {
+                    AmountRial = onboardingResult.ChargedAmountRial,
+                    AmountToman = onboardingResult.ChargedAmountToman,
+                    TransactionId = onboardingResult.TransactionId
+                } : null
+            }));
+        }
+
+        // GET: بررسی اینکه آیا Onboarding Fee پرداخت شده است
+        [HttpGet("my/has-paid-onboarding")]
+        public async Task<IActionResult> HasPaidOnboarding()
+        {
+            var userId = GetCurrentUserId();
+            var hasPaid = await _onboardingService.HasPaidOnboardingFeeAsync(userId);
+            return Ok(ApiResult.Ok(new { hasPaid }));
+        }
     }
 }

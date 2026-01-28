@@ -8,7 +8,6 @@ public class OfferClickLogConfiguration : IEntityTypeConfiguration<OfferClickLog
 {
     public void Configure(EntityTypeBuilder<OfferClickLog> builder)
     {
-        builder.ToTable("OfferClickLogs");
 
         builder.HasKey(x => x.Id);
 

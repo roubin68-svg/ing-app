@@ -25,3 +25,13 @@ public interface IProductFileStorageService
     bool TryGetFileInfo(string relativePath, out string fullPath, out string contentType);
 }
 
+
+
+
+
+
+
+
+
+
+

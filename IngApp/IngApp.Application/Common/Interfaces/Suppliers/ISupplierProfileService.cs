@@ -22,5 +22,10 @@ namespace IngApp.Application.Common.Interfaces.Suppliers
         Task<SupplierProfileDto?> GetMyAsync(Guid userId);
 
         Task<int> GetPendingCountAsync();
+
+        /// <summary>
+        /// ارسال نهایی پروفایل برای بررسی (Draft -> Pending)
+        /// </summary>
+        Task SubmitForUserAsync(Guid userId);
     }
 }

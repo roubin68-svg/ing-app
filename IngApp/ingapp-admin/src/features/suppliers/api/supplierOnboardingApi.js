@@ -17,9 +17,15 @@ const supplierOnboardingApi = {
         return res.data;
     },
 
-    // POST /api/v1/supplier-profiles/my/submit (برای آینده)
+    // POST /api/v1/supplier-profiles/my/submit
     submit: async () => {
         const res = await apiClient.post(`${BASE_URL}/my/submit`);
+        return res.data;
+    },
+
+    // GET /api/v1/supplier-profiles/my/has-paid-onboarding
+    hasPaidOnboarding: async () => {
+        const res = await apiClient.get(`${BASE_URL}/my/has-paid-onboarding`);
         return res.data;
     },
 };

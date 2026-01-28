@@ -25,6 +25,18 @@ import OfferManagementPage from "../features/offers/pages/OfferManagementPage";
 import OffersSearchPage from "../features/offers/pages/OffersSearchPage";
 import AdminOffersPage from "../features/offers/pages/AdminOffersPage";
 import ProfilePage from "../features/auth/pages/ProfilePage";
+import WalletPage from "../features/wallet/pages/WalletPage";
+import WalletUsersListPage from "../features/walletManagement/pages/WalletUsersListPage";
+import WalletManagementPage from "../features/walletManagement/pages/WalletManagementPage";
+import SubscriptionsPage from "../features/subscriptions/pages/SubscriptionsPage";
+import TopUpPage from "../features/payments/pages/TopUpPage";
+import CommissionsPage from "../features/commissions/pages/CommissionsPage";
+import PlansManagementPage from "../features/plans/pages/PlansManagementPage";
+import UserSubscriptionsManagementPage from "../features/userSubscriptions/pages/UserSubscriptionsManagementPage";
+import VisitorManagementPage from "../features/visitorManagement/pages/VisitorManagementPage";
+import BuyerManagementPage from "../features/buyerManagement/pages/BuyerManagementPage";
+import MyBuyersPage from "../features/visitorProfiles/pages/MyBuyersPage";
+import CommissionRulesPage from "../features/commissionRules/pages/CommissionRulesPage";
 
 
 
@@ -99,6 +111,40 @@ const AppRouter = () => {
 
                         {/* پروفایل کاربری */}
                         <Route path="profile" element={<ProfilePage />} />
+
+                        {/* کیف پول */}
+                        <Route path="wallet" element={<WalletPage />} />
+                        {/* مدیریت کیف پول کاربران (لیست) */}
+                        <Route path="wallet-management" element={<WalletUsersListPage />} />
+                        {/* جزئیات کیف پول یک کاربر خاص */}
+                        <Route path="wallet/admin/:userId" element={<WalletManagementPage />} />
+
+                        {/* اشتراک‌ها */}
+                        <Route path="subscriptions" element={<SubscriptionsPage />} />
+
+                        {/* پرداخت / شارژ کیف پول */}
+                        <Route path="payments/topup" element={<TopUpPage />} />
+
+                        {/* پورسانت‌ها */}
+                        <Route path="commissions" element={<CommissionsPage />} />
+
+                        {/* مدیریت قوانین پورسانت */}
+                        <Route path="commission-rules" element={<CommissionRulesPage />} />
+
+                        {/* خریداران من (Visitor) */}
+                        <Route path="my-buyers" element={<MyBuyersPage />} />
+
+                        {/* مدیریت پلن‌های اشتراک */}
+                        <Route path="plans-management" element={<PlansManagementPage />} />
+
+                {/* مدیریت اشتراک‌های خریداری شده */}
+                <Route path="user-subscriptions-management" element={<UserSubscriptionsManagementPage />} />
+
+                {/* مدیریت Visitor ها (Admin) */}
+                <Route path="visitor-management" element={<VisitorManagementPage />} />
+
+                {/* مدیریت Buyer ها (Admin) */}
+                <Route path="buyer-management" element={<BuyerManagementPage />} />
 
 
 

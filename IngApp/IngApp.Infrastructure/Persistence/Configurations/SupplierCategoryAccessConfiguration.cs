@@ -8,7 +8,6 @@ public class SupplierCategoryAccessConfiguration : IEntityTypeConfiguration<Supp
 {
     public void Configure(EntityTypeBuilder<SupplierCategoryAccess> builder)
     {
-        builder.ToTable("SupplierCategoryAccesses");
 
         builder.HasKey(x => x.Id);
 

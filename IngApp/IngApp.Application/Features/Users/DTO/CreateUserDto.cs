@@ -15,9 +15,9 @@ namespace IngApp.Application.Features.Users.DTO
         public string? DisplayName { get; set; }
 
         /// <summary>
-        /// نوع کاربر (خریدار / تأمین‌کننده / ادمین)
+        /// نوع کاربر (Code: Buyer, Supplier, Admin, Visitor)
         /// </summary>
-        public UserType UserType { get; set; } = UserType.Buyer;
+        public string UserTypeCode { get; set; } = "Buyer";
 
         /// <summary>
         /// سطح اشتراک

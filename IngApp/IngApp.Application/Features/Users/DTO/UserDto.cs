@@ -9,7 +9,10 @@ namespace IngApp.Application.Features.Users.DTO
         public string PhoneNumber { get; set; } = string.Empty;
         public string? DisplayName { get; set; }
 
-        public UserType UserType { get; set; }
+        // UserType از Lookup Table
+        public string UserTypeCode { get; set; } = string.Empty;
+        public string UserTypeTitle { get; set; } = string.Empty;
+        
         public SubscriptionLevel SubscriptionLevel { get; set; }
         public VerificationStatus VerificationStatus { get; set; }
 
@@ -19,18 +22,12 @@ namespace IngApp.Application.Features.Users.DTO
         public List<string> Roles { get; set; } = new();
 
         // ---------- نام انگلیسی Enum ها ----------
-        public string UserTypeName => UserType.ToString();
+        public string UserTypeName => UserTypeCode;
         public string SubscriptionLevelName => SubscriptionLevel.ToString();
         public string VerificationStatusName => VerificationStatus.ToString();
 
         // ---------- نام فارسی Enum ها برای UI ----------
-        public string UserTypeFa => UserType switch
-        {
-            UserType.Buyer => "خریدار",
-            UserType.Supplier => "تأمین‌کننده",
-            UserType.Admin => "مدیر سیستم",
-            _ => UserType.ToString()
-        };
+        public string UserTypeFa => UserTypeTitle;
 
         public string SubscriptionLevelFa => SubscriptionLevel switch
         {

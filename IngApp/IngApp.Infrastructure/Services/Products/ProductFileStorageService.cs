@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,7 +14,20 @@ public class ProductFileStorageService : IProductFileStorageService
     public ProductFileStorageService(IConfiguration configuration)
     {
         _rootPath = configuration["ProductFileStorage:RootPath"]
-            ?? throw new Exception("ProductFileStorage:RootPath is not configured.");
+            ?? throw new InvalidOperationException("ProductFileStorage:RootPath is not configured in appsettings.json. Please add: \"ProductFileStorage\": { \"RootPath\": \"C:\\\\Projects\\\\IngAppData\\\\Products\" }");
+        
+        // ایجاد پوشه root در صورت عدم وجود
+        if (!Directory.Exists(_rootPath))
+        {
+            try
+            {
+                Directory.CreateDirectory(_rootPath);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Cannot create ProductFileStorage root directory at '{_rootPath}': {ex.Message}", ex);
+            }
+        }
     }
 
     public async Task<string> SaveAsync(
@@ -72,4 +86,13 @@ public class ProductFileStorageService : IProductFileStorageService
         return true;
     }
 }
+
+
+
+
+
+
+
+
+
 

@@ -1,0 +1,439 @@
+
+
+===========================================
+قابلیت: سیستم مالی (Wallet + Ledger) + Unlock Contact + Subscription + Visitor Commission (V1)
+==============================================================================================
+
+1️⃣ شرح کلی و هدف (Overview & Goal)
+
+نام قابلیت
+Financial Core: Wallet, Ledger, Pricing, Subscription, Commission
+
+هدف اصلی
+
+* هر کاربر یک Wallet با Balance داشته باشد.
+* هر تغییر مالی در قالب تراکنش/گردش حساب ثبت شود (Ledger).
+* برای “نمایش اطلاعات تماس آگهی” قابلیت Unlock دائمی برای همان کاربر ایجاد شود:
+
+  * اگر کاربر قبلاً Unlocked کرده باشد → بدون پرداخت مجدد همیشه Contact نمایش داده شود.
+  * اگر اشتراک فعال داشته باشد → از ابتدا Contact نمایش داده شود.
+* امکان پرداخت هزینه Onboarding Supplier (از Wallet یا از طریق شارژ درگاه).
+* اضافه شدن Visitor/Marketer و محاسبه پورسانت از:
+
+  * پرداخت‌های Click (Unlock Contact) — فقط در صورت Debit واقعی
+  * خرید Package/Subscription
+  * (آینده) Order
+
+کاربران هدف
+
+* Buyer/Supplier (کاربران عادی)
+* Visitor/Marketer (به‌عنوان یک نوع کاربر)
+* Admin (مدیریت تعرفه‌ها، مشاهده گزارش‌ها، مدیریت Visitorها)
+
+ارتباط با سایر بخش‌ها
+
+* Offers (Contact View / Contact Click Log)
+* Supplier Onboarding / KYC Submit
+* Identity (User + RBAC + Permission-based menu)
+
+---
+
+2️⃣ منطق کسب‌وکاری (Business Logic)
+
+2.1 واحد پول و نمایش (Currency Policy)
+
+* UI همیشه تومان دریافت/نمایش می‌دهد.
+* DB همیشه ریال ذخیره می‌کند.
+* تبدیل:
+
+  * rial = toman * 10
+  * toman = rial / 10
+* تمام APIهای مالی در ورودی‌های کاربر-محور (مثل شارژ/خرید) مبلغ را به تومان دریافت می‌کنند و در DB ریال ذخیره می‌شود.
+* تمام خروجی‌هایی که به کاربر نمایش داده می‌شود باید “AmountToman” را هم (علاوه بر AmountRial) داشته باشد یا UI به‌صورت استاندارد تبدیل کند. (پیشنهاد V1: API هردو را برگرداند.)
+
+2.2 Wallet و Ledger
+
+* هر User دقیقاً یک Wallet دارد: WalletType=Main.
+* Balance کیف پول هرگز نباید منفی شود.
+* هر افزایش/کاهش Balance باید با یک رکورد WalletTransaction ثبت شود.
+* همه عملیات‌های مالی باید Idempotent باشند:
+
+  * هر عملیات یک IdempotencyKey یونیک دارد تا دوباره‌کاری پولی رخ ندهد.
+* نکته مهم: در این فاز برای Performance، Balance روی Wallet نگهداری می‌شود و با RowVersion/Concurrency و Transaction دیتابیس آپدیت می‌شود؛ Ledger مرجع Audit است.
+
+2.3 Unlock Contact (قاعده قطعی)
+قاعده Unlock:
+
+* وقتی کاربر برای یک Offer “Unlock Contact” می‌کند:
+
+  * اگر قبلاً برای همان Offer unlock داشته باشد → Contact مستقیم نمایش داده می‌شود و هیچ هزینه‌ای کسر نمی‌شود.
+  * اگر اشتراک فعال “Unlimited Contact” داشته باشد → Contact مستقیم نمایش داده می‌شود و هیچ هزینه‌ای کسر نمی‌شود.
+  * در غیر اینصورت:
+
+    * اگر موجودی کافی است → مبلغ تعرفه کسر می‌شود + Offer برای کاربر Unlock می‌شود + Contact نمایش داده می‌شود.
+    * اگر موجودی کافی نیست → خطا + پیشنهاد شارژ/خرید اشتراک
+
+رفتار UI مطابق وضعیت:
+
+* اگر unlocked یا subscribed:
+
+  * دکمه “نمایش اطلاعات تماس” نمایش داده نشود
+  * به جای آن جدول/باکس ContactInfo همانجا رندر شود
+
+2.4 هزینه Onboarding Supplier
+
+* هنگام اقدام نهایی برای ارسال درخواست تامین‌کننده (Submit نهایی Onboarding/KYC):
+
+  * اگر Fee فعال است و قبلاً پرداخت نشده:
+
+    * اگر موجودی کافی: Debit Fee و سپس Submit
+    * اگر موجودی کافی نیست: خطا + مسیر شارژ
+* پرداخت یک‌بار انجام شود و دوباره کسر نشود (با Idempotency + ثبت رکورد پرداخت/لینک به تراکنش).
+
+2.5 Visitor / Buyer Relationship (بدون انتخاب توسط Buyer)
+نکات قطعی:
+
+* Buyer خودش Visitor را انتخاب نمی‌کند.
+* Buyer ممکن است اصلاً Visitor نداشته باشد.
+* اتصال Visitor به Buyer به ۲ روش انجام می‌شود:
+
+  1. Admin می‌تواند برای یک Buyer موجود، یک Visitor تعیین کند.
+  2. Visitor می‌تواند از طریق صفحه/دسترسی خودش، Buyer جدید معرفی کند (با گرفتن نام و موبایل):
+
+     * اگر موبایل از قبل در سیستم وجود داشته باشد، کاربر جدید ساخته نمی‌شود؛ همان User موجود به BuyerProfile تبدیل/تکمیل می‌شود و Visitor به آن Buyer وصل می‌شود.
+     * اگر موبایل وجود نداشته باشد، یک User جدید با نوع Buyer ساخته می‌شود و Visitor به Buyer وصل می‌شود.
+
+2.6 Visitor Commission (روی چند فعالیت، با نرخ‌های متفاوت)
+
+* برای Visitor باید بتوان نرخ پورسانت متفاوت بر اساس “نوع عملیات مالی” تعریف کرد.
+* نوع عملیات‌ها نباید Enum/Hardcode باشند؛ باید دیتابیس‌محور و قابل مدیریت باشند.
+* پورسانت Visitor روی درآمدهای زیر اعمال می‌شود:
+
+  * Unlock Contact fee (فقط وقتی Debit واقعی انجام شد)
+  * خرید Subscription/Package
+  * (آینده) Order
+* اگر کاربر اشتراک Unlimited دارد و unlock رایگان است:
+
+  * پورسانت unlock = صفر (چون درآمدی رخ نداده)
+  * اما پورسانت خرید اشتراک از تراکنش خرید اشتراک محاسبه می‌شود.
+
+2.7 Subscription / Package
+
+* Planهای زمانی: ۱ ماه / ۳ ماه / ۶ ماه / ۱ سال (قابل توسعه)
+* Feature اصلی فاز ۱: UnlimitedContactViews = true
+* با داشتن اشتراک فعال:
+
+  * تمام Offerها ContactInfo مستقیم نمایش داده می‌شود
+  * هیچ UnlockCharge گرفته نمی‌شود
+
+2.8 پرداخت (Payment Gateway) — آماده‌سازی زیرساخت با “شبیه‌سازی”
+
+* در فاز فعلی، درخواست واقعی به بانک ارسال نمی‌شود.
+* اما کل مسیر سیستمی باید کامل باشد:
+
+  * ایجاد PaymentIntent
+  * تولید “RedirectUrl ساختگی” یا مرحله شبیه‌سازی
+  * Verify/Callback شبیه‌سازی‌شده
+  * ثبت نتیجه و Credit کردن Wallet
+* یعنی کاربر دکمه پرداخت را می‌زند و سیستم مانند پرداخت موفق رفتار می‌کند (برای توسعه و اتصال بعدی به بانک)، ولی تمام رکوردها و Stateها واقعی ثبت می‌شوند تا بعداً فقط Gateway Adapter جایگزین شود.
+
+---
+
+3️⃣ رابط کاربری (UI/UX)
+
+3.1 Offer Search / Offer Card / Offer Detail
+حالت A: کاربر locked و بدون اشتراک
+
+* دکمه: “نمایش اطلاعات تماس”
+* پس از کلیک:
+
+  * اگر موفق: دکمه حذف شود و ContactInfo نمایش داده شود
+  * اگر ناموفق: پیام “موجودی کافی نیست” + CTA: “شارژ کیف پول” و “خرید اشتراک”
+
+حالت B: کاربر unlocked
+
+* دکمه نباشد
+* ContactInfo از ابتدا نشان داده شود
+
+حالت C: کاربر subscribed
+
+* دکمه نباشد
+* ContactInfo از ابتدا نشان داده شود
+
+3.2 Wallet Page (برای کاربر)
+
+* نمایش Balance (تومان)
+* دکمه “شارژ کیف پول”
+* جدول تراکنش‌ها (تاریخ، نوع عملیات، مبلغ تومان، توضیح، وضعیت)
+
+3.3 Subscription Page (برای کاربر)
+
+* لیست Planها
+* دکمه “خرید”
+* نمایش اشتراک فعال (تاریخ شروع/پایان)
+
+3.4 Visitor Panel (برای Visitor)
+
+* امکان “ثبت/معرفی Buyer” با گرفتن FullName و Mobile
+* لیست Buyerهای معرفی‌شده (اختیاری در V1)
+* گزارش پورسانت‌ها (تجمیعی + جزئیات تراکنش‌های پورسانت)
+
+3.5 Admin Pages
+
+* مدیریت Pricing (تعرفه Unlock، Fee onboarding)
+* مدیریت FinancialOperationTypes (نوع عملیات‌ها)
+* مدیریت Visitor Commission Rules (نرخ‌های پورسانت per operation)
+* مدیریت Visitors و اتصال Visitor به Buyer
+* گزارش تراکنش‌ها و پورسانت‌ها
+
+---
+
+4️⃣ ساختار داده (Data Structure)
+
+4.1 اصل مهم: حذف Enum/Hardcode برای Type ها
+مواردی مثل:
+
+* UserType
+* TransactionType / ReferenceType / Status / AppliedTo
+  نباید Enum و Hardcode باشند و باید دیتابیس‌محور شوند.
+
+4.2 Entities (پیشنهادی V1)
+
+UserType (Lookup)
+
+* Id: int (PK)
+* Code: nvarchar(50) Unique (Admin, Supplier, Buyer, Visitor)
+* Title: nvarchar(100)
+* IsActive: bit
+
+(User تغییر)
+
+* UserTypeId: int (FK UserType)
+
+BuyerProfile
+
+* BuyerId: int (PK, Identity)
+* UserId: Guid (Unique FK)
+* VisitorId: int? (nullable FK Visitor)  ← اینجا اتصال Visitor به Buyer نگهداری می‌شود
+* Address/… (اختیاری، برای توسعه آینده)
+* CreatedAt, UpdatedAt
+
+VisitorProfile
+
+* VisitorId: int (PK, Identity)
+* UserId: Guid (Unique FK)  ← Visitor یک “نوع کاربر” است و اطلاعات عمومی (نام/موبایل) در Users موجود است
+* IsActive: bit
+* (هر اطلاعات اضافی لازم در آینده مثل BankAccount/… اینجا می‌آید)
+* CreatedAt, UpdatedAt
+
+Wallet
+
+* Id: Guid (PK)
+* UserId: Guid (Unique FK)
+* CurrencyId: int (FK Currency Lookup)
+* WalletTypeId: int (FK WalletType Lookup)
+* BalanceRial: bigint (>=0)
+* RowVersion: byte[] (Concurrency)
+* CreatedAt: datetime
+
+WalletTransaction
+
+* Id: Guid (PK)
+* WalletId: Guid (FK)
+* DirectionId: int (FK TransactionDirection Lookup)
+* AmountRial: bigint (>0)
+* OperationTypeId: int (FK FinancialOperationType Lookup) ← جایگزین TransactionType/AppliedTo
+* StatusId: int (FK FinancialTransactionStatus Lookup)
+* ReferenceTypeId: int (FK FinancialReferenceType Lookup)
+* ReferenceId: uniqueidentifier (nullable)
+* IdempotencyKey: nvarchar(100) (Unique)
+* Description: nvarchar(300) nullable
+* CreatedAt: datetime
+
+OfferContactUnlock
+
+* Id: Guid (PK)
+* OfferId: Guid
+* UserId: Guid
+* UnlockedAt: datetime
+* ChargedTransactionId: Guid? (nullable اگر از اشتراک بوده)
+* SourceTypeId: int (FK UnlockSourceType Lookup)
+  Index:
+* Unique: (OfferId, UserId)
+
+SubscriptionPlan
+
+* Id: Guid
+* Title: nvarchar(100)
+* DurationDays: int
+* PriceRial: bigint
+* UnlimitedContactViews: bit
+* IsActive: bit
+
+UserSubscription
+
+* Id: Guid
+* UserId: Guid
+* PlanId: Guid
+* StartAt: datetime
+* EndAt: datetime
+* StatusId: int (FK SubscriptionStatus Lookup)
+* PurchaseTransactionId: Guid
+
+Payment
+
+* Id: Guid
+* UserId: Guid
+* AmountRial: bigint
+* GatewayId: int (FK PaymentGateway Lookup)
+* StatusId: int (FK PaymentStatus Lookup)
+* Authority: nvarchar(100) nullable
+* RefId: nvarchar(100) nullable
+* CreatedAt, VerifiedAt
+
+VisitorCommissionRule
+
+* Id: int (PK, Identity)
+* VisitorId: int (FK VisitorProfile)
+* OperationTypeId: int (FK FinancialOperationType)  ← مثلاً UnlockContactFee, SubscriptionPurchase, OrderPayment
+* Percent: decimal(5,2)
+* IsActive: bit
+* CreatedAt, UpdatedAt
+
+VisitorCommissionRuleLog (برای Audit)
+
+* Id: bigint Identity
+* RuleId: int
+* OldPercent, NewPercent
+* ChangedByUserId: Guid
+* ChangedAt: datetime
+* Note: nvarchar(300) nullable
+
+CommissionTransaction (Ledger-based)
+
+* پورسانت به‌صورت Credit در WalletTransaction ثبت می‌شود:
+
+  * Wallet مربوط به Visitor (UserId Visitor)
+  * OperationTypeId = CommissionEarned (Lookup)
+  * ReferenceType/ReferenceId اشاره به تراکنش منبع درآمد (مثلاً WalletTransactionId کاربر Buyer)
+
+4.3 Lookup Tables (نمونه)
+
+* Currency (IRR)
+* WalletType (Main)
+* TransactionDirection (Credit/Debit)
+* FinancialOperationType (UnlockContactFee, SubscriptionPurchase, OnboardingFee, TopUp, CommissionEarned, …)
+* FinancialTransactionStatus (Pending, Committed, Failed, Reversed)
+* FinancialReferenceType (Offer, Subscription, Payment, SupplierOnboarding, WalletTransaction, …)
+* UnlockSourceType (Paid, Subscription)
+* PaymentGateway (Mock, Zarinpal, ...)
+* PaymentStatus (Created, Redirected, Verified, Failed)
+* SubscriptionStatus (Active, Expired, Canceled)
+
+---
+
+5️⃣ امنیت و دسترسی‌ها (Security & Permissions)
+
+User
+
+* Wallet.ViewOwn
+* Wallet.TopUp
+* Subscription.View
+* Subscription.Buy
+* Offer.ContactUnlock
+
+Visitor
+
+* Visitor.Buyer.Create   (ثبت Buyer جدید)
+* Visitor.Commission.ViewOwn
+
+Admin
+
+* Wallet.ViewAll
+* Wallet.Transactions.ViewAll
+* Pricing.Manage
+* FinancialLookups.Manage (مدیریت OperationType/Status/ReferenceType/UserType و ...)
+* Visitors.Manage
+* Visitors.AssignBuyer (اتصال Visitor به Buyer)
+* Commission.Manage
+* Commission.ViewAll
+
+نکات امنیتی
+
+* User فقط Wallet خودش را می‌بیند.
+* Unlock endpoint باید Authenticated باشد.
+* تمام Debit/Credit باید در یک تراکنش دیتابیس انجام شود.
+* IdempotencyKey باید enforce شود.
+* قوانین اتصال Visitor به Buyer فقط از مسیر Admin یا Visitor Panel انجام می‌شود (نه Buyer).
+
+---
+
+API های پیشنهادی (v1)
+
+Wallet
+
+* GET /api/v1/wallet/me
+* GET /api/v1/wallet/me/transactions?page=&pageSize=
+
+TopUp / Payment (Mock-ready)
+
+* POST /api/v1/payments/topup/intents (amountToman)
+* POST /api/v1/payments/topup/mock-complete (paymentId)  ← شبیه‌سازی موفقیت پرداخت در محیط توسعه
+* POST /api/v1/payments/topup/verify (callback verify)     ← برای اتصال واقعی در آینده
+
+Pricing
+
+* GET /api/v1/pricing
+
+Unlock Contact
+
+* POST /api/v1/offers/{offerId}/unlock-contact
+  خروجی:
+
+  * isUnlocked
+  * charged (true/false)
+  * chargedAmountToman
+  * contactInfo
+
+Subscription
+
+* GET /api/v1/subscriptions/plans
+* GET /api/v1/subscriptions/me
+* POST /api/v1/subscriptions/purchase (planId + paymentMethod: Wallet/Gateway)
+
+Visitor
+
+* (Visitor Panel) POST /api/v1/visitor/buyers (fullName, mobile)
+* (Visitor Panel) GET /api/v1/visitor/commissions
+* (Admin) POST /api/v1/admin/visitors
+* (Admin) GET /api/v1/admin/visitors
+* (Admin) POST /api/v1/admin/buyers/{buyerId}/assign-visitor (visitorId)
+
+Financial Lookups (Admin)
+
+* CRUD /api/v1/admin/financial/lookups/operation-types
+* CRUD /api/v1/admin/financial/lookups/reference-types
+* CRUD /api/v1/admin/identity/user-types
+* ...
+
+نکات تکمیلی مهم (برای جلوگیری از ابهام)
+
+* Unlock برای هر Offer/User دائمی است (بدون TTL).
+* اگر کاربر اشتراک خرید، Unlockهای قبلی باقی می‌مانند.
+* پورسانت Visitor:
+
+  * برای Unlock فقط وقتی Debit واقعی انجام شد.
+  * برای خرید اشتراک همیشه (اگر Buyer به Visitor متصل باشد) از تراکنش خرید → CommissionEarned تولید می‌شود.
+* انواع (Type/Status/Reference/AppliedTo/UserType) دیتابیس‌محور و قابل مدیریت هستند و Enum/Hardcode نمی‌شوند.
+
+تصمیم‌های نهایی قفل‌شده
+
+* Charge “یک بار برای هر offer برای هر user” و unlock دائمی ✅
+* UI تومان، DB ریال، تبدیل مرکزی ✅
+* Visitor هم از click-fee هم از package-fee پورسانت می‌گیرد ✅
+* Visitor/Buyer اتصال فقط از مسیر Admin یا Visitor Panel (نه انتخاب مستقیم توسط Buyer) ✅
+* حذف Enum/Hardcode برای Type/Status/Reference/UserType و جایگزینی با Lookup Tables ✅
+* پرداخت بانکی در فاز فعلی شبیه‌سازی می‌شود اما زیرساخت کامل آماده است ✅
+
+---
+
