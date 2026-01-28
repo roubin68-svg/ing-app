@@ -106,3 +106,4 @@ dotnet ef database update --startup-project ../IngApp.Api/IngApp.Api.csproj --co
 - یا از SQL Server Express استفاده کنید
 
 
+

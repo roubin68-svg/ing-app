@@ -15,3 +15,4 @@ public class ManualWalletTransactionDto
     public string? Description { get; set; }
 }
 
+

@@ -86,3 +86,4 @@ sqllocaldb start MSSQLLocalDB  # اگر متوقف است
 - اگر LocalDB را نمی‌بینید، ممکن است نیاز به نصب SQL Server LocalDB داشته باشید
 
 
+

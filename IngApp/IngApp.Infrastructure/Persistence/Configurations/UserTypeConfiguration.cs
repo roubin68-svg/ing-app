@@ -47,3 +47,4 @@ public class UserTypeConfiguration : IEntityTypeConfiguration<UserType>
 
 
 
+

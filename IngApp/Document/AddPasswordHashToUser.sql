@@ -12,3 +12,4 @@ ADD [PasswordHash] NVARCHAR(500) NULL;
 -- حداکثر طول 500 کاراکتر برای BCrypt Hash کافی است
 
 
+

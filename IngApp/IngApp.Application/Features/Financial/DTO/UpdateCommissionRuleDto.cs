@@ -23,3 +23,4 @@ public class UpdateCommissionRuleDto
     public DateTime? EffectiveTo { get; set; }
 }
 
+

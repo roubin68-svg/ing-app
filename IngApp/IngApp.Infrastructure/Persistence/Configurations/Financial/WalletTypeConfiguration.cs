@@ -50,3 +50,4 @@ public class WalletTypeConfiguration : IEntityTypeConfiguration<WalletType>
 
 
 
+
