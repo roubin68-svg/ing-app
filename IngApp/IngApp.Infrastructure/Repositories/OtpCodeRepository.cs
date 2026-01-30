@@ -21,7 +21,7 @@ public class OtpCodeRepository : IOtpCodeRepository
             .Where(x => x.PhoneNumber == phoneNumber &&
                         x.Purpose == purpose &&
                         !x.IsUsed &&
-                        x.ExpiresAtUtc > DateTime.UtcNow)
+                        x.ExpiresAtUtc > DateTime.Now)
             .OrderByDescending(x => x.CreatedAtUtc)
             .FirstOrDefaultAsync();
     }

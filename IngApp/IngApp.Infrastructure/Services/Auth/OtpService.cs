@@ -32,7 +32,7 @@ public class OtpService : IOtpService
         //if (latest != null && (DateTime.UtcNow - latest.CreatedAtUtc).TotalSeconds < 60)
         //    throw new Exception("لطفاً کمی بعد دوباره تلاش کنید.");
 
-        if (latest != null && (DateTime.UtcNow - latest.CreatedAtUtc) < TimeSpan.FromMinutes(1))
+        if (latest != null && (DateTime.Now - latest.CreatedAtUtc) < TimeSpan.FromMinutes(1))
         {
             // اگر کمتر از یک دقیقه از آخرین ارسال گذشته، دیگه Exception نده.
             // فقط اجازه بده از همان کدی که قبلاً ارسال شده استفاده شود.
@@ -48,8 +48,8 @@ public class OtpService : IOtpService
             Id = Guid.NewGuid(),
             PhoneNumber = phoneNumber,
             CodeHash = Sha256Hash.Hash(code),
-            CreatedAtUtc = DateTime.UtcNow,
-            ExpiresAtUtc = DateTime.UtcNow.AddMinutes(5),
+            CreatedAtUtc = DateTime.Now,
+            ExpiresAtUtc = DateTime.Now.AddMinutes(5),
             Purpose = OtpPurpose.Login
         };
 
@@ -100,7 +100,7 @@ public class OtpService : IOtpService
         // بلاک شدن به دلیل تلاش‌های زیاد
         if (otp.AttemptCount >= MaxWrongAttempts &&
             otp.LastAttemptAtUtc.HasValue &&
-            otp.LastAttemptAtUtc.Value.AddMinutes(BlockMinutes) > DateTime.UtcNow)
+            otp.LastAttemptAtUtc.Value.AddMinutes(BlockMinutes) > DateTime.Now)
         {
             return (false, "تعداد تلاش بیش از حد مجاز است. لطفاً چند دقیقه بعد دوباره تلاش کنید.");
         }

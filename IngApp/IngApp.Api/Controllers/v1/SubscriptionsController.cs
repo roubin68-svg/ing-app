@@ -58,7 +58,7 @@ public class SubscriptionsController : ControllerBase
         var userId = GetCurrentUserId();
         
         // تولید IdempotencyKey
-        var idempotencyKey = $"purchase-subscription-{userId}-{request.PlanId}-{DateTime.UtcNow:yyyyMMddHHmmss}";
+        var idempotencyKey = $"purchase-subscription-{userId}-{request.PlanId}-{DateTime.Now:yyyyMMddHHmmss}";
         
         var result = await _subscriptionService.PurchaseSubscriptionAsync(userId, request.PlanId, idempotencyKey);
         
@@ -69,12 +69,28 @@ public class SubscriptionsController : ControllerBase
         
         return Ok(ApiResult.Ok(result));
     }
+
+    // POST: لغو اشتراک
+    [HttpPost("{subscriptionId:guid}/cancel")]
+    public async Task<IActionResult> CancelSubscription(Guid subscriptionId)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _subscriptionService.CancelSubscriptionAsync(userId, subscriptionId);
+        
+        if (!result.Success)
+        {
+            return BadRequest(ApiResult.Fail(result.ErrorMessage ?? "خطا در لغو اشتراک"));
+        }
+        
+        return Ok(ApiResult.Ok(result));
+    }
 }
 
 public class PurchaseSubscriptionRequest
 {
     public int PlanId { get; set; }
 }
+
 
 
 

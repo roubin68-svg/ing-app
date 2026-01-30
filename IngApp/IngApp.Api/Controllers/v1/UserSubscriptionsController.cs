@@ -25,7 +25,30 @@ public class UserSubscriptionsController : ControllerBase
         var result = await _subscriptionService.GetPagedSubscriptionsAsync(query);
         return Ok(ApiResult.Ok(result));
     }
+
+    // GET: دریافت لیست کاربران با خلاصه اشتراک‌ها
+    [HttpGet("users-summary")]
+    public async Task<IActionResult> GetUsersWithSubscriptionsSummary([FromQuery] UsersWithSubscriptionsQueryDto query)
+    {
+        var result = await _subscriptionService.GetUsersWithSubscriptionsSummaryAsync(query);
+        return Ok(ApiResult.Ok(result));
+    }
+
+    // PUT: ویرایش اشتراک کاربر
+    [HttpPut("{subscriptionId:guid}")]
+    public async Task<IActionResult> UpdateSubscription(Guid subscriptionId, [FromBody] UpdateUserSubscriptionDto dto)
+    {
+        var result = await _subscriptionService.UpdateSubscriptionAsync(subscriptionId, dto);
+        return Ok(ApiResult.Ok(result));
+    }
 }
+
+
+
+
+
+
+
 
 
 

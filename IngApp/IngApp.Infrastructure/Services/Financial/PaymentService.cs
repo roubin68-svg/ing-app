@@ -66,7 +66,7 @@ public class PaymentService : IPaymentService
             AmountRial = amountRial,
             IdempotencyKey = idempotencyKey,
             Description = "شارژ کیف پول",
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
 
         _db.Payments.Add(payment);
@@ -142,8 +142,8 @@ public class PaymentService : IPaymentService
                     .FirstAsync(ps => ps.Code == "Failed");
 
                 payment.StatusId = failedStatus.Id;
-                payment.CompletedAt = DateTime.UtcNow;
-                payment.UpdatedAt = DateTime.UtcNow;
+                payment.CompletedAt = DateTime.Now;
+                payment.UpdatedAt = DateTime.Now;
                 payment.GatewayResponseJson = gatewayResponseJson;
                 await _db.SaveChangesAsync();
 
@@ -159,8 +159,8 @@ public class PaymentService : IPaymentService
             payment.WalletTransactionId = creditResult.TransactionId;
             payment.GatewayTransactionId = gatewayTransactionId ?? $"MOCK-{payment.Id}";
             payment.GatewayResponseJson = gatewayResponseJson;
-            payment.CompletedAt = DateTime.UtcNow;
-            payment.UpdatedAt = DateTime.UtcNow;
+            payment.CompletedAt = DateTime.Now;
+            payment.UpdatedAt = DateTime.Now;
 
             await _db.SaveChangesAsync();
 
@@ -222,6 +222,7 @@ public class PaymentService : IPaymentService
             .ToListAsync();
     }
 }
+
 
 
 

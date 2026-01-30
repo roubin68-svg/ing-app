@@ -12,7 +12,24 @@ public interface IUserSubscriptionManagementService
     /// دریافت لیست اشتراک‌ها با Pagination و فیلتر
     /// </summary>
     Task<PagedResult<UserSubscriptionDetailDto>> GetPagedSubscriptionsAsync(UserSubscriptionListQueryDto query);
+
+    /// <summary>
+    /// دریافت لیست کاربران با خلاصه اشتراک‌ها
+    /// </summary>
+    Task<PagedResult<UserWithSubscriptionsSummaryDto>> GetUsersWithSubscriptionsSummaryAsync(UsersWithSubscriptionsQueryDto query);
+
+    /// <summary>
+    /// ویرایش اشتراک کاربر
+    /// </summary>
+    Task<UserSubscriptionDetailDto> UpdateSubscriptionAsync(Guid subscriptionId, UpdateUserSubscriptionDto dto);
 }
+
+
+
+
+
+
+
 
 
 

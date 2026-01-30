@@ -104,7 +104,7 @@ public class VisitorProfileService : IVisitorProfileService
                 Address = dto.Address,
                 Description = dto.Description,
                 IsActive = dto.IsActive,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             _db.VisitorProfiles.Add(existingProfile);
@@ -119,7 +119,7 @@ public class VisitorProfileService : IVisitorProfileService
             existingProfile.Address = dto.Address;
             existingProfile.Description = dto.Description;
             existingProfile.IsActive = dto.IsActive;
-            existingProfile.UpdatedAt = DateTime.UtcNow;
+            existingProfile.UpdatedAt = DateTime.Now;
         }
 
         await _db.SaveChangesAsync();

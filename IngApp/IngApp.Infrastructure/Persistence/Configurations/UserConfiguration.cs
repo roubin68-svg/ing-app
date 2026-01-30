@@ -66,7 +66,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
                 SubscriptionLevel = SubscriptionLevel.None,
                 VerificationStatus = VerificationStatus.NotSubmitted,
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             }
         );
     }

@@ -12,11 +12,13 @@ import {
     Modal,
     message,
     Space,
+    Popconfirm,
 } from "antd";
 import {
     CrownOutlined,
     CheckCircleOutlined,
     ClockCircleOutlined,
+    CloseCircleOutlined,
 } from "@ant-design/icons";
 import { Typography } from "antd";
 import subscriptionsApi from "../api/subscriptionsApi";
@@ -121,6 +123,52 @@ const SubscriptionsPage = () => {
     const handlePurchase = (plan) => {
         setSelectedPlan(plan);
         setPurchaseModalVisible(true);
+    };
+
+    const handleCancelSubscription = async (subscriptionId) => {
+        try {
+            const result = await subscriptionsApi.cancelSubscription(subscriptionId);
+            
+            if (result?.success) {
+                const refundToman = result.refundAmountRial ? (result.refundAmountRial / 10).toLocaleString("fa-IR") : "0";
+                
+                let successMessage = "اشتراک با موفقیت لغو شد.";
+                if (result.refundAmountRial > 0) {
+                    successMessage += ` مبلغ ${refundToman} تومان به کیف پول شما برگشت داده شد.`;
+                } else {
+                    successMessage += " به دلیل استفاده از اشتراک و کارمزد خدمات، مبلغی به کیف پول شما برگشت داده نشد.";
+                }
+                
+                message.success(successMessage);
+                
+                // نمایش جزئیات محاسبه در یک Modal
+                Modal.info({
+                    title: "جزئیات محاسبه برگشت مبلغ",
+                    width: 600,
+                    content: (
+                        <div style={{ whiteSpace: "pre-line", direction: "rtl", textAlign: "right" }}>
+                            {result.calculationDescription || "جزئیات محاسبه در دسترس نیست."}
+                        </div>
+                    ),
+                });
+                
+                loadData();
+                
+                // به‌روزرسانی موجودی کیف پول در header
+                if (result.refundAmountRial > 0) {
+                    window.dispatchEvent(new CustomEvent('walletBalanceChanged'));
+                }
+            } else {
+                message.error(result?.errorMessage || "خطا در لغو اشتراک");
+            }
+        } catch (error) {
+            const errorMsg =
+                error?.response?.data?.message ||
+                error?.message ||
+                "خطا در لغو اشتراک";
+            message.error(errorMsg);
+            console.error(error);
+        }
     };
 
     const confirmPurchase = async () => {
@@ -238,6 +286,43 @@ const SubscriptionsPage = () => {
             dataIndex: "endDate",
             key: "endDate",
             render: (date) => toShamsi(date) || "-",
+        },
+        {
+            title: "عملیات",
+            key: "actions",
+            align: "center",
+            width: 120,
+            render: (_, record) => {
+                const now = new Date();
+                const startDate = new Date(record.startDate);
+                const endDate = new Date(record.endDate);
+                const isCancellable = 
+                    record.statusCode === "Active" && 
+                    endDate > now; // هنوز تمام نشده
+
+                if (!isCancellable) {
+                    return null;
+                }
+
+                return (
+                    <Popconfirm
+                        title="لغو اشتراک"
+                        description="آیا از لغو این اشتراک مطمئن هستید؟ مبلغ باقیمانده (منهای کارمزد خدمات) به کیف پول شما برگشت داده می‌شود."
+                        onConfirm={() => handleCancelSubscription(record.id)}
+                        okText="بله، لغو کن"
+                        cancelText="انصراف"
+                        okButtonProps={{ danger: true }}
+                    >
+                        <Button
+                            size="small"
+                            danger
+                            icon={<CloseCircleOutlined />}
+                        >
+                            لغو
+                        </Button>
+                    </Popconfirm>
+                );
+            },
         },
     ];
 

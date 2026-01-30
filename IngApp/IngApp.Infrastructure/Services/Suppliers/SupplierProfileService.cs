@@ -226,7 +226,7 @@ namespace IngApp.Infrastructure.Services.Suppliers
                 {
                     UserId = userId,
                     VerificationStatus = VerificationStatus.NotSubmitted,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 };
 
                 _db.SupplierProfiles.Add(entity);
@@ -274,7 +274,7 @@ namespace IngApp.Infrastructure.Services.Suppliers
             entity.ContactMobile = request.ContactMobile.Trim();
             entity.ContactPhone = request.ContactPhone?.Trim();
 
-            entity.UpdatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.Now;
 
             await _db.SaveChangesAsync();
 
@@ -306,7 +306,7 @@ namespace IngApp.Infrastructure.Services.Suppliers
 
             entity.VerificationStatus = VerificationStatus.Pending;
             entity.RejectionReason = null;
-            entity.UpdatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.Now;
 
             await _db.SaveChangesAsync();
         }
@@ -338,7 +338,7 @@ namespace IngApp.Infrastructure.Services.Suppliers
 
             supplier.VerificationStatus = newStatus;
             supplier.RejectionReason = newStatus == VerificationStatus.Rejected ? note : null;
-            supplier.UpdatedAt = DateTime.UtcNow;
+            supplier.UpdatedAt = DateTime.Now;
 
             // تاریخچه
             _db.SupplierVerificationHistories.Add(new SupplierVerificationHistory
@@ -348,7 +348,7 @@ namespace IngApp.Infrastructure.Services.Suppliers
                 NewStatus = newStatus,
                 AdminUserId = adminUserId,
                 Note = note,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             });
 
             // --- نقش‌دهی/نقش‌گیری Supplier + تغییر UserType ---
@@ -543,7 +543,7 @@ namespace IngApp.Infrastructure.Services.Suppliers
                 // وضعیت را برای جلوگیری از استفاده دوباره «رد شده» می‌کنیم
                 d.Status = DocumentStatus.Rejected;
                 d.AdminNote = "INVALIDATED_BY_PROFILE_CHANGE";
-                d.ReviewedAt = DateTime.UtcNow;
+                d.ReviewedAt = DateTime.Now;
             }
         }
 
@@ -559,7 +559,7 @@ namespace IngApp.Infrastructure.Services.Suppliers
                 MetadataJson = metadataJson,
                 UserId = userId,
                 AdminUserId = adminUserId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             });
 
             await _db.SaveChangesAsync();

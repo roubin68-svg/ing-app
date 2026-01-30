@@ -181,7 +181,7 @@ public class VisitorManagementService : IVisitorManagementService
             Address = dto.Address,
             Description = dto.Description,
             IsActive = dto.IsActive,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
 
         _db.VisitorProfiles.Add(visitorProfile);
@@ -206,7 +206,7 @@ public class VisitorManagementService : IVisitorManagementService
         visitor.Address = dto.Address;
         visitor.Description = dto.Description;
         visitor.IsActive = dto.IsActive;
-        visitor.UpdatedAt = DateTime.UtcNow;
+        visitor.UpdatedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
 
@@ -223,7 +223,7 @@ public class VisitorManagementService : IVisitorManagementService
             throw new NotFoundException("Visitor یافت نشد.");
 
         visitor.IsActive = isActive;
-        visitor.UpdatedAt = DateTime.UtcNow;
+        visitor.UpdatedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
     }
@@ -308,7 +308,7 @@ public class VisitorManagementService : IVisitorManagementService
                 DisplayName = dto.BuyerName?.Trim(),
                 UserTypeId = buyerUserType.Id,
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             _db.Users.Add(user);
@@ -321,7 +321,7 @@ public class VisitorManagementService : IVisitorManagementService
                 UserId = user.Id,
                 BusinessName = dto.BuyerName?.Trim(),
                 ReferredByVisitorId = visitorProfileId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             _db.BuyerProfiles.Add(buyerProfile);
@@ -340,7 +340,7 @@ public class VisitorManagementService : IVisitorManagementService
                     Id = Guid.NewGuid(),
                     UserId = user.Id,
                     ReferredByVisitorId = visitorProfileId,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 };
 
                 _db.BuyerProfiles.Add(buyerProfile);
@@ -357,7 +357,7 @@ public class VisitorManagementService : IVisitorManagementService
                 if (buyerProfile.ReferredByVisitorId == null)
                 {
                     buyerProfile.ReferredByVisitorId = visitorProfileId;
-                    buyerProfile.UpdatedAt = DateTime.UtcNow;
+                    buyerProfile.UpdatedAt = DateTime.Now;
                 }
             }
         }
@@ -393,7 +393,7 @@ public class VisitorManagementService : IVisitorManagementService
 
         // حذف ReferralCode (تنظیم ReferredByVisitorId به null)
         buyerProfile.ReferredByVisitorId = null;
-        buyerProfile.UpdatedAt = DateTime.UtcNow;
+        buyerProfile.UpdatedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
     }
@@ -490,7 +490,7 @@ public class VisitorManagementService : IVisitorManagementService
             existingRule.IsActive = dto.IsActive;
             existingRule.EffectiveFrom = dto.EffectiveFrom;
             existingRule.EffectiveTo = dto.EffectiveTo;
-            existingRule.UpdatedAt = DateTime.UtcNow;
+            existingRule.UpdatedAt = DateTime.Now;
         }
         else
         {
@@ -503,7 +503,7 @@ public class VisitorManagementService : IVisitorManagementService
                 IsActive = dto.IsActive,
                 EffectiveFrom = dto.EffectiveFrom,
                 EffectiveTo = dto.EffectiveTo,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             _db.VisitorCommissionRules.Add(existingRule);
@@ -537,7 +537,7 @@ public class VisitorManagementService : IVisitorManagementService
         if (activeRules.Count == 0)
             return;
 
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
         foreach (var rule in activeRules)
         {
             rule.IsActive = false;

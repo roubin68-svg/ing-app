@@ -58,7 +58,7 @@ public class JwtTokenService : IJwtTokenService
         // ===========================
         // Standard Token Expiration
         // ===========================
-        var expiration = DateTime.UtcNow.AddDays(7);
+        var expiration = DateTime.Now.AddDays(7);
 
         var token = new JwtSecurityToken(
             issuer: _config["Jwt:Issuer"],

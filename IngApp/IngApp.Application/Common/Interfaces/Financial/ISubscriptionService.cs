@@ -31,7 +31,19 @@ public interface ISubscriptionService
     /// دریافت تاریخچه اشتراک‌های کاربر
     /// </summary>
     Task<List<UserSubscriptionDto>> GetUserSubscriptionHistoryAsync(Guid userId);
+
+    /// <summary>
+    /// لغو اشتراک و محاسبه و برگشت مبلغ به کیف پول
+    /// </summary>
+    Task<CancelSubscriptionResultDto> CancelSubscriptionAsync(Guid userId, Guid subscriptionId);
 }
+
+
+
+
+
+
+
 
 
 

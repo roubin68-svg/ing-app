@@ -32,6 +32,7 @@ public class FinancialOperationTypeConfiguration : IEntityTypeConfiguration<Fina
             new FinancialOperationType { Id = 1, Code = "TopUp", Title = "شارژ کیف پول", Description = "واریز وجه به کیف پول", IsActive = true },
             new FinancialOperationType { Id = 2, Code = "UnlockContactFee", Title = "هزینه باز کردن اطلاعات تماس", Description = "هزینه نمایش اطلاعات تماس آگهی", IsActive = true },
             new FinancialOperationType { Id = 3, Code = "SubscriptionPurchase", Title = "خرید اشتراک", Description = "خرید پکیج/اشتراک", IsActive = true },
+            new FinancialOperationType { Id = 10, Code = "SubscriptionRefund", Title = "برگشت مبلغ اشتراک", Description = "برگشت مبلغ اشتراک لغو شده", IsActive = true },
             new FinancialOperationType { Id = 4, Code = "OnboardingFee", Title = "هزینه ثبت‌نام تأمین‌کننده", Description = "هزینه یک‌باره ثبت‌نام به عنوان تأمین‌کننده", IsActive = true },
             new FinancialOperationType { Id = 5, Code = "CommissionEarned", Title = "دریافت پورسانت", Description = "پورسانت دریافتی از بازاریابی", IsActive = true },
             new FinancialOperationType { Id = 6, Code = "ManualDeposit", Title = "واریز دستی", Description = "واریز دستی توسط مدیر", IsActive = true },

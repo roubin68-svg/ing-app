@@ -53,7 +53,7 @@ public class SubscriptionService : ISubscriptionService
         var activeStatus = await _db.SubscriptionStatuses
             .FirstAsync(s => s.Code == "Active");
 
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         var subscription = await _db.UserSubscriptions
             .Include(us => us.Plan)
@@ -99,7 +99,7 @@ public class SubscriptionService : ISubscriptionService
         // پیدا کردن subscription با آخرین EndDate که Status = Active است
         // چه شروع شده باشد (StartDate <= now) چه هنوز شروع نشده باشد (StartDate > now)
         // اما EndDate باید در آینده باشد (EndDate >= now)
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         var subscription = await _db.UserSubscriptions
             .Include(us => us.Plan)
@@ -203,7 +203,7 @@ public class SubscriptionService : ISubscriptionService
         else
         {
             // اگر subscription فعال وجود ندارد، subscription جدید از الان شروع می‌شود
-            startDate = DateTime.UtcNow;
+            startDate = DateTime.Now;
             endDate = CalculateEndDate(startDate, plan.DurationMonths);
         }
 
@@ -216,8 +216,8 @@ public class SubscriptionService : ISubscriptionService
             StartDate = startDate,
             EndDate = endDate,
             PaymentTransactionId = debitResult.TransactionId,
-            PurchasedAt = DateTime.UtcNow, // تاریخ خرید همیشه الان است
-            CreatedAt = DateTime.UtcNow
+            PurchasedAt = DateTime.Now, // تاریخ خرید همیشه الان است
+            CreatedAt = DateTime.Now
         };
 
         _db.UserSubscriptions.Add(subscription);
@@ -328,6 +328,229 @@ public class SubscriptionService : ISubscriptionService
                 CancelledAt = us.CancelledAt
             })
             .ToListAsync();
+    }
+
+    public async Task<CancelSubscriptionResultDto> CancelSubscriptionAsync(Guid userId, Guid subscriptionId)
+    {
+        // دریافت اشتراک
+        var subscription = await _db.UserSubscriptions
+            .Include(us => us.Plan)
+            .Include(us => us.Status)
+            .Include(us => us.User)
+            .FirstOrDefaultAsync(us => us.Id == subscriptionId && us.UserId == userId);
+
+        if (subscription == null)
+        {
+            return new CancelSubscriptionResultDto
+            {
+                Success = false,
+                ErrorMessage = "اشتراک مورد نظر یافت نشد."
+            };
+        }
+
+        // بررسی اینکه اشتراک قبلاً لغو نشده باشد
+        if (subscription.CancelledAt.HasValue)
+        {
+            return new CancelSubscriptionResultDto
+            {
+                Success = false,
+                ErrorMessage = "این اشتراک قبلاً لغو شده است."
+            };
+        }
+
+        var now = DateTime.Now;
+        var originalAmountRial = subscription.Plan.PriceRial;
+
+        // محاسبه تعداد روزهای استفاده شده و کل روزها
+        int usedDays = 0;
+        int totalDays = 0;
+        long usedAmountRial = 0;
+        long remainingAmountRial = 0;
+
+        // اگر اشتراک هنوز شروع نشده (StartDate > now)
+        if (subscription.StartDate > now)
+        {
+            // کل مبلغ برگشت داده می‌شود (منهای کارمزد)
+            usedDays = 0;
+            totalDays = (int)(subscription.EndDate - subscription.StartDate).TotalDays;
+            usedAmountRial = 0;
+            remainingAmountRial = originalAmountRial;
+        }
+        // اگر اشتراک شروع شده اما هنوز تمام نشده
+        else if (subscription.StartDate <= now && subscription.EndDate > now)
+        {
+            // محاسبه روزهای استفاده شده
+            usedDays = (int)(now - subscription.StartDate).TotalDays;
+            totalDays = (int)(subscription.EndDate - subscription.StartDate).TotalDays;
+            
+            // محاسبه مبلغ استفاده شده (نسبتی)
+            if (totalDays > 0)
+            {
+                usedAmountRial = (long)((decimal)originalAmountRial * usedDays / totalDays);
+            }
+            else
+            {
+                usedAmountRial = originalAmountRial; // اگر totalDays = 0، کل مبلغ استفاده شده
+            }
+            
+            remainingAmountRial = originalAmountRial - usedAmountRial;
+        }
+        // اگر اشتراک تمام شده
+        else
+        {
+            return new CancelSubscriptionResultDto
+            {
+                Success = false,
+                ErrorMessage = "این اشتراک قبلاً منقضی شده و امکان لغو ندارد."
+            };
+        }
+
+        // دریافت کارمزد خدمات از تنظیمات
+        var serviceFeeSetting = await _db.SystemSettings
+            .FirstOrDefaultAsync(s => s.Key == "SubscriptionCancellationServiceFeePercentage");
+
+        decimal serviceFeePercentage = 10m; // پیش‌فرض 10%
+        if (serviceFeeSetting != null && decimal.TryParse(serviceFeeSetting.Value, out var parsedFee))
+        {
+            serviceFeePercentage = parsedFee;
+        }
+
+        // محاسبه کارمزد خدمات از مبلغ باقیمانده
+        long serviceFeeAmountRial = (long)(remainingAmountRial * serviceFeePercentage / 100m);
+
+        // محاسبه مبلغ نهایی برگشتی
+        long refundAmountRial = remainingAmountRial - serviceFeeAmountRial;
+
+        // اگر مبلغ برگشتی منفی یا صفر شد، هیچ مبلغی برگشت داده نمی‌شود
+        if (refundAmountRial <= 0)
+        {
+            refundAmountRial = 0;
+        }
+
+        // ایجاد تراکنش واریز به کیف پول (اگر مبلغ برگشتی بیشتر از صفر باشد)
+        Guid? refundTransactionId = null;
+        string calculationDescription = "";
+
+        if (refundAmountRial > 0)
+        {
+            // دریافت OperationType و ReferenceType
+            var operationType = await _db.FinancialOperationTypes
+                .FirstAsync(ot => ot.Code == "SubscriptionRefund");
+
+            var referenceType = await _db.FinancialReferenceTypes
+                .FirstAsync(rt => rt.Code == "Subscription");
+
+            // ساخت توضیحات کامل محاسبه
+            calculationDescription = BuildCalculationDescription(
+                originalAmountRial,
+                usedDays,
+                totalDays,
+                usedAmountRial,
+                remainingAmountRial,
+                serviceFeePercentage,
+                serviceFeeAmountRial,
+                refundAmountRial,
+                subscription.Plan.Title);
+
+            // ایجاد تراکنش واریز
+            var idempotencyKey = $"subscription_cancel_{subscriptionId}_{now:yyyyMMddHHmmss}";
+            var creditResult = await _walletService.CreditAsync(
+                userId,
+                refundAmountRial,
+                operationType.Id,
+                referenceType.Id,
+                subscriptionId,
+                idempotencyKey,
+                calculationDescription);
+
+            if (!creditResult.Success)
+            {
+                return new CancelSubscriptionResultDto
+                {
+                    Success = false,
+                    ErrorMessage = creditResult.ErrorMessage ?? "خطا در واریز مبلغ به کیف پول."
+                };
+            }
+
+            refundTransactionId = creditResult.TransactionId;
+        }
+        else
+        {
+            // اگر مبلغ برگشتی صفر باشد، فقط توضیحات را می‌سازیم
+            calculationDescription = BuildCalculationDescription(
+                originalAmountRial,
+                usedDays,
+                totalDays,
+                usedAmountRial,
+                remainingAmountRial,
+                serviceFeePercentage,
+                serviceFeeAmountRial,
+                refundAmountRial,
+                subscription.Plan.Title);
+        }
+
+        // به‌روزرسانی وضعیت اشتراک به Cancelled
+        var cancelledStatus = await _db.SubscriptionStatuses
+            .FirstAsync(s => s.Code == "Cancelled");
+        
+        subscription.StatusId = cancelledStatus.Id;
+        subscription.CancelledAt = now;
+        subscription.UpdatedAt = now;
+
+        await _db.SaveChangesAsync();
+
+        return new CancelSubscriptionResultDto
+        {
+            Success = true,
+            OriginalAmountRial = originalAmountRial,
+            UsedDays = usedDays,
+            TotalDays = totalDays,
+            UsedAmountRial = usedAmountRial,
+            RemainingAmountRial = remainingAmountRial,
+            ServiceFeePercentage = serviceFeePercentage,
+            ServiceFeeAmountRial = serviceFeeAmountRial,
+            RefundAmountRial = refundAmountRial,
+            RefundTransactionId = refundTransactionId,
+            CalculationDescription = calculationDescription
+        };
+    }
+
+    private string BuildCalculationDescription(
+        long originalAmountRial,
+        int usedDays,
+        int totalDays,
+        long usedAmountRial,
+        long remainingAmountRial,
+        decimal serviceFeePercentage,
+        long serviceFeeAmountRial,
+        long refundAmountRial,
+        string planTitle)
+    {
+        var originalToman = originalAmountRial / 10m;
+        var usedToman = usedAmountRial / 10m;
+        var remainingToman = remainingAmountRial / 10m;
+        var serviceFeeToman = serviceFeeAmountRial / 10m;
+        var refundToman = refundAmountRial / 10m;
+
+        var description = $"برگشت مبلغ اشتراک {planTitle}\n\n";
+        
+        description += $"مبلغ کل اشتراک: {originalToman:N0} تومان\n";
+        
+        if (usedDays == 0)
+        {
+            description += $"وضعیت: اشتراک هنوز شروع نشده است\n";
+        }
+        else
+        {
+            description += $"روزهای استفاده شده: {usedDays} روز از {totalDays} روز\n";
+            description += $"مبلغ کسر شده برای روزهای استفاده شده: {usedToman:N0} تومان\n";
+        }
+        
+        description += $"مبلغ باقیمانده: {remainingToman:N0} تومان\n";
+        description += $"کارمزد خدمات ({serviceFeePercentage}%): {serviceFeeToman:N0} تومان\n";
+        description += $"مبلغ نهایی برگشتی: {refundToman:N0} تومان";
+
+        return description;
     }
 }
 

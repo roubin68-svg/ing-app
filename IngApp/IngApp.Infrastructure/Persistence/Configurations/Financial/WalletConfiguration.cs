@@ -68,3 +68,12 @@ public class WalletConfiguration : IEntityTypeConfiguration<Wallet>
 
 
 
+
+
+
+
+
+
+
+
+

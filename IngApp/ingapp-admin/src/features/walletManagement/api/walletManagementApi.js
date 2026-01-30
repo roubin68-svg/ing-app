@@ -38,6 +38,34 @@ const walletManagementApi = {
         const res = await apiClient.post(`${BASE_URL}/users/${userId}/withdrawal`, payload);
         return res.data;
     },
+
+    // GET /api/v1/wallet-management/transactions
+    // گزارش دفتر کل تراکنش‌های مالی (همه کاربران)
+    getAllTransactions: async (params) => {
+        const res = await apiClient.get(`${BASE_URL}/transactions`, { params });
+        return res.data;
+    },
+
+    // GET /api/v1/wallet-management/commissions-report
+    // گزارش پورسانت‌ها
+    getCommissionsReport: async (params) => {
+        const res = await apiClient.get(`${BASE_URL}/commissions-report`, { params });
+        return res.data;
+    },
+
+    // GET /api/v1/wallet-management/income-expense-report
+    // گزارش درآمد/هزینه
+    getIncomeExpenseReport: async (params) => {
+        const res = await apiClient.get(`${BASE_URL}/income-expense-report`, { params });
+        return res.data;
+    },
+
+    // GET /api/v1/wallet-management/dashboard
+    // داشبورد مالی
+    getFinancialDashboard: async () => {
+        const res = await apiClient.get(`${BASE_URL}/dashboard`);
+        return res.data;
+    },
 };
 
 export default walletManagementApi;

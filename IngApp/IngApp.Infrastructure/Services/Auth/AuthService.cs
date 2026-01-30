@@ -104,7 +104,7 @@ public class AuthService : IAuthService
             {
                 Id = Guid.NewGuid(),
                 UserId = user.Id,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             _context.BuyerProfiles.Add(buyerProfile);
@@ -227,7 +227,7 @@ public class AuthService : IAuthService
         if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
             user.PhoneNumber = request.PhoneNumber.Trim();
 
-        user.UpdatedAt = DateTime.UtcNow;
+        user.UpdatedAt = DateTime.Now;
 
         await _context.SaveChangesAsync();
     }
@@ -317,7 +317,7 @@ public class AuthService : IAuthService
 
         // Hash کردن Password جدید
         user.PasswordHash = PasswordHasher.HashPassword(request.NewPassword);
-        user.UpdatedAt = DateTime.UtcNow;
+        user.UpdatedAt = DateTime.Now;
 
         await _context.SaveChangesAsync();
     }

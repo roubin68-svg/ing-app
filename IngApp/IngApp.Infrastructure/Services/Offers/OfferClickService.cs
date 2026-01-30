@@ -24,7 +24,7 @@ public class OfferClickService : IOfferClickService
             UserId = userId,
             IpAddress = ipAddress,
             UserAgent = userAgent,
-            ClickedAt = DateTime.UtcNow
+            ClickedAt = DateTime.Now
         };
 
         _db.OfferClickLogs.Add(log);

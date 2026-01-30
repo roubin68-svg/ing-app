@@ -52,9 +52,9 @@ public class PricingConfiguration : IEntityTypeConfiguration<Pricing>
                 Title = "هزینه باز کردن اطلاعات تماس",
                 AmountRial = 10000, // 1000 تومان
                 IsActive = true,
-                EffectiveFrom = DateTime.UtcNow,
+                EffectiveFrom = DateTime.Now,
                 Description = "هزینه یک‌باره برای نمایش اطلاعات تماس یک آگهی",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             },
             new Pricing
             {
@@ -63,13 +63,14 @@ public class PricingConfiguration : IEntityTypeConfiguration<Pricing>
                 Title = "هزینه ثبت‌نام تأمین‌کننده",
                 AmountRial = 50000, // 5000 تومان
                 IsActive = true,
-                EffectiveFrom = DateTime.UtcNow,
+                EffectiveFrom = DateTime.Now,
                 Description = "هزینه یک‌باره ثبت‌نام به عنوان تأمین‌کننده",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             }
         );
     }
 }
+
 
 
 

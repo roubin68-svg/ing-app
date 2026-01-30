@@ -1,5 +1,6 @@
 using IngApp.Application.Common.Exceptions;
 using IngApp.Application.Common.Interfaces.Financial;
+using IngApp.Application.Common.Models;
 using IngApp.Application.Features.Financial.DTO;
 using IngApp.Domain.Entities.Financial;
 using IngApp.Infrastructure.Persistence;
@@ -144,7 +145,7 @@ public class CommissionService : ICommissionService
             ReferenceId = unlockTransactionId,
             ReferenceType = "OfferContactUnlock",
             Description = $"پورسانت باز کردن اطلاعات تماس آگهی",
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
 
         _db.CommissionTransactions.Add(commissionTransaction);
@@ -282,7 +283,7 @@ public class CommissionService : ICommissionService
             ReferenceId = subscriptionId,
             ReferenceType = "UserSubscription",
             Description = $"پورسانت خرید اشتراک",
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
 
         _db.CommissionTransactions.Add(commissionTransaction);
@@ -348,7 +349,7 @@ public class CommissionService : ICommissionService
         Guid visitorProfileId,
         string commissionRuleCode)
     {
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         Console.WriteLine($"[Commission] GetCommissionPercentageWithSourceAsync called for visitorProfileId: {visitorProfileId}, commissionRuleCode: {commissionRuleCode}");
 
@@ -392,6 +393,103 @@ public class CommissionService : ICommissionService
 
         Console.WriteLine($"[Commission] Using default CommissionRule: {commissionRuleCode}, Percentage: {defaultRule.CommissionPercentage}%, Id: {defaultRule.Id}");
         return (defaultRule.CommissionPercentage, defaultRule.Id, null);
+    }
+
+    public async Task<CommissionReportDto> GetCommissionReportAsync(CommissionReportQueryDto query)
+    {
+        var page = query.Page <= 0 ? 1 : query.Page;
+        var pageSize = query.PageSize <= 0 ? 20 : query.PageSize;
+
+        var baseQuery =
+            from ct in _db.CommissionTransactions.AsNoTracking()
+            join visitor in _db.Users.AsNoTracking() on ct.VisitorUserId equals visitor.Id
+            join buyer in _db.Users.AsNoTracking() on ct.BuyerUserId equals buyer.Id
+            select new
+            {
+                Commission = ct,
+                Visitor = visitor,
+                Buyer = buyer
+            };
+
+        // فیلترها
+        if (!string.IsNullOrWhiteSpace(query.VisitorPhoneNumber))
+        {
+            baseQuery = baseQuery.Where(x => x.Visitor.PhoneNumber.Contains(query.VisitorPhoneNumber));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.VisitorDisplayName))
+        {
+            baseQuery = baseQuery.Where(x => x.Visitor.DisplayName != null &&
+                                             x.Visitor.DisplayName.Contains(query.VisitorDisplayName));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.CommissionType))
+        {
+            baseQuery = baseQuery.Where(x => x.Commission.CommissionType == query.CommissionType);
+        }
+
+        if (query.FromDate.HasValue)
+        {
+            baseQuery = baseQuery.Where(x => x.Commission.CreatedAt >= query.FromDate.Value);
+        }
+
+        if (query.ToDate.HasValue)
+        {
+            var to = query.ToDate.Value.Date.AddDays(1).AddTicks(-1);
+            baseQuery = baseQuery.Where(x => x.Commission.CreatedAt <= to);
+        }
+
+        // محاسبه مجموع
+        var totalCommissionRial = await baseQuery
+            .SumAsync(x => (long?)x.Commission.CommissionAmountRial) ?? 0;
+
+        // صفحه‌بندی
+        var orderedQuery = baseQuery
+            .OrderByDescending(x => x.Commission.CreatedAt)
+            .ThenByDescending(x => x.Commission.Id);
+
+        var totalCount = await orderedQuery.CountAsync();
+
+        var items = await orderedQuery
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new CommissionReportItemDto
+            {
+                Id = x.Commission.Id,
+                VisitorUserId = x.Commission.VisitorUserId,
+                VisitorPhoneNumber = x.Visitor.PhoneNumber,
+                VisitorDisplayName = x.Visitor.DisplayName,
+                BuyerUserId = x.Commission.BuyerUserId,
+                BuyerPhoneNumber = x.Buyer.PhoneNumber,
+                BuyerDisplayName = x.Buyer.DisplayName,
+                CommissionType = x.Commission.CommissionType,
+                CommissionTypeTitle = x.Commission.CommissionType == "UnlockContactCommission"
+                    ? "پورسانت باز کردن تماس"
+                    : x.Commission.CommissionType == "SubscriptionCommission"
+                        ? "پورسانت خرید اشتراک"
+                        : x.Commission.CommissionType,
+                OriginalAmountRial = x.Commission.OriginalAmountRial,
+                CommissionAmountRial = x.Commission.CommissionAmountRial,
+                CommissionPercentage = x.Commission.CommissionPercentage,
+                Description = x.Commission.Description,
+                CreatedAt = x.Commission.CreatedAt
+            })
+            .ToListAsync();
+
+        var paged = new PagedResult<CommissionReportItemDto>
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            Items = items
+        };
+
+        return new CommissionReportDto
+        {
+            Commissions = paged,
+            TotalCommissionRial = totalCommissionRial,
+            TotalCount = totalCount
+        };
     }
 }
 

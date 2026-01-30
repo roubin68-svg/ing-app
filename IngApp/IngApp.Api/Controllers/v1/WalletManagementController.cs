@@ -13,10 +13,14 @@ namespace IngApp.Api.Controllers.v1;
 public class WalletManagementController : ControllerBase
 {
     private readonly IWalletManagementService _service;
+    private readonly ICommissionService _commissionService;
 
-    public WalletManagementController(IWalletManagementService service)
+    public WalletManagementController(
+        IWalletManagementService service,
+        ICommissionService commissionService)
     {
         _service = service;
+        _commissionService = commissionService;
     }
 
     // GET: لیست کاربران به همراه خلاصه کیف پول
@@ -25,6 +29,38 @@ public class WalletManagementController : ControllerBase
     {
         var result = await _service.GetWalletUsersAsync(query);
         return Ok(ApiResult.Ok(result));
+    }
+
+    // GET: گزارش دفتر کل تراکنش‌های مالی (همه کاربران)
+    [HttpGet("transactions")]
+    public async Task<IActionResult> GetAllTransactions([FromQuery] WalletTransactionListQueryDto query)
+    {
+        var report = await _service.GetAllTransactionsAsync(query);
+        return Ok(ApiResult.Ok(report));
+    }
+
+    // GET: گزارش پورسانت‌ها
+    [HttpGet("commissions-report")]
+    public async Task<IActionResult> GetCommissionsReport([FromQuery] CommissionReportQueryDto query)
+    {
+        var report = await _commissionService.GetCommissionReportAsync(query);
+        return Ok(ApiResult.Ok(report));
+    }
+
+    // GET: گزارش درآمد/هزینه
+    [HttpGet("income-expense-report")]
+    public async Task<IActionResult> GetIncomeExpenseReport([FromQuery] IncomeExpenseReportQueryDto query)
+    {
+        var report = await _service.GetIncomeExpenseReportAsync(query);
+        return Ok(ApiResult.Ok(report));
+    }
+
+    // GET: داشبورد مالی
+    [HttpGet("dashboard")]
+    public async Task<IActionResult> GetFinancialDashboard()
+    {
+        var dashboard = await _service.GetFinancialDashboardAsync();
+        return Ok(ApiResult.Ok(dashboard));
     }
 
     // GET: دریافت موجودی کیف پول یک کاربر
@@ -55,7 +91,8 @@ public class WalletManagementController : ControllerBase
         var result = await _service.ManualDepositAsync(
             userId,
             dto.AmountRial,
-            dto.Description);
+            dto.Description ?? string.Empty,
+            dto.IsBankSettlement);
         return Ok(ApiResult.Ok(result));
     }
 
@@ -68,7 +105,8 @@ public class WalletManagementController : ControllerBase
         var result = await _service.ManualWithdrawalAsync(
             userId,
             dto.AmountRial,
-            dto.Description);
+            dto.Description ?? string.Empty,
+            dto.IsBankSettlement);
         return Ok(ApiResult.Ok(result));
     }
 }

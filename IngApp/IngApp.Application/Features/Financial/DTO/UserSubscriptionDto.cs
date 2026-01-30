@@ -11,12 +11,13 @@ public class UserSubscriptionDto
     public string StatusTitle { get; set; } = null!;
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
-    public bool IsActive => StatusCode == "Active" && DateTime.UtcNow >= StartDate && DateTime.UtcNow <= EndDate;
+    public bool IsActive => StatusCode == "Active" && DateTime.Now >= StartDate && DateTime.Now <= EndDate;
     public bool UnlimitedContactViews { get; set; }
     public Guid? PaymentTransactionId { get; set; }
     public DateTime PurchasedAt { get; set; }
     public DateTime? CancelledAt { get; set; }
 }
+
 
 
 

@@ -59,7 +59,7 @@ public class PlanConfiguration : IEntityTypeConfiguration<Plan>
                 UnlimitedContactViews = true,
                 IsActive = true,
                 DisplayOrder = 1,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             },
             new Plan
             {
@@ -72,7 +72,7 @@ public class PlanConfiguration : IEntityTypeConfiguration<Plan>
                 UnlimitedContactViews = true,
                 IsActive = true,
                 DisplayOrder = 2,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             },
             new Plan
             {
@@ -85,7 +85,7 @@ public class PlanConfiguration : IEntityTypeConfiguration<Plan>
                 UnlimitedContactViews = true,
                 IsActive = true,
                 DisplayOrder = 3,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             },
             new Plan
             {
@@ -98,11 +98,12 @@ public class PlanConfiguration : IEntityTypeConfiguration<Plan>
                 UnlimitedContactViews = true,
                 IsActive = true,
                 DisplayOrder = 4,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             }
         );
     }
 }
+
 
 
 

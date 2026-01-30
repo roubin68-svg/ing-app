@@ -50,7 +50,7 @@ public class Payment
     /// <summary>
     /// تاریخ ایجاد
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
     
     /// <summary>
     /// تاریخ به‌روزرسانی
@@ -62,6 +62,7 @@ public class Payment
     /// </summary>
     public DateTime? CompletedAt { get; set; }
 }
+
 
 
 

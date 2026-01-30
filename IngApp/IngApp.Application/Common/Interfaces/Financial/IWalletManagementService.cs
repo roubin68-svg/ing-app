@@ -32,7 +32,8 @@ public interface IWalletManagementService
     Task<WalletTransactionResultDto> ManualDepositAsync(
         Guid userId,
         long amountRial,
-        string description);
+        string description,
+        bool isBankSettlement = false);
 
     /// <summary>
     /// برداشت دستی از کیف پول کاربر (Admin)
@@ -40,6 +41,22 @@ public interface IWalletManagementService
     Task<WalletTransactionResultDto> ManualWithdrawalAsync(
         Guid userId,
         long amountRial,
-        string description);
+        string description,
+        bool isBankSettlement = false);
+
+    /// <summary>
+    /// گزارش دفتر کل تراکنش‌های کیف پول با فیلترهای مختلف (برای مانیتورینگ مالی)
+    /// </summary>
+    Task<WalletTransactionsReportDto> GetAllTransactionsAsync(WalletTransactionListQueryDto query);
+
+    /// <summary>
+    /// گزارش درآمد/هزینه
+    /// </summary>
+    Task<IncomeExpenseReportDto> GetIncomeExpenseReportAsync(IncomeExpenseReportQueryDto query);
+
+    /// <summary>
+    /// داشبورد مالی - خلاصه کلی وضعیت مالی سیستم
+    /// </summary>
+    Task<FinancialDashboardDto> GetFinancialDashboardAsync();
 }
 

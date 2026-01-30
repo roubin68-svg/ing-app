@@ -30,12 +30,13 @@ public class Plan
     public bool IsActive { get; set; } = true;
     public int DisplayOrder { get; set; } = 0;
     
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime? UpdatedAt { get; set; }
     
     // Navigation
     public ICollection<UserSubscription> UserSubscriptions { get; set; } = new List<UserSubscription>();
 }
+
 
 
 

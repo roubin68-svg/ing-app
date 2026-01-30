@@ -63,7 +63,7 @@ public class AuthServiceTests : TestBase
 
         _jwtTokenServiceMock
             .Setup(x => x.GenerateToken(It.IsAny<User>(), It.IsAny<IEnumerable<string>>()))
-            .Returns(("test-token", DateTime.UtcNow.AddDays(7)));
+            .Returns(("test-token", DateTime.Now.AddDays(7)));
 
         // Act
         var result = await _authService.VerifyOtpAsync(request);
@@ -108,7 +108,7 @@ public class AuthServiceTests : TestBase
 
         _jwtTokenServiceMock
             .Setup(x => x.GenerateToken(It.IsAny<User>(), It.IsAny<IEnumerable<string>>()))
-            .Returns(("test-token", DateTime.UtcNow.AddDays(7)));
+            .Returns(("test-token", DateTime.Now.AddDays(7)));
 
         // Act
         var result = await _authService.VerifyOtpAsync(request);

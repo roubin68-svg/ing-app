@@ -83,30 +83,31 @@ export const toGregorianISO = (shamsiDayjs) => {
 
 /**
  * تبدیل تاریخ میلادی به string شمسی برای نمایش
+ * توجه: تاریخ‌ها از سرور می‌آیند و timezone سرور هستند (نه UTC)
  * 
- * @param {string|Date|dayjs.Dayjs|null} gregorian - تاریخ میلادی
+ * @param {string|Date|dayjs.Dayjs|null} gregorian - تاریخ میلادی (timezone سرور)
  * @returns {string} - string شمسی (format: "1403/01/15") یا "-" اگر null باشد
  */
 export const toShamsiString = (gregorian) => {
     if (!gregorian) return "-";
 
     try {
-        let year, month, day;
-
+        let d;
+        
         if (typeof gregorian === "string") {
-            const datePart = gregorian.split("T")[0];
-            [year, month, day] = datePart.split("-").map(Number);
+            d = new Date(gregorian);
         } else if (gregorian instanceof Date) {
-            year = gregorian.getFullYear();
-            month = gregorian.getMonth() + 1;
-            day = gregorian.getDate();
+            d = gregorian;
         } else if (dayjs.isDayjs(gregorian)) {
-            year = gregorian.year();
-            month = gregorian.month() + 1;
-            day = gregorian.date();
+            d = gregorian.toDate();
         } else {
             return "-";
         }
+
+        // استفاده مستقیم از تاریخ سرور (بدون تبدیل timezone)
+        const year = d.getFullYear();
+        const month = d.getMonth() + 1;
+        const day = d.getDate();
 
         const j = jalaali.toJalaali(year, month, day);
         return `${j.jy}/${String(j.jm).padStart(2, "0")}/${String(j.jd).padStart(2, "0")}`;
@@ -172,5 +173,46 @@ export const ensureShamsiDayjs = (date) => {
     
     return todayShamsi();
 };
+/**
+ * تبدیل تاریخ میلادی به تاریخ/ساعت شمسی برای نمایش در جدول‌ها
+ * تاریخ‌ها همان‌طور که از سرور می‌آیند (timezone سرور) استفاده می‌شوند.
+ *
+ * @param {string|Date|dayjs.Dayjs|null} gregorian
+ * @returns {{date: string, time: string}} - تاریخ و ساعت شمسی. اگر نامعتبر باشد: { date: "-", time: "" }
+ */
+export const toShamsiDateTimeString = (gregorian) => {
+    if (!gregorian) return { date: "-", time: "" };
 
+    let d;
+
+    if (typeof gregorian === "string") {
+        d = new Date(gregorian);
+    } else if (gregorian instanceof Date) {
+        d = gregorian;
+    } else if (dayjs.isDayjs(gregorian)) {
+        d = gregorian.toDate();
+    } else {
+        return { date: "-", time: "" };
+    }
+
+    try {
+        // استفاده مستقیم از تاریخ سرور (بدون تغییر timezone)
+        const y = d.getFullYear();
+        const m = d.getMonth() + 1;
+        const day = d.getDate();
+        const h = d.getHours();
+        const mi = d.getMinutes();
+
+        const j = jalaali.toJalaali(y, m, day);
+        const dateStr = `${j.jy}/${String(j.jm).padStart(2, "0")}/${String(
+            j.jd
+        ).padStart(2, "0")}`;
+        const timeStr = `${String(h).padStart(2, "0")}:${String(mi).padStart(2, "0")}`;
+
+        return { date: dateStr, time: timeStr };
+    } catch (error) {
+        console.error("Error converting date to Shamsi date-time:", error);
+        return { date: "-", time: "" };
+    }
+};
 

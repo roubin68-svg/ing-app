@@ -26,7 +26,7 @@ public static class TestDataBuilder
             SubscriptionLevel = SubscriptionLevel.None,
             VerificationStatus = VerificationStatus.NotSubmitted,
             IsActive = isActive,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
     }
 
@@ -57,7 +57,7 @@ public static class TestDataBuilder
             SupplierTypeId = supplierTypeId,
             BusinessName = businessName,
             VerificationStatus = status,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
     }
 }

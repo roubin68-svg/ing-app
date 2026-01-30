@@ -36,7 +36,7 @@ public class WalletService : IWalletService
             CurrencyId = currency.Id,
             WalletTypeId = walletType.Id,
             BalanceRial = 0,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
 
         _db.Wallets.Add(wallet);
@@ -117,7 +117,7 @@ public class WalletService : IWalletService
                 ReferenceId = referenceId,
                 IdempotencyKey = idempotencyKey,
                 Description = description,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             // افزایش Balance
@@ -226,7 +226,7 @@ public class WalletService : IWalletService
                 ReferenceId = referenceId,
                 IdempotencyKey = idempotencyKey,
                 Description = description,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             wallet.BalanceRial -= amountRial;
@@ -274,6 +274,7 @@ public class WalletService : IWalletService
             .Include(t => t.Direction)
             .Include(t => t.OperationType)
             .Include(t => t.Status)
+            .Include(t => t.ReferenceType)
             .OrderByDescending(t => t.CreatedAt);
 
         var totalCount = await query.CountAsync();
@@ -291,6 +292,28 @@ public class WalletService : IWalletService
                 OperationTypeTitle = t.OperationType.Title,
                 StatusCode = t.Status.Code,
                 StatusTitle = t.Status.Title,
+                ReferenceTypeCode = t.ReferenceType.Code,
+                ReferenceTypeTitle = t.ReferenceType.Title,
+                SourceCategory =
+                    // بانکی
+                    ((t.OperationType.Code == "TopUp" &&
+                      t.ReferenceType.Code == "Payment") ||
+                     ((t.OperationType.Code == "ManualDeposit" ||
+                       t.OperationType.Code == "ManualWithdrawal") &&
+                      t.ReferenceType.Code == "AdminAction" &&
+                      t.IsBankSettlement))
+                        ? "Bank"
+                    // پورسانت
+                    : t.OperationType.Code == "CommissionEarned" &&
+                      t.ReferenceType.Code == "WalletTransaction"
+                        ? "Commission"
+                    // عملیات دستی داخلی (غیربانکی)
+                    : (t.OperationType.Code == "ManualDeposit" ||
+                       t.OperationType.Code == "ManualWithdrawal") &&
+                      t.ReferenceType.Code == "AdminAction" &&
+                      !t.IsBankSettlement
+                        ? "Manual"
+                    : "Other",
                 Description = t.Description,
                 CreatedAt = t.CreatedAt
             })

@@ -123,7 +123,7 @@ public class CommissionRuleService : ICommissionRuleService
             IsActive = dto.IsActive,
             EffectiveFrom = dto.EffectiveFrom,
             EffectiveTo = dto.EffectiveTo,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
 
         _db.CommissionRules.Add(rule);
@@ -170,7 +170,7 @@ public class CommissionRuleService : ICommissionRuleService
         rule.IsActive = dto.IsActive;
         rule.EffectiveFrom = dto.EffectiveFrom;
         rule.EffectiveTo = dto.EffectiveTo;
-        rule.UpdatedAt = DateTime.UtcNow;
+        rule.UpdatedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
 
@@ -188,7 +188,7 @@ public class CommissionRuleService : ICommissionRuleService
         rule.IsActive = false;
 
         // اگر تاریخ پایان تنظیم نشده یا در آینده است، آن را الان قرار می‌دهیم
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
         if (!rule.EffectiveTo.HasValue || rule.EffectiveTo.Value > now)
         {
             rule.EffectiveTo = now;

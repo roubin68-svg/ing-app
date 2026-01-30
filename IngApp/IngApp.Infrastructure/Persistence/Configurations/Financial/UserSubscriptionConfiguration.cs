@@ -65,3 +65,12 @@ public class UserSubscriptionConfiguration : IEntityTypeConfiguration<UserSubscr
 
 
 
+
+
+
+
+
+
+
+
+

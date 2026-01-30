@@ -49,7 +49,7 @@ public class OfferService : IOfferService
                 "شما اجازه ثبت آگهی برای این دسته‌بندی محصول را ندارید."
             });
 
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         var offer = new Offer
         {
@@ -104,7 +104,7 @@ public class OfferService : IOfferService
         offer.TaxAmount = request.TaxAmount;
 
         offer.ExpireAtBySupplier = request.ExpireAtBySupplier;
-        offer.UpdatedAt = DateTime.UtcNow;
+        offer.UpdatedAt = DateTime.Now;
         offer.WizardStep = OfferWizardStep.Attributes;
 
         await _db.SaveChangesAsync();
@@ -328,7 +328,7 @@ public class OfferService : IOfferService
         // -----------------------------
         // Clear existing documents
         // -----------------------------
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         foreach (var doc in offer.Documents.Where(d => !d.IsDeleted))
         {
@@ -441,7 +441,7 @@ public class OfferService : IOfferService
         // -----------------------------
         // Publish
         // -----------------------------
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
         var oldStatus = offer.Status;
 
         offer.Status = OfferStatus.Published; // یا Pending (آینده)
@@ -479,7 +479,7 @@ public class OfferService : IOfferService
             return;
 
         var oldStatus = offer.Status;
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         offer.Status = OfferStatus.Cancel;
         offer.CancelReason = reason;
@@ -777,7 +777,7 @@ public class OfferService : IOfferService
             "شما اجازه ثبت آگهی برای این دسته‌بندی محصول را ندارید."
         });
 
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         // 1) تغییر محصول
         offer.ProductId = product.Id;
@@ -841,7 +841,7 @@ public class OfferService : IOfferService
 
         // Soft Delete
         document.IsDeleted = true;
-        document.DeletedAt = DateTime.UtcNow;
+        document.DeletedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
     }
@@ -1086,7 +1086,7 @@ public class OfferService : IOfferService
 
         offer.Status = OfferStatus.Rejected;
         offer.RejectedReason = request.Reason.Trim();
-        offer.UpdatedAt = DateTime.UtcNow;
+        offer.UpdatedAt = DateTime.Now;
 
         // تاریخچه
         _db.OfferStatusHistories.Add(new OfferStatusHistory
@@ -1096,7 +1096,7 @@ public class OfferService : IOfferService
             NewStatus = OfferStatus.Rejected,
             AdminUserId = adminUserId,
             Note = request.Reason.Trim(),
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         });
 
         await _db.SaveChangesAsync();

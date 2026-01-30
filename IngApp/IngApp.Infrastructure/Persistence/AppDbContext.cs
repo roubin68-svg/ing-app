@@ -6,6 +6,7 @@ using IngApp.Domain.Entities.Offers;
 using IngApp.Domain.Entities.Permissions;
 using IngApp.Domain.Entities.Products;
 using IngApp.Domain.Entities.Roles;
+using IngApp.Domain.Entities.Settings;
 using IngApp.Domain.Entities.Suppliers;
 using IngApp.Domain.Entities.Users;
 using Microsoft.EntityFrameworkCore;
@@ -74,6 +75,9 @@ public class AppDbContext : DbContext
     public DbSet<CommissionRule> CommissionRules => Set<CommissionRule>();
     public DbSet<CommissionTransaction> CommissionTransactions => Set<CommissionTransaction>();
     public DbSet<VisitorCommissionRule> VisitorCommissionRules => Set<VisitorCommissionRule>();
+
+    // Settings
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
 
 

@@ -39,7 +39,7 @@ public class Wallet
     /// </summary>
     public byte[] RowVersion { get; set; } = null!;
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     // Navigation
     public ICollection<WalletTransaction> Transactions { get; set; } = new List<WalletTransaction>();

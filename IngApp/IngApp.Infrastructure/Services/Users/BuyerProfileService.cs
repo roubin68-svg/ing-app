@@ -133,7 +133,7 @@ public class BuyerProfileService : IBuyerProfileService
                 Address = dto.Address,
                 Description = dto.Description,
                 ReferredByVisitorId = referredByVisitorId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             _db.BuyerProfiles.Add(existingProfile);
@@ -157,7 +157,7 @@ public class BuyerProfileService : IBuyerProfileService
             }
             // اگر ReferredByVisitorId قبلاً تنظیم شده باشد، حتی اگر ReferrerVisitorCode ارائه شده باشد، تغییر نمی‌دهیم
             
-            existingProfile.UpdatedAt = DateTime.UtcNow;
+            existingProfile.UpdatedAt = DateTime.Now;
         }
 
         await _db.SaveChangesAsync();

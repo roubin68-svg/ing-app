@@ -45,7 +45,7 @@ public class CommissionRuleConfiguration : IEntityTypeConfiguration<CommissionRu
                 Description = "پورسانت از هزینه باز کردن اطلاعات تماس آگهی",
                 CommissionPercentage = 10.00m, // 10%
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             },
             new CommissionRule
             {
@@ -55,11 +55,12 @@ public class CommissionRuleConfiguration : IEntityTypeConfiguration<CommissionRu
                 Description = "پورسانت از خرید اشتراک",
                 CommissionPercentage = 15.00m, // 15%
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             }
         );
     }
 }
+
 
 
 

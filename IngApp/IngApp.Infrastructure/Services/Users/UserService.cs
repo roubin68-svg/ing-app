@@ -46,7 +46,7 @@ namespace IngApp.Infrastructure.Services.Users
                 SubscriptionLevel = dto.SubscriptionLevel,
                 VerificationStatus = dto.VerificationStatus,
                 IsActive = dto.IsActive,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
 
             // نقش‌های اولیه
@@ -254,7 +254,7 @@ namespace IngApp.Infrastructure.Services.Users
             user.SubscriptionLevel = dto.SubscriptionLevel;
             user.VerificationStatus = dto.VerificationStatus;
 
-            user.UpdatedAt = DateTime.UtcNow;
+            user.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
         }
@@ -269,7 +269,7 @@ namespace IngApp.Infrastructure.Services.Users
                 throw new NotFoundException("کاربر پیدا نشد.");
 
             user.IsActive = dto.IsActive;
-            user.UpdatedAt = DateTime.UtcNow;
+            user.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
         }
@@ -290,7 +290,7 @@ namespace IngApp.Infrastructure.Services.Users
                 throw new NotFoundException("کاربر پیدا نشد.");
 
             user.PasswordHash = PasswordHasher.HashPassword(password);
-            user.UpdatedAt = DateTime.UtcNow;
+            user.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
         }

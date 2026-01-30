@@ -12,7 +12,7 @@ public class OtpCode
 
     public OtpPurpose Purpose { get; set; } = OtpPurpose.Login;
 
-    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAtUtc { get; set; } = DateTime.Now;
 
     public DateTime ExpiresAtUtc { get; set; }
 
@@ -28,12 +28,12 @@ public class OtpCode
 
     // ----------- Domain Logic -----------
 
-    public bool IsExpired() => DateTime.UtcNow > ExpiresAtUtc;
+    public bool IsExpired() => DateTime.Now > ExpiresAtUtc;
 
     public void RegisterAttempt()
     {
         AttemptCount++;
-        LastAttemptAtUtc = DateTime.UtcNow;
+        LastAttemptAtUtc = DateTime.Now;
     }
 
     public void MarkAsUsed()
@@ -41,6 +41,6 @@ public class OtpCode
         if (IsUsed) return;
 
         IsUsed = true;
-        UsedAtUtc = DateTime.UtcNow;
+        UsedAtUtc = DateTime.Now;
     }
 }

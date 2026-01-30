@@ -116,7 +116,7 @@ public class PlanManagementService : IPlanManagementService
             UnlimitedContactViews = dto.UnlimitedContactViews,
             IsActive = dto.IsActive,
             DisplayOrder = dto.DisplayOrder,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
 
         _db.Plans.Add(plan);
@@ -151,7 +151,7 @@ public class PlanManagementService : IPlanManagementService
         plan.UnlimitedContactViews = dto.UnlimitedContactViews;
         plan.IsActive = dto.IsActive;
         plan.DisplayOrder = dto.DisplayOrder;
-        plan.UpdatedAt = DateTime.UtcNow;
+        plan.UpdatedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
     }
@@ -166,7 +166,7 @@ public class PlanManagementService : IPlanManagementService
         }
 
         plan.IsActive = isActive;
-        plan.UpdatedAt = DateTime.UtcNow;
+        plan.UpdatedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
     }
@@ -198,6 +198,7 @@ public class PlanManagementService : IPlanManagementService
         await _db.SaveChangesAsync();
     }
 }
+
 
 
 

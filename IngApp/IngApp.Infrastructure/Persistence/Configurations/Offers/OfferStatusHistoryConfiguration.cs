@@ -39,3 +39,12 @@ public class OfferStatusHistoryConfiguration : IEntityTypeConfiguration<OfferSta
 
 
 
+
+
+
+
+
+
+
+
+

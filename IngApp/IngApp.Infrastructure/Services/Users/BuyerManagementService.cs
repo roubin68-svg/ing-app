@@ -240,7 +240,7 @@ public class BuyerManagementService : IBuyerManagementService
             Address = dto.Address?.Trim(),
             Description = dto.Description?.Trim(),
             ReferredByVisitorId = referredByVisitorId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
 
         _db.BuyerProfiles.Add(buyerProfile);
@@ -264,7 +264,7 @@ public class BuyerManagementService : IBuyerManagementService
         buyer.City = dto.City?.Trim();
         buyer.Address = dto.Address?.Trim();
         buyer.Description = dto.Description?.Trim();
-        buyer.UpdatedAt = DateTime.UtcNow;
+        buyer.UpdatedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
 
@@ -315,7 +315,7 @@ public class BuyerManagementService : IBuyerManagementService
         }
 
         buyer.ReferredByVisitorId = referredByVisitorId;
-        buyer.UpdatedAt = DateTime.UtcNow;
+        buyer.UpdatedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
 
@@ -332,7 +332,7 @@ public class BuyerManagementService : IBuyerManagementService
             throw new NotFoundException("خریدار یافت نشد.");
 
         buyer.ReferredByVisitorId = null;
-        buyer.UpdatedAt = DateTime.UtcNow;
+        buyer.UpdatedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
     }

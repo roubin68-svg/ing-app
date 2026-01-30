@@ -13,6 +13,12 @@ public class ManualWalletTransactionDto
 
     [MaxLength(500, ErrorMessage = "توضیحات نمی‌تواند بیشتر از 500 کاراکتر باشد")]
     public string? Description { get; set; }
+
+    /// <summary>
+    /// اگر true باشد یعنی این برداشت/واریز بابت تسویهٔ واقعی با کاربر (انتقال به حساب بانکی، کارت به کارت و ...) است.
+    /// </summary>
+    public bool IsBankSettlement { get; set; }
 }
+
 
 

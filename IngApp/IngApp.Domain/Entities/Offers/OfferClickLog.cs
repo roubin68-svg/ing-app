@@ -38,6 +38,6 @@ public class OfferClickLog
     /// <summary>
     /// زمان کلیک
     /// </summary>
-    public DateTime ClickedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ClickedAt { get; set; } = DateTime.Now;
 }
 

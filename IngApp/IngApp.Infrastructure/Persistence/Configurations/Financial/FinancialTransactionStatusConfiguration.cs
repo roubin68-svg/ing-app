@@ -48,3 +48,12 @@ public class FinancialTransactionStatusConfiguration : IEntityTypeConfiguration<
 
 
 
+
+
+
+
+
+
+
+
+

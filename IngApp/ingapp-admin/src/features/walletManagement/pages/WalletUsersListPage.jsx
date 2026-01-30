@@ -1,8 +1,8 @@
 // src/features/walletManagement/pages/WalletUsersListPage.jsx
 import React, { useEffect, useState, useCallback } from "react";
-import { Card, Table, Form, Input, Select, Button, Space, Tag, message } from "antd";
+import { Card, Table, Form, Input, Select, Button, Space, Tag, message, Checkbox } from "antd";
 import { WalletOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import walletManagementApi from "../api/walletManagementApi";
 
 const { Option } = Select;
@@ -18,14 +18,20 @@ const USER_TYPE_OPTIONS = [
 const WalletUsersListPage = () => {
     const [form] = Form.useForm();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
 
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState([]);
     const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0 });
+    
+    // خواندن فیلتر hasTransactions از URL
+    const initialHasTransactions = searchParams.get("hasTransactions") === "true";
+    
     const [filters, setFilters] = useState({
         phoneNumber: "",
         displayName: "",
         userTypeId: null,
+        hasTransactions: initialHasTransactions,
     });
 
     const loadData = useCallback(
@@ -38,6 +44,7 @@ const WalletUsersListPage = () => {
                     phoneNumber: currentFilters.phoneNumber || undefined,
                     displayName: currentFilters.displayName || undefined,
                     userTypeId: currentFilters.userTypeId || undefined,
+                    hasTransactions: currentFilters.hasTransactions || undefined,
                 };
 
                 // apiClient interceptor ApiResult را باز می‌کند، بنابراین
@@ -65,6 +72,10 @@ const WalletUsersListPage = () => {
     );
 
     useEffect(() => {
+        // تنظیم فرم با فیلترهای URL
+        if (initialHasTransactions) {
+            form.setFieldsValue({ hasTransactions: true });
+        }
         loadData(1, pagination.pageSize, filters);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -81,8 +92,17 @@ const WalletUsersListPage = () => {
             phoneNumber: values.phoneNumber || "",
             displayName: values.displayName || "",
             userTypeId: values.userTypeId || null,
+            hasTransactions: values.hasTransactions || false,
         };
         setFilters(newFilters);
+        
+        // به‌روزرسانی URL
+        const newSearchParams = new URLSearchParams();
+        if (newFilters.hasTransactions) {
+            newSearchParams.set("hasTransactions", "true");
+        }
+        setSearchParams(newSearchParams);
+        
         loadData(1, pagination.pageSize, newFilters);
     };
 
@@ -92,8 +112,10 @@ const WalletUsersListPage = () => {
             phoneNumber: "",
             displayName: "",
             userTypeId: null,
+            hasTransactions: false,
         };
         setFilters(newFilters);
+        setSearchParams(new URLSearchParams());
         loadData(1, pagination.pageSize, newFilters);
     };
 
@@ -116,13 +138,14 @@ const WalletUsersListPage = () => {
             render: (text) => (text ? <Tag color="blue">{text}</Tag> : "-"),
         },
         {
-            title: "موجودی کیف پول (ریال)",
+            title: "موجودی کیف پول (تومان)",
             dataIndex: "balanceRial",
             key: "balanceRial",
-            render: (value) =>
-                typeof value === "number"
-                    ? value.toLocaleString("fa-IR")
-                    : "0",
+            render: (value) => {
+                if (typeof value !== "number") return "0";
+                const toman = value / 10;
+                return toman.toLocaleString("fa-IR");
+            },
         },
         {
             title: "عملیات",
@@ -167,6 +190,9 @@ const WalletUsersListPage = () => {
                             </Option>
                         ))}
                     </Select>
+                </Form.Item>
+                <Form.Item name="hasTransactions" valuePropName="checked">
+                    <Checkbox>فقط کاربران دارای گردش حساب</Checkbox>
                 </Form.Item>
                 <Form.Item>
                     <Space>

@@ -42,6 +42,11 @@ public interface ICommissionService
     /// دریافت مجموع پورسانت‌های یک بازاریاب (برای Admin)
     /// </summary>
     Task<long> GetTotalCommissionAmountForAdminAsync(Guid visitorUserId);
+
+    /// <summary>
+    /// گزارش پورسانت‌ها (برای Admin)
+    /// </summary>
+    Task<CommissionReportDto> GetCommissionReportAsync(CommissionReportQueryDto query);
 }
 
 

@@ -55,7 +55,7 @@ public class PaymentsController : ControllerBase
         var userId = GetCurrentUserId();
         
         // تولید IdempotencyKey
-        var idempotencyKey = $"topup-{userId}-{request.AmountRial}-{DateTime.UtcNow:yyyyMMddHHmmss}";
+        var idempotencyKey = $"topup-{userId}-{request.AmountRial}-{DateTime.Now:yyyyMMddHHmmss}";
         
         var result = await _paymentService.CreateTopUpRequestAsync(
             userId,

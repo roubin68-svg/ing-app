@@ -28,6 +28,11 @@ import ProfilePage from "../features/auth/pages/ProfilePage";
 import WalletPage from "../features/wallet/pages/WalletPage";
 import WalletUsersListPage from "../features/walletManagement/pages/WalletUsersListPage";
 import WalletManagementPage from "../features/walletManagement/pages/WalletManagementPage";
+import WalletTransactionsReportPage from "../features/walletManagement/pages/WalletTransactionsReportPage";
+import CommissionsReportPage from "../features/walletManagement/pages/CommissionsReportPage";
+import IncomeExpenseReportPage from "../features/walletManagement/pages/IncomeExpenseReportPage";
+import FinancialDashboardPage from "../features/walletManagement/pages/FinancialDashboardPage";
+import BankTransactionsReportPage from "../features/walletManagement/pages/BankTransactionsReportPage";
 import SubscriptionsPage from "../features/subscriptions/pages/SubscriptionsPage";
 import TopUpPage from "../features/payments/pages/TopUpPage";
 import CommissionsPage from "../features/commissions/pages/CommissionsPage";
@@ -118,6 +123,16 @@ const AppRouter = () => {
                         <Route path="wallet-management" element={<WalletUsersListPage />} />
                         {/* جزئیات کیف پول یک کاربر خاص */}
                         <Route path="wallet/admin/:userId" element={<WalletManagementPage />} />
+                        {/* گزارش تراکنش‌های مالی */}
+                        <Route path="wallet-transactions-report" element={<WalletTransactionsReportPage />} />
+                        {/* گزارش پورسانت‌ها */}
+                        <Route path="commissions-report" element={<CommissionsReportPage />} />
+                        {/* گزارش درآمد/هزینه */}
+                        <Route path="income-expense-report" element={<IncomeExpenseReportPage />} />
+                        {/* داشبورد مالی */}
+                        <Route path="financial-dashboard" element={<FinancialDashboardPage />} />
+                        {/* گزارش تراکنش‌های بانکی */}
+                        <Route path="bank-transactions-report" element={<BankTransactionsReportPage />} />
 
                         {/* اشتراک‌ها */}
                         <Route path="subscriptions" element={<SubscriptionsPage />} />

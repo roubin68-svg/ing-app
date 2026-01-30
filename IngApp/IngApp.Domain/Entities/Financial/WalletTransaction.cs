@@ -59,8 +59,16 @@ public class WalletTransaction
     /// </summary>
     public string? Description { get; set; }
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    /// <summary>
+    /// اگر true باشد یعنی این تراکنش برداشت/واریز مربوط به تسویهٔ واقعی با کاربر (مثلاً انتقال به حساب بانکی) است
+    /// و در گزارش‌ها به عنوان تراکنش «بانکی» نمایش داده می‌شود.
+    /// پیش‌فرض: false (تغییرات داخلی/سیستمی)
+    /// </summary>
+    public bool IsBankSettlement { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 }
+
 
 
 

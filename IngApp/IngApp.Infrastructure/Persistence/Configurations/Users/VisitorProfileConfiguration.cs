@@ -66,3 +66,12 @@ public class VisitorProfileConfiguration : IEntityTypeConfiguration<VisitorProfi
 
 
 
+
+
+
+
+
+
+
+
+

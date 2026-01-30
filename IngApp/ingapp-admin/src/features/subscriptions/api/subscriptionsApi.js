@@ -31,9 +31,23 @@ const subscriptionsApi = {
         const res = await apiClient.post(`${BASE_URL}/purchase`, payload);
         return res.data;
     },
+
+    // POST /api/v1/subscriptions/{subscriptionId}/cancel
+    // لغو اشتراک
+    cancelSubscription: async (subscriptionId) => {
+        const res = await apiClient.post(`${BASE_URL}/${subscriptionId}/cancel`);
+        return res.data;
+    },
 };
 
 export default subscriptionsApi;
+
+
+
+
+
+
+
 
 
 

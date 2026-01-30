@@ -306,7 +306,7 @@ namespace IngApp.Infrastructure.Services.Kyc
                     {
                         UserId = userId,
                         KycAttributeDefinitionId = item.AttributeDefinitionId,
-                        UploadedAt = DateTime.UtcNow,
+                        UploadedAt = DateTime.Now,
                         Status = DocumentStatus.Pending
                     };
 
@@ -314,7 +314,7 @@ namespace IngApp.Infrastructure.Services.Kyc
                 }
                 else
                 {
-                    doc.UploadedAt = DateTime.UtcNow;
+                    doc.UploadedAt = DateTime.Now;
                 }
 
                 doc.Value = item.Value;
@@ -326,7 +326,7 @@ namespace IngApp.Infrastructure.Services.Kyc
             // وضعیت کلی تأمین‌کننده بعد از ارسال مدارک باید «در حال بررسی» شود
             supplier.VerificationStatus = VerificationStatus.Pending;
             supplier.RejectionReason = null;
-            supplier.UpdatedAt = DateTime.UtcNow;
+            supplier.UpdatedAt = DateTime.Now;
 
             await _db.SaveChangesAsync();
         }
@@ -406,7 +406,7 @@ namespace IngApp.Infrastructure.Services.Kyc
 
             doc.Status = request.Status;
             doc.AdminNote = request.AdminNote;
-            doc.ReviewedAt = DateTime.UtcNow;
+            doc.ReviewedAt = DateTime.Now;
 
             await _db.SaveChangesAsync();
         }

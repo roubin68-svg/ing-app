@@ -67,6 +67,10 @@ public class WalletTransactionConfiguration : IEntityTypeConfiguration<WalletTra
         builder.Property(wt => wt.Description)
             .HasMaxLength(500);
 
+        builder.Property(wt => wt.IsBankSettlement)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.Property(wt => wt.CreatedAt)
             .IsRequired();
 

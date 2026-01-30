@@ -30,3 +30,12 @@ public interface IBuyerProfileService
 
 
 
+
+
+
+
+
+
+
+
+

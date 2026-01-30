@@ -46,3 +46,12 @@ public interface IBuyerManagementService
 
 
 
+
+
+
+
+
+
+
+
+

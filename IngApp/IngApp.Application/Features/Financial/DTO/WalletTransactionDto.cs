@@ -11,9 +11,16 @@ public class WalletTransactionDto
     public string OperationTypeTitle { get; set; } = null!;
     public string StatusCode { get; set; } = null!;
     public string StatusTitle { get; set; } = null!;
+    public string ReferenceTypeCode { get; set; } = null!;
+    public string ReferenceTypeTitle { get; set; } = null!;
+    public string SourceCategory { get; set; } = null!;
     public string? Description { get; set; }
     public DateTime CreatedAt { get; set; }
 }
+
+
+
+
 
 
 

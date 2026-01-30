@@ -63,3 +63,12 @@ public class BuyerProfileConfiguration : IEntityTypeConfiguration<BuyerProfile>
 
 
 
+
+
+
+
+
+
+
+
+

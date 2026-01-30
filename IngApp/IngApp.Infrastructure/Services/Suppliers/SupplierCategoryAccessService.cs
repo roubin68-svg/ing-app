@@ -81,7 +81,7 @@ public class SupplierCategoryAccessService : ISupplierCategoryAccessService
                     UserId = userId,
                     ProductCategoryId = categoryId,
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 });
             }
             else

@@ -14,17 +14,20 @@ import {
     Form,
     message,
     Typography,
+    Checkbox,
+    Tooltip,
 } from "antd";
 import {
     WalletOutlined,
     ArrowDownOutlined,
     ArrowUpOutlined,
     ArrowLeftOutlined,
+    QuestionCircleOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import walletManagementApi from "../api/walletManagementApi";
 import userApi from "../../users/api/userApi";
-import jalaali from "jalaali-js";
+import { toShamsiDateTimeString } from "../../../core/utils/dateUtils";
 
 const { Title, Text } = Typography;
 
@@ -101,52 +104,11 @@ const WalletManagementPage = () => {
         }
     };
 
+    // نمایش مبلغ به تومان در UI (ورودی به ریال است)
     const formatPrice = (rial) => {
-        if (rial == null) return "-";
+        if (rial == null) return "0";
         const toman = rial / 10;
-        return `${toman.toLocaleString("fa-IR")} تومان`;
-    };
-
-    // تبدیل تاریخ میلادی به شمسی با ساعت
-    const toShamsiWithTime = (gregorian) => {
-        if (!gregorian) return { date: "-", time: "" };
-
-        let d;
-        if (typeof gregorian === "string") {
-            d = new Date(gregorian);
-        } else if (gregorian instanceof Date) {
-            d = gregorian;
-        } else {
-            return { date: "-", time: "" };
-        }
-
-        const y = d.getFullYear();
-        const m = d.getMonth() + 1;
-        const day = d.getDate();
-        const h = d.getHours();
-        const mi = d.getMinutes();
-
-        const j = jalaali.toJalaali(y, m, day);
-        const dateStr = `${j.jy}/${String(j.jm).padStart(2, "0")}/${String(
-            j.jd
-        ).padStart(2, "0")}`;
-        const timeStr = `${String(h).padStart(2, "0")}:${String(mi).padStart(2, "0")}`;
-
-        return { date: dateStr, time: timeStr };
-    };
-
-    const getDirectionColor = (code) => {
-        if (code === "Credit" || code === "AdminCredit") return "green";
-        if (code === "Debit" || code === "AdminDebit") return "red";
-        return "default";
-    };
-
-    const getDirectionText = (code) => {
-        if (code === "Credit") return "واریز";
-        if (code === "Debit") return "برداشت";
-        if (code === "AdminCredit") return "واریز دستی مدیر";
-        if (code === "AdminDebit") return "برداشت دستی مدیر";
-        return code;
+        return toman.toLocaleString("fa-IR");
     };
 
     const txColumns = [
@@ -154,29 +116,40 @@ const WalletManagementPage = () => {
             title: "تاریخ",
             dataIndex: "createdAt",
             key: "createdAt",
-            render: (date) => {
-                const { date: d, time } = toShamsiWithTime(date);
+            width: 150,
+            render: (value) => {
+                const { date, time } = toShamsiDateTimeString(value);
                 return (
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span>{d}</span>
-                        {time && <span style={{ fontSize: 12, color: "#888" }}>{time}</span>}
+                    <div>
+                        <div>{date}</div>
+                        <div style={{ fontSize: "12px", color: "#999" }}>
+                            {time}
+                        </div>
                     </div>
                 );
             },
         },
         {
-            title: "نوع تراکنش",
+            title: "جهت",
             dataIndex: "directionCode",
             key: "directionCode",
-            render: (code) => (
-                <Tag color={getDirectionColor(code)}>{getDirectionText(code)}</Tag>
-            ),
-        },
-        {
-            title: "مبلغ",
-            dataIndex: "amountRial",
-            key: "amountRial",
-            render: (amount) => formatPrice(amount),
+            width: 120,
+            render: (code) => {
+                if (code === "Credit") {
+                    return (
+                        <Tag color="green" icon={<ArrowDownOutlined />}>
+                            واریز
+                        </Tag>
+                    );
+                } else if (code === "Debit") {
+                    return (
+                        <Tag color="red" icon={<ArrowUpOutlined />}>
+                            برداشت
+                        </Tag>
+                    );
+                }
+                return code;
+            },
         },
         {
             title: "نوع عملیات",
@@ -184,10 +157,56 @@ const WalletManagementPage = () => {
             key: "operationTypeTitle",
         },
         {
-            title: "مرجع",
-            dataIndex: "referenceTypeTitle",
-            key: "referenceTypeTitle",
-            render: (text) => text || "-",
+            title: "وضعیت",
+            dataIndex: "statusCode",
+            key: "statusCode",
+            width: 120,
+            render: (code, record) => {
+                const colorMap = {
+                    Committed: "green",
+                    Pending: "orange",
+                    Failed: "red",
+                    Reversed: "default",
+                };
+                return (
+                    <Tag color={colorMap[code] || "default"}>
+                        {record.statusTitle}
+                    </Tag>
+                );
+            },
+        },
+        {
+            title: "منبع",
+            dataIndex: "sourceCategory",
+            key: "sourceCategory",
+            render: (value) => {
+                switch (value) {
+                    case "Bank":
+                        return <Tag color="green">بانکی</Tag>;
+                    case "Commission":
+                        return <Tag color="blue">پورسانت</Tag>;
+                    case "Manual":
+                        return <Tag color="orange">عملیات دستی</Tag>;
+                    default:
+                        return <Tag color="default">سایر</Tag>;
+                }
+            },
+        },
+        {
+            title: "مبلغ (تومان)",
+            dataIndex: "amountRial",
+            key: "amountRial",
+            align: "right",
+            width: 150,
+            render: (value, record) => {
+                const formatted = formatPrice(value);
+                const color = record.directionCode === "Credit" ? "#52c41a" : "#f5222d";
+                return (
+                    <span style={{ color, fontWeight: "bold", direction: "ltr", display: "block" }}>
+                        {formatted}
+                    </span>
+                );
+            },
         },
         {
             title: "توضیحات",
@@ -201,8 +220,10 @@ const WalletManagementPage = () => {
         try {
             setSubmittingDeposit(true);
             await walletManagementApi.manualDeposit(userId, {
-                amountRial: values.amountRial,
+                // مبلغ در فرم به «تومان» وارد می‌شود؛ برای API به ریال تبدیل می‌کنیم
+                amountRial: values.amountToman * 10,
                 description: values.description || "واریز دستی توسط مدیر",
+                isBankSettlement: values.isBankSettlement || false,
             });
             message.success("واریز دستی با موفقیت انجام شد");
             depositForm.resetFields();
@@ -224,8 +245,10 @@ const WalletManagementPage = () => {
         try {
             setSubmittingWithdraw(true);
             await walletManagementApi.manualWithdrawal(userId, {
-                amountRial: values.amountRial,
+                // مبلغ در فرم به «تومان» وارد می‌شود؛ برای API به ریال تبدیل می‌کنیم
+                amountRial: values.amountToman * 10,
                 description: values.description || "برداشت دستی توسط مدیر",
+                isBankSettlement: values.isBankSettlement || false,
             });
             message.success("برداشت دستی با موفقیت انجام شد");
             withdrawForm.resetFields();
@@ -300,6 +323,27 @@ const WalletManagementPage = () => {
                                         <Space>
                                             <ArrowDownOutlined style={{ color: "#52c41a" }} />
                                             <span>واریز دستی (افزایش موجودی)</span>
+                                            <Tooltip
+                                                placement="top"
+                                                title={
+                                                    <div>
+                                                        <p style={{ marginBottom: 4 }}>
+                                                            از این فرم برای <strong>افزایش موجودی کیف پول کاربر</strong> استفاده کنید.
+                                                        </p>
+                                                        <p style={{ marginBottom: 4 }}>
+                                                            اگر کاربر به هر دلیلی باید اعتباری داخل سیستم بگیرد (مثلاً پاداش، اصلاح اشتباه قبلی، یا
+                                                            ثبت شارژی که از قبل انجام شده)، مبلغ را به <strong>تومان</strong> وارد کنید.
+                                                        </p>
+                                                        <p style={{ marginBottom: 0 }}>
+                                                            اگر این اعتبار به خاطر یک <strong>تراکنش بانکی واقعی</strong> است (مثلاً کارت‌به‌کارت
+                                                            به حساب شما)، حتماً تیک «این واریز یک تراکنش بانکی است» را فعال کنید تا در
+                                                            گزارش‌های مالی به‌درستی تفکیک شود.
+                                                        </p>
+                                                    </div>
+                                                }
+                                            >
+                                                <QuestionCircleOutlined style={{ color: "#999" }} />
+                                            </Tooltip>
                                         </Space>
                                     }
                                 >
@@ -309,8 +353,8 @@ const WalletManagementPage = () => {
                                         onFinish={handleDeposit}
                                     >
                                         <Form.Item
-                                            label="مبلغ (ریال)"
-                                            name="amountRial"
+                                            label="مبلغ (تومان)"
+                                            name="amountToman"
                                             rules={[
                                                 {
                                                     required: true,
@@ -346,6 +390,15 @@ const WalletManagementPage = () => {
                                                 placeholder="مثال: واریز پاداش ویژه / اصلاح موجودی"
                                             />
                                         </Form.Item>
+                                        <Form.Item
+                                            name="isBankSettlement"
+                                            valuePropName="checked"
+                                            tooltip="اگر این گزینه را فعال کنید یعنی این واریز واقعاً بابت دریافت پول از کاربر (مثلاً کارت‌به‌کارت یا واریز بانکی به حساب ما) انجام شده است."
+                                        >
+                                            <Checkbox>
+                                                این <strong>واریز</strong> یک <strong>تراکنش بانکی</strong> است
+                                            </Checkbox>
+                                        </Form.Item>
                                         <Form.Item>
                                             <Button
                                                 type="primary"
@@ -366,6 +419,27 @@ const WalletManagementPage = () => {
                                         <Space>
                                             <ArrowUpOutlined style={{ color: "#f5222d" }} />
                                             <span>برداشت دستی (کاهش موجودی)</span>
+                                            <Tooltip
+                                                placement="top"
+                                                title={
+                                                    <div>
+                                                        <p style={{ marginBottom: 4 }}>
+                                                            از این فرم برای <strong>کاهش موجودی کیف پول کاربر</strong> استفاده کنید.
+                                                        </p>
+                                                        <p style={{ marginBottom: 4 }}>
+                                                            اگر کاربر باید پولی از اعتبارش برگردانده شود (مثلاً اصلاح اشتباه، لغو خدمت، یا تسویه)،
+                                                            مبلغ را به <strong>تومان</strong> وارد کنید.
+                                                        </p>
+                                                        <p style={{ marginBottom: 0 }}>
+                                                            اگر واقعاً پول را به حساب بانکی کاربر واریز کرده‌اید (مثلاً کارت‌به‌کارت)، حتماً تیک
+                                                            «این برداشت یک تراکنش بانکی است» را فعال کنید تا این برداشت در گزارش‌ها به‌عنوان
+                                                            <strong>پرداخت واقعی به کاربر</strong> مشخص شود.
+                                                        </p>
+                                                    </div>
+                                                }
+                                            >
+                                                <QuestionCircleOutlined style={{ color: "#999" }} />
+                                            </Tooltip>
                                         </Space>
                                     }
                                 >
@@ -375,8 +449,8 @@ const WalletManagementPage = () => {
                                         onFinish={handleWithdraw}
                                     >
                                         <Form.Item
-                                            label="مبلغ (ریال)"
-                                            name="amountRial"
+                                            label="مبلغ (تومان)"
+                                            name="amountToman"
                                             rules={[
                                                 {
                                                     required: true,
@@ -412,6 +486,15 @@ const WalletManagementPage = () => {
                                                 placeholder="مثال: تسویه حساب / اصلاح مانده"
                                             />
                                         </Form.Item>
+                                        <Form.Item
+                                            name="isBankSettlement"
+                                            valuePropName="checked"
+                                            tooltip="اگر این گزینه را فعال کنید یعنی این برداشت واقعاً بابت پرداخت پول به حساب کاربر (مثلاً کارت‌به‌کارت یا واریز بانکی) انجام شده است."
+                                        >
+                                            <Checkbox>
+                                                این <strong>برداشت</strong> یک <strong>تراکنش بانکی</strong> است
+                                            </Checkbox>
+                                        </Form.Item>
                                         <Form.Item>
                                             <Button
                                                 type="primary"
@@ -440,9 +523,15 @@ const WalletManagementPage = () => {
                     dataSource={transactions}
                     loading={loadingTx}
                     rowKey="id"
+                    scroll={{ x: 1200 }}
                     pagination={{
-                        ...pagination,
-                        showSizeAdjuster: true,
+                        current: pagination.current,
+                        pageSize: pagination.pageSize,
+                        total: pagination.total,
+                        showSizeChanger: true,
+                        showTotal: (total) =>
+                            `مجموع: ${total.toLocaleString("fa-IR")} تراکنش`,
+                        pageSizeOptions: ["10", "20", "50", "100"],
                         onChange: (page, pageSize) => {
                             loadTransactions(page, pageSize);
                         },
