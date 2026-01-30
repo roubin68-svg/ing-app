@@ -43,6 +43,18 @@ public interface IWalletService
         string? description = null);
 
     /// <summary>
+    /// Debit با اجازه موجودی منفی (برای برگشت پورسانت و موارد خاص)
+    /// </summary>
+    Task<WalletTransactionResultDto> DebitAllowNegativeAsync(
+        Guid userId,
+        long amountRial,
+        int operationTypeId,
+        int referenceTypeId,
+        Guid? referenceId,
+        string idempotencyKey,
+        string? description = null);
+
+    /// <summary>
     /// دریافت لیست تراکنش‌های یک کاربر
     /// </summary>
     Task<PagedResult<WalletTransactionDto>> GetTransactionsAsync(

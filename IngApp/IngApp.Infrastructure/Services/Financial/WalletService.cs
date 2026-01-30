@@ -249,6 +249,83 @@ public class WalletService : IWalletService
         }
     }
 
+    public async Task<WalletTransactionResultDto> DebitAllowNegativeAsync(
+        Guid userId,
+        long amountRial,
+        int operationTypeId,
+        int referenceTypeId,
+        Guid? referenceId,
+        string idempotencyKey,
+        string? description = null)
+    {
+        // 1️⃣ Idempotency check
+        var existingTransaction = await _db.WalletTransactions
+            .FirstOrDefaultAsync(t => t.IdempotencyKey == idempotencyKey);
+
+        if (existingTransaction != null)
+        {
+            var existingWallet = await _db.Wallets
+                .FirstAsync(w => w.Id == existingTransaction.WalletId);
+
+            return new WalletTransactionResultDto
+            {
+                TransactionId = existingTransaction.Id,
+                Success = true,
+                NewBalanceRial = existingWallet.BalanceRial
+            };
+        }
+
+        // 2️⃣ Get wallet (یا ایجاد کن اگر وجود نداشت)
+        var walletId = await GetOrCreateWalletAsync(userId);
+
+        using var transaction = await _db.Database.BeginTransactionAsync();
+        try
+        {
+            // 3️⃣ Reload wallet INSIDE transaction
+            var wallet = await _db.Wallets
+                .FirstAsync(w => w.Id == walletId);
+
+            var direction = await _db.TransactionDirections
+                .FirstAsync(d => d.Code == "Debit");
+
+            var status = await _db.FinancialTransactionStatuses
+                .FirstAsync(s => s.Code == "Committed");
+
+            var walletTransaction = new WalletTransaction
+            {
+                Id = Guid.NewGuid(),
+                WalletId = wallet.Id,
+                DirectionId = direction.Id,
+                AmountRial = amountRial,
+                OperationTypeId = operationTypeId,
+                StatusId = status.Id,
+                ReferenceTypeId = referenceTypeId,
+                ReferenceId = referenceId,
+                IdempotencyKey = idempotencyKey,
+                Description = description,
+                CreatedAt = DateTime.Now
+            };
+
+            // کسر مبلغ (حتی اگر موجودی منفی شود)
+            wallet.BalanceRial -= amountRial;
+
+            _db.WalletTransactions.Add(walletTransaction);
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return new WalletTransactionResultDto
+            {
+                TransactionId = walletTransaction.Id,
+                Success = true,
+                NewBalanceRial = wallet.BalanceRial
+            };
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync();
+            throw new AppException("خطا در به‌روزرسانی موجودی. لطفاً دوباره تلاش کنید.");
+        }
+    }
 
     public async Task<PagedResult<WalletTransactionDto>> GetTransactionsAsync(
         Guid userId,

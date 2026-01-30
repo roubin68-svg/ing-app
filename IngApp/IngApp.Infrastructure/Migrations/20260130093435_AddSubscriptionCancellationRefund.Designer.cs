@@ -4,6 +4,7 @@ using IngApp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IngApp.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260130093435_AddSubscriptionCancellationRefund")]
+    partial class AddSubscriptionCancellationRefund
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -124,7 +127,7 @@ namespace IngApp.Infrastructure.Migrations
                             Id = 1,
                             Code = "UnlockContactCommission",
                             CommissionPercentage = 10.00m,
-                            CreatedAt = new DateTime(2026, 1, 30, 18, 14, 53, 518, DateTimeKind.Local).AddTicks(1256),
+                            CreatedAt = new DateTime(2026, 1, 30, 13, 4, 34, 446, DateTimeKind.Local).AddTicks(1128),
                             Description = "پورسانت از هزینه باز کردن اطلاعات تماس آگهی",
                             IsActive = true,
                             Title = "پورسانت باز کردن اطلاعات تماس"
@@ -134,7 +137,7 @@ namespace IngApp.Infrastructure.Migrations
                             Id = 2,
                             Code = "SubscriptionCommission",
                             CommissionPercentage = 15.00m,
-                            CreatedAt = new DateTime(2026, 1, 30, 18, 14, 53, 518, DateTimeKind.Local).AddTicks(1259),
+                            CreatedAt = new DateTime(2026, 1, 30, 13, 4, 34, 446, DateTimeKind.Local).AddTicks(1132),
                             Description = "پورسانت از خرید اشتراک",
                             IsActive = true,
                             Title = "پورسانت خرید اشتراک"
@@ -340,14 +343,6 @@ namespace IngApp.Infrastructure.Migrations
                             Description = "پورسانت دریافتی از بازاریابی",
                             IsActive = true,
                             Title = "دریافت پورسانت"
-                        },
-                        new
-                        {
-                            Id = 11,
-                            Code = "CommissionReversal",
-                            Description = "برگشت پورسانت پرداخت شده",
-                            IsActive = true,
-                            Title = "برگشت پورسانت"
                         },
                         new
                         {
@@ -759,7 +754,7 @@ namespace IngApp.Infrastructure.Migrations
                         {
                             Id = 1,
                             Code = "Plan1Month",
-                            CreatedAt = new DateTime(2026, 1, 30, 18, 14, 53, 521, DateTimeKind.Local).AddTicks(75),
+                            CreatedAt = new DateTime(2026, 1, 30, 13, 4, 34, 450, DateTimeKind.Local).AddTicks(9990),
                             Description = "اشتراک 1 ماهه با دسترسی نامحدود به اطلاعات تماس",
                             DisplayOrder = 1,
                             DurationMonths = 1,
@@ -772,7 +767,7 @@ namespace IngApp.Infrastructure.Migrations
                         {
                             Id = 2,
                             Code = "Plan3Month",
-                            CreatedAt = new DateTime(2026, 1, 30, 18, 14, 53, 521, DateTimeKind.Local).AddTicks(78),
+                            CreatedAt = new DateTime(2026, 1, 30, 13, 4, 34, 450, DateTimeKind.Local).AddTicks(9993),
                             Description = "اشتراک 3 ماهه با دسترسی نامحدود به اطلاعات تماس",
                             DisplayOrder = 2,
                             DurationMonths = 3,
@@ -785,7 +780,7 @@ namespace IngApp.Infrastructure.Migrations
                         {
                             Id = 3,
                             Code = "Plan6Month",
-                            CreatedAt = new DateTime(2026, 1, 30, 18, 14, 53, 521, DateTimeKind.Local).AddTicks(81),
+                            CreatedAt = new DateTime(2026, 1, 30, 13, 4, 34, 450, DateTimeKind.Local).AddTicks(9995),
                             Description = "اشتراک 6 ماهه با دسترسی نامحدود به اطلاعات تماس",
                             DisplayOrder = 3,
                             DurationMonths = 6,
@@ -798,7 +793,7 @@ namespace IngApp.Infrastructure.Migrations
                         {
                             Id = 4,
                             Code = "Plan12Month",
-                            CreatedAt = new DateTime(2026, 1, 30, 18, 14, 53, 521, DateTimeKind.Local).AddTicks(83),
+                            CreatedAt = new DateTime(2026, 1, 30, 13, 4, 34, 450, DateTimeKind.Local).AddTicks(9997),
                             Description = "اشتراک 12 ماهه با دسترسی نامحدود به اطلاعات تماس",
                             DisplayOrder = 4,
                             DurationMonths = 12,
@@ -862,9 +857,9 @@ namespace IngApp.Infrastructure.Migrations
                             Id = 1,
                             AmountRial = 10000L,
                             Code = "UnlockContactFee",
-                            CreatedAt = new DateTime(2026, 1, 30, 18, 14, 53, 521, DateTimeKind.Local).AddTicks(2368),
+                            CreatedAt = new DateTime(2026, 1, 30, 13, 4, 34, 451, DateTimeKind.Local).AddTicks(2714),
                             Description = "هزینه یک‌باره برای نمایش اطلاعات تماس یک آگهی",
-                            EffectiveFrom = new DateTime(2026, 1, 30, 18, 14, 53, 521, DateTimeKind.Local).AddTicks(2364),
+                            EffectiveFrom = new DateTime(2026, 1, 30, 13, 4, 34, 451, DateTimeKind.Local).AddTicks(2705),
                             IsActive = true,
                             Title = "هزینه باز کردن اطلاعات تماس"
                         },
@@ -873,9 +868,9 @@ namespace IngApp.Infrastructure.Migrations
                             Id = 2,
                             AmountRial = 50000L,
                             Code = "OnboardingFee",
-                            CreatedAt = new DateTime(2026, 1, 30, 18, 14, 53, 521, DateTimeKind.Local).AddTicks(2371),
+                            CreatedAt = new DateTime(2026, 1, 30, 13, 4, 34, 451, DateTimeKind.Local).AddTicks(2717),
                             Description = "هزینه یک‌باره ثبت‌نام به عنوان تأمین‌کننده",
-                            EffectiveFrom = new DateTime(2026, 1, 30, 18, 14, 53, 521, DateTimeKind.Local).AddTicks(2370),
+                            EffectiveFrom = new DateTime(2026, 1, 30, 13, 4, 34, 451, DateTimeKind.Local).AddTicks(2716),
                             IsActive = true,
                             Title = "هزینه ثبت‌نام تأمین‌کننده"
                         });
@@ -2341,7 +2336,7 @@ namespace IngApp.Infrastructure.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2026, 1, 30, 18, 14, 53, 532, DateTimeKind.Local).AddTicks(6393),
+                            CreatedAt = new DateTime(2026, 1, 30, 13, 4, 34, 467, DateTimeKind.Local).AddTicks(136),
                             DataType = "Number",
                             Description = "درصد کارمزد خدمات که از مبلغ برگشتی اشتراک کسر می‌شود",
                             DisplayName = "کارمزد خدمات لغو اشتراک (درصد)",
@@ -2609,7 +2604,7 @@ namespace IngApp.Infrastructure.Migrations
                         new
                         {
                             Id = new Guid("64fa4b00-95cf-4a58-6f40-08de38f0e8e0"),
-                            CreatedAt = new DateTime(2026, 1, 30, 18, 14, 53, 533, DateTimeKind.Local).AddTicks(1171),
+                            CreatedAt = new DateTime(2026, 1, 30, 13, 4, 34, 467, DateTimeKind.Local).AddTicks(4864),
                             DisplayName = "علی هور",
                             IsActive = true,
                             PhoneNumber = "09123823632",

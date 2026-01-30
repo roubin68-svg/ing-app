@@ -120,6 +120,100 @@ const SubscriptionsPage = () => {
         return `${toman.toLocaleString("fa-IR")} تومان`;
     };
 
+    // محاسبه اطلاعات اشتراک فعال
+    const calculateSubscriptionInfo = (subscription) => {
+        if (!subscription) return null;
+
+        const now = new Date();
+        const startDate = new Date(subscription.startDate);
+        const endDate = new Date(subscription.endDate);
+        
+        // تبدیل به تاریخ بدون ساعت برای مقایسه
+        const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        
+        // محاسبه تعداد کل روزها بر اساس DurationMonths (1 ماه = 30 روز)
+        // اگر durationMonths = 1 باشد، باید 30 روز باشد
+        const totalDays = subscription.durationMonths * 30;
+        
+        // اگر تاریخ شروع بعد از امروز باشد (هنوز شروع نشده)
+        if (startDateOnly > nowDate) {
+            return {
+                usedDays: 0,
+                remainingDays: totalDays,
+                totalDays: totalDays,
+                canCancel: true
+            };
+        }
+        
+        // اگر تاریخ شروع امروز یا قبل از امروز باشد (شروع شده)
+        if (startDateOnly <= nowDate && endDate > now) {
+            // محاسبه روزهای استفاده شده (از تاریخ شروع تا امروز، شامل هر دو)
+            // اگر startDate = 10/11 و now = 10/11 باشد، باید 1 روز باشد
+            const usedDays = Math.max(1, Math.ceil((nowDate - startDateOnly) / (1000 * 60 * 60 * 24)) + 1);
+            const remainingDays = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+            return {
+                usedDays: usedDays,
+                remainingDays: remainingDays,
+                totalDays: totalDays,
+                canCancel: true
+            };
+        }
+        
+        // اگر اشتراک تمام شده
+        return {
+            usedDays: 0,
+            remainingDays: 0,
+            totalDays: 0,
+            canCancel: false
+        };
+    };
+
+    // گرد کردن به 100 ریال (گرد به پایین)
+    const roundTo100Rial = (amount) => {
+        return Math.floor(amount / 100) * 100;
+    };
+
+    // محاسبه مبلغ برگشتی (تقریبی - برای نمایش)
+    const calculateRefundAmount = (subscription, subscriptionInfo) => {
+        if (!subscription || !subscriptionInfo || !subscriptionInfo.canCancel) {
+            return null;
+        }
+
+        const originalAmountRial = subscription.planPriceRial || 0;
+        if (originalAmountRial === 0) return null;
+
+        const { usedDays, totalDays, remainingDays } = subscriptionInfo;
+        
+        // محاسبه مبلغ استفاده شده
+        let usedAmountRial = 0;
+        if (totalDays > 0 && usedDays > 0) {
+            const calculatedUsed = (originalAmountRial * usedDays) / totalDays;
+            usedAmountRial = roundTo100Rial(calculatedUsed);
+        }
+        
+        // مبلغ باقیمانده
+        const remainingAmountRial = roundTo100Rial(originalAmountRial - usedAmountRial);
+        
+        // کارمزد خدمات (10% پیش‌فرض - باید از API بگیریم)
+        const serviceFeePercentage = 10;
+        const calculatedServiceFee = (remainingAmountRial * serviceFeePercentage) / 100;
+        const serviceFeeAmountRial = roundTo100Rial(calculatedServiceFee);
+        
+        // مبلغ نهایی برگشتی
+        const refundAmountRial = roundTo100Rial(remainingAmountRial - serviceFeeAmountRial);
+        
+        return {
+            originalAmountRial: roundTo100Rial(originalAmountRial),
+            usedAmountRial,
+            remainingAmountRial,
+            serviceFeeAmountRial,
+            refundAmountRial,
+            serviceFeePercentage
+        };
+    };
+
     const handlePurchase = (plan) => {
         setSelectedPlan(plan);
         setPurchaseModalVisible(true);
@@ -338,38 +432,89 @@ const SubscriptionsPage = () => {
         
             <Space direction="vertical" size="large" style={{ width: "100%" }}>
                 {/* اشتراک فعال */}
-                {activeSubscription && (
-                    <Card>
-                        <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-                            <h2 style={{ margin: 0 }}>
-                                <CrownOutlined /> اشتراک فعال
-                            </h2>
-                            <Descriptions bordered column={2}>
-                                <Descriptions.Item label="پلن">
-                                    {activeSubscription.planTitle}
-                                </Descriptions.Item>
-                                <Descriptions.Item label="مدت">
-                                    {activeSubscription.durationMonths} ماه
-                                </Descriptions.Item>
-                                <Descriptions.Item label="تاریخ شروع">
-                                    {toShamsi(activeSubscription.startDate) || "-"}
-                                </Descriptions.Item>
-                                <Descriptions.Item label="تاریخ پایان">
-                                    {toShamsi(activeSubscription.endDate) || "-"}
-                                </Descriptions.Item>
-                                <Descriptions.Item label="دسترسی نامحدود به اطلاعات تماس">
-                                    {activeSubscription.unlimitedContactViews ? (
-                                        <Tag color="green" icon={<CheckCircleOutlined />}>
-                                            فعال
-                                        </Tag>
-                                    ) : (
-                                        <Tag color="red">غیرفعال</Tag>
+                {activeSubscription && (() => {
+                    const subscriptionInfo = calculateSubscriptionInfo(activeSubscription);
+                    const refundInfo = calculateRefundAmount(activeSubscription, subscriptionInfo);
+                    
+                    return (
+                        <Card>
+                            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <h2 style={{ margin: 0 }}>
+                                        <CrownOutlined /> اشتراک فعال
+                                    </h2>
+                                    {subscriptionInfo?.canCancel && (
+                                        <Popconfirm
+                                            title="لغو اشتراک"
+                                            description="آیا از لغو این اشتراک مطمئن هستید؟ مبلغ باقیمانده (منهای کارمزد خدمات) به کیف پول شما برگشت داده می‌شود."
+                                            onConfirm={() => handleCancelSubscription(activeSubscription.id)}
+                                            okText="بله، لغو کن"
+                                            cancelText="انصراف"
+                                            okButtonProps={{ danger: true }}
+                                        >
+                                            <Button
+                                                danger
+                                                icon={<CloseCircleOutlined />}
+                                            >
+                                                لغو اشتراک
+                                            </Button>
+                                        </Popconfirm>
                                     )}
-                                </Descriptions.Item>
-                            </Descriptions>
-                        </Space>
-                    </Card>
-                )}
+                                </div>
+                                <Descriptions bordered column={2}>
+                                    <Descriptions.Item label="پلن">
+                                        {activeSubscription.planTitle}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="مدت">
+                                        {activeSubscription.durationMonths} ماه
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="مبلغ اشتراک">
+                                        {activeSubscription.planPriceRial 
+                                            ? formatPrice(activeSubscription.planPriceRial)
+                                            : "-"}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="تاریخ شروع">
+                                        {toShamsi(activeSubscription.startDate) || "-"}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="تاریخ پایان">
+                                        {toShamsi(activeSubscription.endDate) || "-"}
+                                    </Descriptions.Item>
+                                    {subscriptionInfo && (
+                                        <>
+                                            <Descriptions.Item label="روزهای گذشته">
+                                                {subscriptionInfo.usedDays} روز
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="روزهای باقیمانده">
+                                                {subscriptionInfo.remainingDays} روز
+                                            </Descriptions.Item>
+                                        </>
+                                    )}
+                                    <Descriptions.Item label="دسترسی نامحدود به اطلاعات تماس">
+                                        {activeSubscription.unlimitedContactViews ? (
+                                            <Tag color="green" icon={<CheckCircleOutlined />}>
+                                                فعال
+                                            </Tag>
+                                        ) : (
+                                            <Tag color="red">غیرفعال</Tag>
+                                        )}
+                                    </Descriptions.Item>
+                                    {refundInfo && (
+                                        <Descriptions.Item label="مبلغ برگشتی در صورت لغو (تقریبی)">
+                                            <Text strong style={{ color: "#52c41a" }}>
+                                                {formatPrice(refundInfo.refundAmountRial)}
+                                            </Text>
+                                            <div style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>
+                                                (مبلغ کل: {formatPrice(refundInfo.originalAmountRial)} - 
+                                                استفاده شده: {formatPrice(refundInfo.usedAmountRial)} - 
+                                                کارمزد {refundInfo.serviceFeePercentage}%: {formatPrice(refundInfo.serviceFeeAmountRial)})
+                                            </div>
+                                        </Descriptions.Item>
+                                    )}
+                                </Descriptions>
+                            </Space>
+                        </Card>
+                    );
+                })()}
 
                 {/* پلن‌های موجود */}
                 <Card 

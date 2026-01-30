@@ -76,6 +76,7 @@ public class SubscriptionService : ISubscriptionService
             PlanCode = subscription.Plan.Code,
             PlanTitle = subscription.Plan.Title,
             DurationMonths = subscription.Plan.DurationMonths,
+            PlanPriceRial = subscription.Plan.PriceRial,
             StatusCode = subscription.Status.Code,
             StatusTitle = subscription.Status.Title,
             StartDate = subscription.StartDate,
@@ -122,6 +123,7 @@ public class SubscriptionService : ISubscriptionService
             PlanCode = subscription.Plan.Code,
             PlanTitle = subscription.Plan.Title,
             DurationMonths = subscription.Plan.DurationMonths,
+            PlanPriceRial = subscription.Plan.PriceRial,
             StatusCode = subscription.Status.Code,
             StatusTitle = subscription.Status.Title,
             StartDate = subscription.StartDate,
@@ -318,6 +320,7 @@ public class SubscriptionService : ISubscriptionService
                 PlanCode = us.Plan.Code,
                 PlanTitle = us.Plan.Title,
                 DurationMonths = us.Plan.DurationMonths,
+                PlanPriceRial = us.Plan.PriceRial,
                 StatusCode = us.Status.Code,
                 StatusTitle = us.Status.Title,
                 StartDate = us.StartDate,
@@ -367,33 +370,42 @@ public class SubscriptionService : ISubscriptionService
         long usedAmountRial = 0;
         long remainingAmountRial = 0;
 
-        // اگر اشتراک هنوز شروع نشده (StartDate > now)
-        if (subscription.StartDate > now)
+        // تبدیل به تاریخ بدون ساعت برای مقایسه
+        var nowDate = now.Date;
+        var startDateOnly = subscription.StartDate.Date;
+        var endDateOnly = subscription.EndDate.Date;
+
+        // محاسبه تعداد کل روزها بر اساس DurationMonths (1 ماه = 30 روز)
+        // اگر DurationMonths = 1 باشد، باید 30 روز باشد
+        totalDays = subscription.Plan.DurationMonths * 30;
+
+        // اگر تاریخ شروع بعد از امروز باشد (هنوز شروع نشده)
+        if (startDateOnly > nowDate)
         {
             // کل مبلغ برگشت داده می‌شود (منهای کارمزد)
             usedDays = 0;
-            totalDays = (int)(subscription.EndDate - subscription.StartDate).TotalDays;
             usedAmountRial = 0;
             remainingAmountRial = originalAmountRial;
         }
-        // اگر اشتراک شروع شده اما هنوز تمام نشده
-        else if (subscription.StartDate <= now && subscription.EndDate > now)
+        // اگر تاریخ شروع امروز یا قبل از امروز باشد (شروع شده)
+        else if (startDateOnly <= nowDate && subscription.EndDate > now)
         {
-            // محاسبه روزهای استفاده شده
-            usedDays = (int)(now - subscription.StartDate).TotalDays;
-            totalDays = (int)(subscription.EndDate - subscription.StartDate).TotalDays;
+            // محاسبه روزهای استفاده شده (از تاریخ شروع تا امروز، شامل هر دو)
+            // اگر startDate = 10/11 و now = 10/11 باشد، باید 1 روز باشد
+            usedDays = (nowDate - startDateOnly).Days + 1;
             
             // محاسبه مبلغ استفاده شده (نسبتی)
             if (totalDays > 0)
             {
-                usedAmountRial = (long)((decimal)originalAmountRial * usedDays / totalDays);
+                var calculatedUsed = (decimal)originalAmountRial * usedDays / totalDays;
+                usedAmountRial = RoundTo100Rial(calculatedUsed);
             }
             else
             {
                 usedAmountRial = originalAmountRial; // اگر totalDays = 0، کل مبلغ استفاده شده
             }
             
-            remainingAmountRial = originalAmountRial - usedAmountRial;
+            remainingAmountRial = RoundTo100Rial(originalAmountRial - usedAmountRial);
         }
         // اگر اشتراک تمام شده
         else
@@ -416,10 +428,11 @@ public class SubscriptionService : ISubscriptionService
         }
 
         // محاسبه کارمزد خدمات از مبلغ باقیمانده
-        long serviceFeeAmountRial = (long)(remainingAmountRial * serviceFeePercentage / 100m);
+        var calculatedServiceFee = remainingAmountRial * serviceFeePercentage / 100m;
+        long serviceFeeAmountRial = RoundTo100Rial(calculatedServiceFee);
 
         // محاسبه مبلغ نهایی برگشتی
-        long refundAmountRial = remainingAmountRial - serviceFeeAmountRial;
+        long refundAmountRial = RoundTo100Rial(remainingAmountRial - serviceFeeAmountRial);
 
         // اگر مبلغ برگشتی منفی یا صفر شد، هیچ مبلغی برگشت داده نمی‌شود
         if (refundAmountRial <= 0)
@@ -489,6 +502,9 @@ public class SubscriptionService : ISubscriptionService
                 subscription.Plan.Title);
         }
 
+        // برگشت پورسانت به visitor (اگر پورسانتی پرداخت شده باشد)
+        await ReverseSubscriptionCommissionAsync(subscription.Id);
+
         // به‌روزرسانی وضعیت اشتراک به Cancelled
         var cancelledStatus = await _db.SubscriptionStatuses
             .FirstAsync(s => s.Code == "Cancelled");
@@ -551,6 +567,71 @@ public class SubscriptionService : ISubscriptionService
         description += $"مبلغ نهایی برگشتی: {refundToman:N0} تومان";
 
         return description;
+    }
+
+    /// <summary>
+    /// گرد کردن به 100 ریال (گرد به پایین)
+    /// </summary>
+    private static long RoundTo100Rial(decimal amount)
+    {
+        return (long)(Math.Floor(amount / 100m) * 100m);
+    }
+
+    private async Task ReverseSubscriptionCommissionAsync(Guid subscriptionId)
+    {
+        // پیدا کردن پورسانت‌های مربوط به این اشتراک
+        var commissionTransactions = await _db.CommissionTransactions
+            .Where(ct => 
+                ct.ReferenceId == subscriptionId &&
+                ct.ReferenceType == "UserSubscription" &&
+                ct.CommissionType == "SubscriptionCommission")
+            .ToListAsync();
+
+        if (commissionTransactions.Count == 0)
+        {
+            return; // پورسانتی پرداخت نشده
+        }
+
+        // دریافت OperationType و ReferenceType برای Debit
+        var operationType = await _db.FinancialOperationTypes
+            .FirstAsync(ot => ot.Code == "CommissionReversal");
+
+        var referenceType = await _db.FinancialReferenceTypes
+            .FirstAsync(rt => rt.Code == "WalletTransaction");
+
+        var now = DateTime.Now;
+
+        foreach (var commission in commissionTransactions)
+        {
+            // بررسی اینکه آیا قبلاً برگشت داده شده است
+            var existingReversal = await _db.WalletTransactions
+                .FirstOrDefaultAsync(wt => 
+                    wt.ReferenceId == commission.Id &&
+                    wt.Description != null &&
+                    wt.Description.Contains("برگشت پورسانت اشتراک لغو شده"));
+
+            if (existingReversal != null)
+            {
+                continue; // قبلاً برگشت داده شده
+            }
+
+            // کسر مبلغ پورسانت از کیف پول visitor (حتی اگر موجودی منفی شود)
+            var idempotencyKey = $"commission_reversal_{commission.Id}_{now:yyyyMMddHHmmss}";
+            var debitResult = await _walletService.DebitAllowNegativeAsync(
+                commission.VisitorUserId,
+                commission.CommissionAmountRial,
+                operationType.Id,
+                referenceType.Id,
+                commission.Id,
+                idempotencyKey,
+                $"برگشت پورسانت اشتراک لغو شده (مبلغ اصلی: {commission.OriginalAmountRial / 10m} تومان، پورسانت: {commission.CommissionAmountRial / 10m} تومان)");
+
+            if (!debitResult.Success)
+            {
+                // Log error but continue with other commissions
+                Console.WriteLine($"[SubscriptionService] Failed to reverse commission {commission.Id}: {debitResult.ErrorMessage}");
+            }
+        }
     }
 }
 

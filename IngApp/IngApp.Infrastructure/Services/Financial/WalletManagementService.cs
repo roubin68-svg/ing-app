@@ -187,11 +187,6 @@ public class WalletManagementService : IWalletManagementService
         if (user == null)
             throw new NotFoundException("کاربر یافت نشد.");
 
-        // بررسی موجودی کافی
-        var balance = await _walletService.GetBalanceAsync(userId);
-        if (balance == null || balance.BalanceRial < amountRial)
-            throw new ValidationException(new() { "موجودی کیف پول کافی نیست." });
-
         // دریافت OperationType و ReferenceType
         var operationType = await _db.FinancialOperationTypes
             .FirstOrDefaultAsync(ot => ot.Code == "ManualWithdrawal");
@@ -205,10 +200,10 @@ public class WalletManagementService : IWalletManagementService
         if (referenceType == null)
             throw new AppException("نوع مرجع 'AdminAction' یافت نشد. لطفاً با مدیر سیستم تماس بگیرید.");
 
-        // Debit از Wallet
+        // Debit از Wallet (اجازه موجودی منفی برای بدهکار/بستانکار)
         // IdempotencyKey حداکثر 100 کاراکتر است، پس الگو را کوتاه نگه می‌داریم
         var idempotencyKey = $"manual-withdrawal-{userId}-{DateTime.Now:yyyyMMddHHmmss}";
-        var debitResult = await _walletService.DebitAsync(
+        var debitResult = await _walletService.DebitAllowNegativeAsync(
             userId,
             amountRial,
             operationType.Id,

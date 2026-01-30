@@ -35,6 +35,7 @@ public class FinancialOperationTypeConfiguration : IEntityTypeConfiguration<Fina
             new FinancialOperationType { Id = 10, Code = "SubscriptionRefund", Title = "برگشت مبلغ اشتراک", Description = "برگشت مبلغ اشتراک لغو شده", IsActive = true },
             new FinancialOperationType { Id = 4, Code = "OnboardingFee", Title = "هزینه ثبت‌نام تأمین‌کننده", Description = "هزینه یک‌باره ثبت‌نام به عنوان تأمین‌کننده", IsActive = true },
             new FinancialOperationType { Id = 5, Code = "CommissionEarned", Title = "دریافت پورسانت", Description = "پورسانت دریافتی از بازاریابی", IsActive = true },
+            new FinancialOperationType { Id = 11, Code = "CommissionReversal", Title = "برگشت پورسانت", Description = "برگشت پورسانت پرداخت شده", IsActive = true },
             new FinancialOperationType { Id = 6, Code = "ManualDeposit", Title = "واریز دستی", Description = "واریز دستی توسط مدیر", IsActive = true },
             new FinancialOperationType { Id = 7, Code = "ManualWithdrawal", Title = "برداشت دستی", Description = "برداشت دستی توسط مدیر", IsActive = true }
         );

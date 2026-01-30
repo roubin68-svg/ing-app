@@ -279,30 +279,40 @@ public class UserSubscriptionManagementService : IUserSubscriptionManagementServ
         long usedAmountRial = 0;
         long remainingAmountRial = 0;
 
-        // اگر اشتراک هنوز شروع نشده (StartDate > now)
-        if (subscription.StartDate > now)
+        // تبدیل به تاریخ بدون ساعت برای مقایسه
+        var nowDate = now.Date;
+        var startDateOnly = subscription.StartDate.Date;
+        var endDateOnly = subscription.EndDate.Date;
+
+        // محاسبه تعداد کل روزها بر اساس DurationMonths (1 ماه = 30 روز)
+        // اگر DurationMonths = 1 باشد، باید 30 روز باشد
+        totalDays = subscription.Plan.DurationMonths * 30;
+
+        // اگر تاریخ شروع بعد از امروز باشد (هنوز شروع نشده)
+        if (startDateOnly > nowDate)
         {
             usedDays = 0;
-            totalDays = (int)(subscription.EndDate - subscription.StartDate).TotalDays;
             usedAmountRial = 0;
             remainingAmountRial = originalAmountRial;
         }
-        // اگر اشتراک شروع شده اما هنوز تمام نشده
-        else if (subscription.StartDate <= now && subscription.EndDate > now)
+        // اگر تاریخ شروع امروز یا قبل از امروز باشد (شروع شده)
+        else if (startDateOnly <= nowDate && subscription.EndDate > now)
         {
-            usedDays = (int)(now - subscription.StartDate).TotalDays;
-            totalDays = (int)(subscription.EndDate - subscription.StartDate).TotalDays;
+            // محاسبه روزهای استفاده شده (از تاریخ شروع تا امروز، شامل هر دو)
+            // اگر startDate = 10/11 و now = 10/11 باشد، باید 1 روز باشد
+            usedDays = (nowDate - startDateOnly).Days + 1;
             
             if (totalDays > 0)
             {
-                usedAmountRial = (long)((decimal)originalAmountRial * usedDays / totalDays);
+                var calculatedUsed = (decimal)originalAmountRial * usedDays / totalDays;
+                usedAmountRial = RoundTo100Rial(calculatedUsed);
             }
             else
             {
                 usedAmountRial = originalAmountRial;
             }
             
-            remainingAmountRial = originalAmountRial - usedAmountRial;
+            remainingAmountRial = RoundTo100Rial(originalAmountRial - usedAmountRial);
         }
         // اگر اشتراک تمام شده، هیچ مبلغی برگشت داده نمی‌شود
         else
@@ -321,10 +331,11 @@ public class UserSubscriptionManagementService : IUserSubscriptionManagementServ
         }
 
         // محاسبه کارمزد خدمات از مبلغ باقیمانده
-        long serviceFeeAmountRial = (long)(remainingAmountRial * serviceFeePercentage / 100m);
+        var calculatedServiceFee = remainingAmountRial * serviceFeePercentage / 100m;
+        long serviceFeeAmountRial = RoundTo100Rial(calculatedServiceFee);
 
         // محاسبه مبلغ نهایی برگشتی
-        long refundAmountRial = remainingAmountRial - serviceFeeAmountRial;
+        long refundAmountRial = RoundTo100Rial(remainingAmountRial - serviceFeeAmountRial);
 
         if (refundAmountRial <= 0)
         {
@@ -388,7 +399,7 @@ public class UserSubscriptionManagementService : IUserSubscriptionManagementServ
 
         // دریافت OperationType و ReferenceType برای Debit
         var operationType = await _db.FinancialOperationTypes
-            .FirstAsync(ot => ot.Code == "CommissionEarned");
+            .FirstAsync(ot => ot.Code == "CommissionReversal");
 
         var referenceType = await _db.FinancialReferenceTypes
             .FirstAsync(rt => rt.Code == "WalletTransaction");
@@ -409,9 +420,9 @@ public class UserSubscriptionManagementService : IUserSubscriptionManagementServ
                 continue; // قبلاً برگشت داده شده
             }
 
-            // کسر مبلغ پورسانت از کیف پول visitor
+            // کسر مبلغ پورسانت از کیف پول visitor (حتی اگر موجودی منفی شود)
             var idempotencyKey = $"commission_reversal_{commission.Id}_{now:yyyyMMddHHmmss}";
-            var debitResult = await _walletService.DebitAsync(
+            var debitResult = await _walletService.DebitAllowNegativeAsync(
                 commission.VisitorUserId,
                 commission.CommissionAmountRial,
                 operationType.Id,
@@ -464,6 +475,14 @@ public class UserSubscriptionManagementService : IUserSubscriptionManagementServ
         description += $"مبلغ نهایی برگشتی: {refundToman:N0} تومان";
 
         return description;
+    }
+
+    /// <summary>
+    /// گرد کردن به 100 ریال (گرد به پایین)
+    /// </summary>
+    private static long RoundTo100Rial(decimal amount)
+    {
+        return (long)(Math.Floor(amount / 100m) * 100m);
     }
 }
 
